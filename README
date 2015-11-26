@@ -1,0 +1,1 @@
+This project is for the transformation of data collected from Southwestern University. Main script is readdata.m. Two useful functions are used to split and transform data into easy-to-read form.
