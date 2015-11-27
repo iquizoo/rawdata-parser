@@ -10,7 +10,7 @@ match_str  = regexp(a, '[a-zA-Z]+', 'match');
 num_var    = length(match_str);
 
 %Match data of output table.
-match_data = regexp(a, '[\d\.]+', 'match');
+match_data = cellfun(@str2double, regexp(a, '[\d\.]+', 'match'), 'UniformOutput', false);
 num_data   = length(match_data);
 
 %Empty padding.

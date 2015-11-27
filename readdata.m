@@ -2,6 +2,7 @@
 %examination used by students.
 
 %Here is a method of question category based way to read in data.
+%By Zhang, Liang. 2015/11/27.
 
 clear, clc
 filesInfo = dir('*.xls');
@@ -24,6 +25,7 @@ ROW_LABEL.data = 2;
 %File-wise processing.
 dataExtract = [];
 for ifile = 1:length(filesInfo)
+    initialVarsFile = who;
     fprintf('Now processing %s\n', filesInfo(ifile).name);
     
     %Read in the information of interest.
@@ -43,7 +45,8 @@ for ifile = 1:length(filesInfo)
         sdk_loc    = find(loc_of_int.data(2, :));
         score_loc  = find(loc_of_int.data(3, :));
         %SUBJECT-wise processing.
-        for isub = ROW_LABEL.data + 1:size(data, 1)            
+        for isub = ROW_LABEL.data + 1:size(data, 1)
+            initialVarsSub = who;
             %Extract subject id.
             thisID = data{isub, ID_COL_DATA};
             if ~isnumeric(thisID)
@@ -52,14 +55,14 @@ for ifile = 1:length(filesInfo)
                 thisData.sid = thisID;
             end
             
-            if ~isnan(thisID) 
+            if ~isnan(thisID)
                 thisInfo = info_of_int(ismember(info_of_int(:, ismember(COL_OF_INT.info, 'id')), thisID), ~ismember(COL_OF_INT.info, 'id'));
                 thisData.info = cell2table(thisInfo, 'VariableNames', info_var_name);
                 thisData.data = [];
                 
                 %QUESTION-wise processing.
                 for iloc = 1:length(record_loc)
-                    
+                    initialVarsQuest = who;
                     %Extract question id.
                     thisQID = data{1, record_loc(iloc)};
                     if ischar(thisQID)
@@ -121,12 +124,16 @@ for ifile = 1:length(filesInfo)
                     thisQuestData.sdk = str2table(data{isub, sdk_loc(iloc)});
                     thisQuestData.score  = data{isub, score_loc(iloc)};
                     thisData.data = [thisData.data, thisQuestData];
-                    clearvars('thisQuestData');
+                    clearvars('-except', initialVarsQuest{:});
                 end
-                dataExtract = [dataExtract, thisData];
-                clearvars('thisData');
+            else
+                thisData.data.record = table;
+                thisData.data.sdk = table;
+                thisData.data.score = [];
             end
+            dataExtract = [dataExtract, thisData];
+            clearvars('-except', initialVarsSub{:});
         end
     end
-    clear loc_of_int info_of_int
+    clearvars('-except', initialVarsFile{:});
 end
