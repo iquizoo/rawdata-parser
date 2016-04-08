@@ -18,9 +18,8 @@ delimiters = curTaskPara.Delimiters{1};
 VariablesNames = strsplit(curTaskPara.VariablesNames{:});
 nvars = length(VariablesNames);
 %Output that need to be transformed into numeric data.
-trans = 1:nvars;
 charVars = str2double(num2cell(num2str(curTaskPara.VariablesChar)'));
-trans = trans(~ismember(trans, charVars));
+trans = ~ismember(1:nvars, charVars);
 if ~isempty(conditions{:})    
     %Split the conditions.
     % Determine when there exists two seperate conditions.
@@ -57,6 +56,10 @@ if ~isempty(conditions{:})
         for isubcond = 1:nsubcond
             %Split into desired variables.
             tmpOut = strsplit(curCondStr{isubcond}, delimiters(2));
+            if all(cellfun(@isempty, tmpOut))
+                curStrOut(isubcond, :) = [];
+                continue
+            end
             if length(tmpOut) ~= nvars
                 warning('UDF:SNGPROC:VARNUMMISMATCH', ...
                     'Variable Names number mismatch the data. Please check the data!\n')
@@ -73,8 +76,8 @@ if ~isempty(conditions{:})
                 return
             end
             %Transforming numeric variables.
-            tmpOut(~ismember(trans, charVars)) = ...
-                cellfun(@str2double, tmpOut(~ismember(trans, charVars)), 'UniformOutput', false);
+            tmpOut(trans) = ...
+                cellfun(@str2double, tmpOut(trans), 'UniformOutput', false);
             curStrOut(isubcond, :) = tmpOut;
         end
         % Restructure the data.

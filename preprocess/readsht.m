@@ -70,7 +70,11 @@ for isht = ssht:nsht
         end
     end
     curTaskData.splitRes = cursplit.splitRes;
-    dataExtract(isht).Data = curTaskData;
+    if ssht == nsht
+        dataExtract.Data = curTaskData;
+    else
+        dataExtract(isht).Data = curTaskData;
+    end
     clearvars('-except', initialVarsSht{:});
 end
 fclose(logfid);
