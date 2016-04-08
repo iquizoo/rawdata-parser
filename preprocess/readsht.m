@@ -28,6 +28,7 @@ insht = find(ismember(sheets, shtname));
 if isempty(insht)
     userin = input('Will processing all the sheets, continue([Y]/N)?', 's');
     if strcmpi(userin, 'n') || strcmpi(userin, 'no')
+        dataExtract = [];
         return
     end
     ssht = 1;
