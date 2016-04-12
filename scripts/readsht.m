@@ -71,6 +71,7 @@ for isht = ssht:nsht
         end
     end
     curTaskData.splitRes = cursplit.splitRes;
+    curTaskData.status = cursplit.status;
     if ssht == nsht
         dataExtract.Data = curTaskData;
     else
