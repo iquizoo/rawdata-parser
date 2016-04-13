@@ -1,0 +1,16 @@
+function res = SRT(splitRes)
+%SRT Does some basic data transformation to simple reaction time tasks.
+%
+%   Basically, the supported tasks are as follows:
+%     反应速度, task id: 7-9
+%     
+%   The output table contains 2 variables, called MRT, VRT.
+
+%By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+
+RECORD = splitRes{:}.RECORD{:};
+%Cutoff RTs: for too fast and too slow RTs.
+RECORD(RECORD.RT < 100 | RECORD.RT > 2500, :) = [];
+MRT = nanmean(RECORD.RT); %Mean RT.
+VRT = nanvar(RECORD.RT); %Variance of RT, note not standard deviation.
+res = table(MRT, VRT);
