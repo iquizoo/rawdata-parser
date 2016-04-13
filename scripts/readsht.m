@@ -1,10 +1,11 @@
 function dataExtract = readsht(fname, shtname)
-%This script is used for processing data from HQH, mainly about some
-%examination used by students.
+%This script is used for processing raw data of CCDPro, stored originally
+%in an Excel file.
 
 %Here is a method of question category based way to read in data.
 %By Zhang, Liang. 2015/11/27.
 %Modified to use in another problem. 
+%Modification completed at 2016/04/13.
 
 %Check input variables.
 if nargin < 2
@@ -12,8 +13,8 @@ if nargin < 2
 end
 
 %Load parameters.
-para = readtable('para.xlsx', 'Sheet', 'para');
-settings = readtable('settings.xlsx', 'Sheet', 'settings');
+para = readtable('taskSettings.xlsx', 'Sheet', 'para');
+settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
@@ -24,8 +25,11 @@ logfid = fopen('ReadLog.log', 'w');
 %Sheet-wise processing.
 nsht = length(sheets);
 %Initializing works.
-insht = find(ismember(sheets, shtname));
-if isempty(insht)
+if isrow(shtname)
+    shtname = shtname';
+end
+shtRange = find(ismember(sheets, shtname));
+if isempty(shtRange)
     userin = input('Will processing all the sheets, continue([Y]/N)?', 's');
     if strcmpi(userin, 'n') || strcmpi(userin, 'no')
         dataExtract = [];
@@ -33,10 +37,10 @@ if isempty(insht)
     end
     ssht = 1;
     dataExtract = struct('TaskName', sheets', 'Data', cell(nsht, 1));
-else %Only do jobs in the specified sheet.
-    ssht = insht;
-    nsht = insht;
-    dataExtract = struct('TaskName', shtname, 'Data', cell(1, 1));
+else %Only do jobs in the specified sheets.
+    ssht = shtRange(1); %Starting sheet.
+    nsht = shtRange(end); %Ending sheet.
+    dataExtract = struct('TaskName', shtname, 'Data', cell(length(shtRange), 1));
 end
 %Begin processing.
 for isht = ssht:nsht
@@ -72,8 +76,8 @@ for isht = ssht:nsht
     end
     curTaskData.splitRes = cursplit.splitRes;
     curTaskData.status = cursplit.status;
-    if ssht == nsht
-        dataExtract.Data = curTaskData;
+    if ssht ~= 1
+        dataExtract(isht - ssht + 1).Data = curTaskData;
     else
         dataExtract(isht).Data = curTaskData;
     end
