@@ -9,6 +9,15 @@ function res = conflict(Taskname, splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
+outvars = {...
+    'RT', 'ACC', ...
+    'RT_Cong', 'ACC_Cong', 'RT_Incong', 'ACC_Incong', ...
+    'RT_CongEffect', 'ACC_CongEffect'};
+if ~istable(splitRes{:})
+    res = array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars);
+    return
+end
 RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: eliminate trials that are too fast (<100ms)
 RECORD(RECORD.RT < 100, :) = [];

@@ -7,6 +7,14 @@ function res = CRT(splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
+outvars = {...
+    'MRT', 'VRT', 'ACC', ...
+    'v', 'a', 'Ter'};
+if ~istable(splitRes{:})
+    res = array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars);
+    return
+end
 RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: eliminate RTs that are too fast (<100ms) or too slow (>2500ms)
 RECORD(RECORD.RT < 100 | RECORD.RT > 2500, :) = [];

@@ -8,6 +8,13 @@ function res = gonogo(Taskname, splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
+outvars = {...
+    'ACC', 'RT'};
+if ~istable(splitRes{:})
+    res = array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars);
+    return
+end
 RECORD = splitRes{:}.RECORD{:};
 %Find out all the no-go conditions.
 switch Taskname{:}
