@@ -7,52 +7,55 @@ function dataExtract = readsht(fname, shtname)
 %Modified to use in another problem. 
 %Modification completed at 2016/04/13.
 
-%Check input variables.
-if nargin < 2
-    shtname = '';
-end
-
-%Load parameters.
-para = readtable('taskSettings.xlsx', 'Sheet', 'para');
-settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
+
+%Check input variables. Some basic checking for shtname variable.
+if nargin < 2
+    shtname = sheets';
+end
+if ~iscell(shtname)
+    %When constructing table, character array is not allowed, but cell
+    %string is allowed.
+    shtname = {shtname};
+end
+if isrow(shtname)
+    shtname = shtname';
+end
 
 %Log file.
 logfid = fopen('ReadLog.log', 'w');
 
 %Sheet-wise processing.
-nsht = length(sheets);
 %Initializing works.
-if isrow(shtname)
-    shtname = shtname';
-end
+nsht = length(sheets);
 shtRange = find(ismember(sheets, shtname));
-if isempty(shtRange)
+nsht4process = length(shtRange);
+if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
     userin = input('Will processing all the sheets, continue([Y]/N)?', 's');
     if strcmpi(userin, 'n') || strcmpi(userin, 'no')
         dataExtract = [];
         return
     end
-    ssht = 1;
-    dataExtract = struct('TaskName', sheets', 'Data', cell(nsht, 1));
-else %Only do jobs in the specified sheets.
-    ssht = shtRange(1); %Starting sheet.
-    nsht = shtRange(end); %Ending sheet.
-    dataExtract = struct('TaskName', shtname, 'Data', cell(length(shtRange), 1));
 end
+Taskname = shtname;
+Data = cell(nsht4process, 1);
+%Preallocating.
+dataExtract = table(Taskname, Data);
+%Load parameters.
+para = readtable('taskSettings.xlsx', 'Sheet', 'para');
+settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 %Begin processing.
-for isht = ssht:nsht
+for isht = 1:nsht4process
     initialVarsSht = who;
     %Find out the setting of current task.
-    curTaskName = sheets{isht};
+    curTaskName = sheets{shtRange(isht)};
+    fprintf('Now processing sheet %s\n', curTaskName);
     locset = ismember(settings.TaskName, curTaskName);
     if ~any(locset)
+        fprintf('No settings specified for current task.\n');
         continue
     end
-    fprintf('Now processing sheet %s\n', curTaskName);
-    
     %Read in the information of interest.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     curTaskSetting = settings(locset, :);
@@ -76,11 +79,7 @@ for isht = ssht:nsht
     end
     curTaskData.splitRes = cursplit.splitRes;
     curTaskData.status = cursplit.status;
-    if ssht ~= 1
-        dataExtract(isht - ssht + 1).Data = curTaskData;
-    else
-        dataExtract(isht).Data = curTaskData;
-    end
+    dataExtract.Data{isht} = curTaskData;
     clearvars('-except', initialVarsSht{:});
 end
 fclose(logfid);
