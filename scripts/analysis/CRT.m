@@ -11,8 +11,8 @@ outvars = {...
     'MRT', 'VRT', 'ACC', ...
     'v', 'a', 'Ter'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -23,4 +23,4 @@ VRT = nanvar(RECORD.RT(RECORD.ACC == 1));
 ACC = nanmean(RECORD.ACC);
 [v, a, Ter] = EZdif(ACC, MRT / 1000, VRT / 1000000);
 
-res = table(MRT, VRT, ACC, v, a, Ter);
+res = {table(MRT, VRT, ACC, v, a, Ter)};

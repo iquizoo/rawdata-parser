@@ -12,8 +12,8 @@ outvars = {...
     'MRT', 'VRT', ...
     'Rate_hit', 'Rate_FA'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -38,4 +38,4 @@ VRT = nanvar(goRTs);
 Rate_hit = mean(RECORD.ACC(~ismember(RECORD.SCat, ngcond)));
 Rate_FA = 1 -  mean(RECORD.ACC(ismember(RECORD.SCat, ngcond)));
 
-res = table(MRT, VRT, Rate_hit, Rate_FA);
+res = {table(MRT, VRT, Rate_hit, Rate_FA)};

@@ -9,11 +9,11 @@ function res = BART(splitRes)
 outvars = {...
     'MNHit'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
 %Caculate the average hit number.
 MNHit = mean(RECORD.NHit(RECORD.Feedback == 0));
-res = table(MNHit);
+res = {table(MNHit)};

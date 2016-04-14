@@ -11,15 +11,15 @@ function res = gonogo(Taskname, splitRes)
 outvars = {...
     'ACC', 'RT'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
 %Find out all the no-go conditions.
 switch Taskname{:}
     case '抵制诱惑'
-        nogoCode = [0, 1, 2, 3];        
+        nogoCode = [0, 1, 2, 3, 10, 11];        
     case '水果忍者'
         nogoCode = 0;
 end
@@ -32,4 +32,4 @@ VRT = var(RECORD.RT(RECORD.ACC == 1 & ~ismember(RECORD.SCat, nogoCode)));
 Rate_hit = mean(RECORD.ACC(~ismember(RECORD.SCat, nogoCode)));
 Rate_FA = 1 - mean(RECORD.ACC(ismember(RECORD.SCat, nogoCode)));
 
-res = table(MRT, VRT, Rate_hit, Rate_FA);
+res = {table(MRT, VRT, Rate_hit, Rate_FA)};

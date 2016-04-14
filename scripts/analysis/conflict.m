@@ -14,8 +14,8 @@ outvars = {...
     'RT_Cong', 'ACC_Cong', 'RT_Incong', 'ACC_Incong', ...
     'RT_CongEffect', 'ACC_CongEffect'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -45,4 +45,4 @@ RT = mean(RECORD.RT(RECORD.ACC == 1));
 ACC = mean(RECORD.ACC);
 RT_CongEffect = RT_Incong - RT_Cong;
 ACC_CongEffect = ACC_Cong - ACC_Incong;
-res = table(RT, ACC, RT_Cong, ACC_Cong, RT_Incong, ACC_Incong, RT_CongEffect, ACC_CongEffect);
+res = {table(RT, ACC, RT_Cong, ACC_Cong, RT_Incong, ACC_Incong, RT_CongEffect, ACC_CongEffect)};

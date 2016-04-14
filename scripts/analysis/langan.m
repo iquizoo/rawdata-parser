@@ -17,8 +17,8 @@ outvars = {...
     'Count_hit', 'Count_FA', 'Count_miss', 'Count_CR', ...
     'RT_hit', 'RT_FA', 'RT_miss', 'RT_CR'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -76,8 +76,8 @@ end
 [~, locSTIM] = ismember(RECORD.STIM, CResp.STIM);
 if any(locSTIM == 0)
     warning('Certain stimluli not defined in correct answer table. Quiting.\n');
-    res = array2table(nan(1, 8), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, 8), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD.SCat = CResp.SCat(locSTIM);
@@ -96,5 +96,5 @@ RT_FA = mean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 0));
 RT_miss = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 0));
 RT_CR = mean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 1));
 
-res = table(Count_hit, Count_FA, Count_miss, Count_CR, ...
-    RT_hit, RT_FA, RT_miss, RT_CR);
+res = {table(Count_hit, Count_FA, Count_miss, Count_CR, ...
+    RT_hit, RT_FA, RT_miss, RT_CR)};

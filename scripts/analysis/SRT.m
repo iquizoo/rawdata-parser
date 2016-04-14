@@ -11,8 +11,8 @@ function res = SRT(splitRes)
 outvars = {...
     'MRT', 'VRT'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -20,4 +20,4 @@ RECORD = splitRes{:}.RECORD{:};
 RECORD(RECORD.RT < 100 | RECORD.RT > 2500, :) = [];
 MRT = nanmean(RECORD.RT); %Mean RT.
 VRT = nanvar(RECORD.RT); %Variance of RT, note not standard deviation.
-res = table(MRT, VRT);
+res = {table(MRT, VRT)};

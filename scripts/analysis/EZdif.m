@@ -12,10 +12,10 @@ function [v, a, Ter] = EZdif(Pc, MRT, VRT, s)
 %   [V,A,TER] = EZdif(...,s) receives the fourth inputs S as the scaling
 %   parameter, which is just an arbitrary value.
 %
-%Reference:
-%Wagenmakers, E.?J., van der Maas, H. J. L., & Grasman, R. P. P. P.(2007). 
-%An EZ-diffusion model for response time and accuracy. Psychonomic Bulletin 
-%& Review, 14, 3-22.
+%   Reference:
+%   Wagenmakers, E.-J., van der Maas, H. J. L., & Grasman, R. P. P.
+%   P.(2007). An EZ-diffusion model for response time and accuracy.
+%   Psychonomic Bulletin & Review, 14, 3-22.
 
 %By Zhang, Liang. 04/05/2016. E-mail: psychelzh@gmail.com
 

@@ -11,8 +11,8 @@ function res = nback(splitRes)
 outvars = {...
     'ACC', 'RT'};
 if ~istable(splitRes{:})
-    res = array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars);
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
@@ -23,4 +23,4 @@ RECORD(RECORD.RT < 100, :) = [];
 
 ACC = mean(RECORD.ACC);
 RT = mean(RECORD.RT);
-res = table(ACC, RT);
+res = {table(ACC, RT)};
