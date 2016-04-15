@@ -2,8 +2,7 @@ function res = SRT(splitRes)
 %SRT Does some basic data transformation to simple reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
-%     反应速度, task id: 7-9
-%     
+%     7-10. SRT
 %   The output table contains 2 variables, called MRT, VRT.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com

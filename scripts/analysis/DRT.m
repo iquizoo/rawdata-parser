@@ -2,7 +2,7 @@ function res = DRT(splitRes)
 %DRT Does some basic data transformation to discrete reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
-%     ·Ö±æËÙ¶È, task id: 10-13
+%     11-14. DRT
 %   The output table contains 4 variables, called MRT, VRT, Rate_hit and
 %   Rate_FA.
 
@@ -35,7 +35,7 @@ MRT = nanmean(goRTs);
 VRT = nanvar(goRTs);
 
 %hit rate and false alarm rate.
-Rate_hit = mean(RECORD.ACC(~ismember(RECORD.SCat, ngcond)));
-Rate_FA = 1 -  mean(RECORD.ACC(ismember(RECORD.SCat, ngcond)));
+Rate_hit = nanmean(RECORD.ACC(~ismember(RECORD.SCat, ngcond)));
+Rate_FA = 1 -  nanmean(RECORD.ACC(ismember(RECORD.SCat, ngcond)));
 
 res = {table(MRT, VRT, Rate_hit, Rate_FA)};

@@ -56,14 +56,33 @@ for isht = 1:nsht4process
         fprintf('No settings specified for current task.\n');
         continue
     end
-    %Read in the information of interest.
+    %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
+    %Get the information of interest, and check the format.
+    varsOfInterest = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
+    varsOfInterestClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    curTaskData(:, ~ismember(curTaskData.Properties.VariableNames, varsOfInterest)) = [];
+    for ivar = 1:length(varsOfInterest)
+        curVar = varsOfInterest{ivar};
+        curClass = varsOfInterestClass{ivar};
+        if ~isa(curTaskData.(curVar), curClass)
+            switch curClass
+                case 'cell'
+                    curTaskData.(curVar) = repmat({''}, height(curTaskData), 1);
+                case 'double'
+                    curTaskData.(curVar) = nan(height(curTaskData), 1);
+            end
+        end
+    end
+    %Get a table curTaskCfg to combine two variables: conditions and para,
+    %which are used in the function sngproc. See more in function sngproc.
     curTaskSetting = settings(locset, :);
     curTaskPara = para(ismember(para.TemplateIdentity, curTaskSetting.TemplateIdentity), :);
     curTaskCfg = table;
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
     cursplit = rowfun(@sngproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
+    %Generate some warning according to the status.
     if any(cursplit.status ~= 0)
         warning('UDF:READSHT:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
         if any(cursplit.status == -1) %Data mismatch found.
@@ -77,8 +96,11 @@ for isht = 1:nsht4process
                 curTaskName);
         end
     end
-    curTaskData.splitRes = cursplit.splitRes;
-    curTaskData.status = cursplit.status;
+    %Store the TaskIDName from settings, which is usually used in the
+    %following analysis.
+    curTaskData.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
+    curTaskData.splitRes = cursplit.splitRes; % Store the split results.
+    curTaskData.status = cursplit.status; % Store the status,
     dataExtract.Data{isht} = curTaskData;
     clearvars('-except', initialVarsSht{:});
 end

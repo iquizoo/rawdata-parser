@@ -1,13 +1,13 @@
-function res = langan(Taskname, splitRes)
+function res = langan(TaskIDName, splitRes)
 %SRT Does some basic data transformation to simple reactiontime tasks.
 %
-%   Basically, the supported tasks are as follows (TASK ID: 1-6):
-%     符号判断 
-%     字形判断
-%     声调判断
-%     拼音判断
-%     词语判断
-%     语义判断(高级)
+%   Basically, the supported tasks are as follows:
+%     1. Symbol
+%     2. Orthograph
+%     3. Tone
+%     4. Pinyin
+%     5. Lexic
+%     6. Semantic
 %   The output table contains 8 variables, called Count_hit, Count_FA,
 %   Count_miss, Count_CR, RT_hit, RT_FA, RT_miss, RT_CR
 
@@ -23,18 +23,18 @@ if ~istable(splitRes{:})
 end
 RECORD = splitRes{:}.RECORD{:};
 %Modify SCat.
-switch Taskname{:}
-    case '符号判断'
+switch TaskIDName{:}
+    case 'Symbol'
         CResp = cell2table(...
             [repmat({'⊙', 0; '〒', 0; '♀', 0; '※', 0; '¤', 0}, 5, 1); ...
             repmat({'§', 1}, 25, 1)], ...
             'VariableNames', {'STIM', 'SCat'});
-    case '字形判断'
+    case 'Orthograph'
         CResp = cell2table(...
             [cellfun(@num2str, num2cell((1:50)'), 'UniformOutput', false), ...
             num2cell([ones(25, 1); zeros(25, 1)])], ...
             'VariableNames', {'STIM', 'SCat'});
-    case '声调判断'
+    case 'Tone'
         CResp = cell2table(...
             {'各',1;'力',1;'四',1;'爱',1;'众',1;'次',1;'泪',1;'办',1;'块',1;...
             '互',1;'过',1;'代',1;'去',1;'认',1;'弄',1;'入',1;'动',1;'燕',1;'妙',1;...
@@ -42,7 +42,7 @@ switch Taskname{:}
             '光',0;'春',0;'吃',0;'语',0;'灰',0;'反',0;'迷',0;'活',0;'习',0;'牙',0;...
             '洋',0;'打',0;'平',0;'门',0;'节',0;'祖',0;'杆',0;'早',0;'总',0;'品',0;'百',0;}, ...
             'VariableNames', {'STIM', 'SCat'});
-    case '拼音判断'
+    case 'Pinyin'
         CResp = cell2table(...
             {'āuh',0;'méin',0;'bàg',0;'lù',1;'rànɡ',1;'dluī',0;'xìnɡ',1;...
             'cónɡ',1;'huà',1;'hsū',0;'ɡuānɡ',1;'wāin',0;'yè',1;'bǐg',0;'hóu',1;...
@@ -52,7 +52,7 @@ switch Taskname{:}
             'dòu',1;'dòn',0;'poǎ',0;'iàn',0;'chī',1;'biān',1;'lám',0;'zhèɡ',0;...
             'yǔ',1;'xuě',1;'shǎo',1}, ...
             'VariableNames', {'STIM', 'SCat'});
-    case '词语判断'
+    case 'Lexic'
         CResp = cell2table(...
             {'草地',1;'跳高',1;'菜园',1;'这些',1;'走过',1;'跑步',1;'出来',1;...
             '远近',1;'晚上',1;'绿色',1;'电视',1;'作业',1;'田野',1;'读书',1;'身体',1;...
@@ -62,14 +62,14 @@ switch Taskname{:}
             '交傲',0;'树跟',0;'罗卜',0;'足求',0;'事晴',0;'西呱',0;'你门',0;'可昔',0;...
             '海阳',0;'旦是',0;'店脑',0;}, ...
             'VariableNames', {'STIM', 'SCat'});
-    case '语义判断(高级)'
+    case 'Semantic'
         CResp = cell2table(...
             {'公鸡',1;'燕子',1;'青蛙',1;'水牛',1;'老鼠',1;'山羊',1;'黑狗',1;...
             '熊猫',1;'黄牛',1;'松鼠',1;'野鸭',1;'老虎',1;'兔子',1;'大象',1;'猴子',1;...
             '狮子',1;'乌龟',1;'乌鸦',1;'蝌蚪',1;'黑熊',1;'孔雀',1;'大雁',1;'海鸥',1;...
             '蜘蛛',1;'壁虎',1;'房屋',0;'花朵',0;'白云',0;'马车',0;'飞机',0;'高山',0;...
             '故乡',0;'茶几',0;'明月',0;'尘土',0;'竹排',0;'鸟岛',0;'皮球',0;'商场',0;...
-            '土地',0;'跑步',0;'象牙',0;'胡子',0;'木鱼',0;'毛巾',0;'贺卡',0;'雨伞',0;...
+            '土地',0;'跑步',0;'早晨',0;'胡子',0;'木鱼',0;'毛巾',0;'贺卡',0;'雨伞',0;...
             '沙发',0;'尾巴',0;'雪人',0;}, ...
             'VariableNames', {'STIM', 'SCat'});
 end
@@ -86,15 +86,15 @@ RECORD.SCat = CResp.SCat(locSTIM);
 RECORD(RECORD.RT < 100, :) = [];
 
 %Occurences of hit and false alarm.
-Count_hit = sum(RECORD.ACC(RECORD.SCat == 1));
-Count_FA = sum(~RECORD.ACC(RECORD.SCat == 0));
-Count_miss = sum(~RECORD.ACC(RECORD.SCat == 1));
-Count_CR = sum(RECORD.ACC(RECORD.SCat == 0));
+Count_hit = nansum(RECORD.ACC(RECORD.SCat == 1));
+Count_FA = nansum(~RECORD.ACC(RECORD.SCat == 0));
+Count_miss = nansum(~RECORD.ACC(RECORD.SCat == 1));
+Count_CR = nansum(RECORD.ACC(RECORD.SCat == 0));
 %Mean RT computation.
-RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
-RT_FA = mean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 0));
-RT_miss = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 0));
-RT_CR = mean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 1));
+RT_hit = nanmean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
+RT_FA = nanmean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 0));
+RT_miss = nanmean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 0));
+RT_CR = nanmean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 1));
 
 res = {table(Count_hit, Count_FA, Count_miss, Count_CR, ...
     RT_hit, RT_FA, RT_miss, RT_CR)};

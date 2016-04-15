@@ -33,7 +33,7 @@ end
 ntasks = length(dataExtract.Taskname);
 taskRange = find(ismember(dataExtract.Taskname, tasks));
 ntasks4process = length(taskRange);
-if isequal(ntasks4process, 1:ntasks)
+if isequal(taskRange, (1:ntasks)')
     userin = input('Will processing all the tasks, continue([Y]/N)?', 's');
     if strcmpi(userin, 'n') || strcmpi(userin, 'no')
         resdata = [];
@@ -45,14 +45,17 @@ for itask = 1:ntasks4process
     initialVarsTask = who;
     %Find out the setting of current task.
     curTaskName = dataExtract.Taskname{taskRange(itask)};
-    fprintf('Now processing sheet %s\n', curTaskName);
+    fprintf('Now processing task %s\n', curTaskName);
     %Setting for the computation of current task.
     curTaskData = dataExtract.Data{taskRange(itask)};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
     if isempty(curTaskSetting.AnalysisFun{:})
-        fprintf('No analysis function found for current task. Aborting.\n');
-        curTaskData.res = repmat({array2table(nan, 'VariableNames', {'RES'})}, height(curTaskData), 1);
-        dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = curTaskData;
+        fprintf('No analysis function found for current task. Will delete this task. Aborting...\n');
+        dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
+        continue
+    elseif all(cellfun(@isempty, curTaskData.splitRes))
+        fprintf('No correct recorded data is found. Will delete this task. Aborting...\n');
+        dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
         continue
     end
     anafun = str2func(curTaskSetting.AnalysisFun{:});
@@ -63,5 +66,7 @@ for itask = 1:ntasks4process
     clearvars('-except', initialVarsTask{:});
 end
 %Concatenate data into one single table.
-resdata = cat(1, dataExtract(taskRange, :).Data{:});
+dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
+ntaskRange = ismember(dataExtract.Taskname, tasks);
+resdata = cat(1, dataExtract(ntaskRange, :).Data{:});
 rmpath(anafunpath);

@@ -49,12 +49,12 @@ nusr = length(uniUsrID);
 for iusr = 1:nusr
     curUsrID = uniUsrID(iusr);
     curUsrBI = dataMergeBI(dataMergeBI.userId == curUsrID, :);
-    if height(curUsrBI) > 1
+    if height(curUsrBI) > 1 %Mutiple entries for current user's basic information.
         mrgResolved = true;
         for ivobi = 2:length(varsOfBasicInformation)
             cvobi = varsOfBasicInformation{ivobi};
-            if ~all(isundefined(curUsrBI.(cvobi))) && ...
-                    length(unique(curUsrBI.(cvobi))) ~= 1
+            if ~all(isundefined(curUsrBI.(cvobi))) && ... %All of the information is undefined.
+                    length(unique(curUsrBI.(cvobi))) ~= 1 %Only one category is found.
                 mrgResolved = false;
             end
         end
@@ -76,11 +76,11 @@ mrgdata = dataMergeBI;
 %Load basic parameters.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 resdata.Taskname = categorical(resdata.Taskname);
-tasks = categories(resdata.Taskname);
+tasks = unique(resdata.Taskname, 'stable');
 nTasks = length(tasks);
 for imrgtask = 1:nTasks
     initialVars = who;
-    curTaskName = tasks{imrgtask};
+    curTaskName = tasks(imrgtask);
     curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
     curTaskData = resdata(resdata.Taskname == curTaskName, :);
     curTaskData.res = cat(1, curTaskData.res{:});

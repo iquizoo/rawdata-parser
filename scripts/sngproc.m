@@ -31,7 +31,7 @@ if ~isempty(conditions{:})
         conditionsNames = strsplit(curTaskPara.AddInfo{:});
         if length(conditions) ~= length(conditionsNames)
             warning('UDF:SNGPROC:MODE1ABNORMAL', ...
-                'More partition condition than expected, will return empty result. Please check the data.\n')
+                'Partition conditions mismatch expectation, will return empty result. Please check the data.\n')
             nc = length(conditionsNames);
             conditions = table;
             %When split mode is not 3, the variable names of output is
@@ -106,38 +106,27 @@ if ~isempty(conditions{:})
     for icond = 1:ncond
         curCondStr = conditions.(conditionsNames{icond});
         curCondStr = strsplit(curCondStr{:}, delimiters(1));
-        nsubcond = length(curCondStr);        
-        curStrOut = cell(nsubcond, nvars);
-        for isubcond = 1:nsubcond
-            %Split into desired variables.
-            tmpOut = strsplit(curCondStr{isubcond}, delimiters(2));
-            if all(cellfun(@isempty, tmpOut))
-                curStrOut(isubcond, :) = [];
-                continue
-            end
-            if length(tmpOut) ~= nvars
-                warning('UDF:SNGPROC:VARNUMMISMATCH', ...
-                    'Variable Names number mismatch the data. Please check the data!\n')
-                nc = length(conditionsNames);
-                conditions = table;
-                for ic = 1:nc
-                    curStrOut = cell(1, nvars);
-                    curStrOut(trans) = {nan};
-                    curStrOut(~trans) = {''};
-                    conditions.(conditionsNames{ic}) = {cell2table(curStrOut, 'VariableNames', VariablesNames)};
-                end
-                splitRes = {conditions};
-                status = -1;
-                return
-            end
-            %Transforming numeric variables.
-            tmpOut(trans) = ...
-                cellfun(@str2double, tmpOut(trans), 'UniformOutput', false);
-            curStrOut(isubcond, :) = tmpOut;
+        curCondStrSplit = cellfun(@strsplit, ...
+            curCondStr, repmat({delimiters(2)}, size(curCondStr)),...
+            'UniformOutput', false);
+        curCondStrSplitLen = cellfun(@length, curCondStrSplit);
+        %If the length of the split-out string is not equal to the number
+        %of output variable names.
+        curCondStrSplit(curCondStrSplitLen ~= nvars) = {num2cell(nan(1, nvars))};
+        if all(curCondStrSplitLen ~= nvars)
+            warning('UDF:SNGPROC:NOFORMATDATA', ...
+                'Recorded data not correctly formatted. Please check!\n');
+            status = -1;
+        else
+            status = 0;
         end
-        % Restructure the data.
-        conditions.(conditionsNames{icond}) = {cell2table(curStrOut, 'VariableNames', VariablesNames)};
+        curCondStrSplit = cat(1, curCondStrSplit{:});
+        curCondStrSplit(:, trans) = num2cell(str2double(curCondStrSplit(:, trans)));
+        conditions.(conditionsNames{icond}) = {cell2table(curCondStrSplit, 'VariableNames', VariablesNames)};
     end
+else
+    warning('UDF:SNGPROC:EMPTYDATA', ...
+        'Data not recorded! Please check!\n');
+    status = -1;
 end
 splitRes = {conditions};
-status = 0;

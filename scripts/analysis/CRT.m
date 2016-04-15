@@ -2,7 +2,7 @@ function res = CRT(splitRes)
 %DRT Does some basic data transformation to choice reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
-%     Ñ¡ÔñËÙ¶È, task id: 14-16
+%     15-17. CRT
 %   The output table contains 6 variables, called MRT, VRT, ACC, v, a, Ter.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
