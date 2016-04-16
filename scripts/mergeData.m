@@ -84,10 +84,12 @@ for imrgtask = 1:nTasks
     curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
     curTaskData = resdata(resdata.TaskIDName == curTaskIDName, :);
     curTaskData.res = cat(1, curTaskData.res{:});
-    curTaskOutVars = strcat(curTaskSetting.TaskIDName, '_', curTaskData.res.Properties.VariableNames);
+    % Note: there might be multiple entries of task settings for some
+    % tasks, e.g., 'SRT', and then just choose the first entry.
+    curTaskOutVars = strcat(curTaskSetting.TaskIDName{1}, '_', curTaskData.res.Properties.VariableNames);
     curTaskData.res.Properties.VariableNames = curTaskOutVars;
     %Transformation for 'res'.
-    curTaskData = [curTaskData, curTaskData.res];
+    curTaskData = [curTaskData, curTaskData.res]; %#ok<AGROW>
     for ivars = 1:length(curTaskOutVars)
         curvar = curTaskOutVars{ivars};
         mrgdata.(curvar) = nan(height(mrgdata), 1);
