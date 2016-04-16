@@ -24,6 +24,15 @@ if nargin == 3
     s = 0.1;
 end
 
+%In case of VRT equals to 0, the data must be singular, and return NaNs to
+%result.
+if VRT == 0
+    v = nan;
+    a = nan;
+    Ter = nan;
+    return
+end
+
 %When pc is 0, 0.5, or 1, there needs some modification of Pc.
 Pc(Pc == 0) = 0.01;
 Pc(Pc == 1) = 0.99;

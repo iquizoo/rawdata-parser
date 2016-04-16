@@ -6,6 +6,7 @@ function mrgdata = mergeData(resdata)
 %
 %   See also basicCompute.
 
+resdata = cat(1, resdata.Data{:});
 % Some transformation of basic information, e.g. school and grade.
 varsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
 dataMergeBI = resdata(:, ismember(resdata.Properties.VariableNames, varsOfBasicInformation));

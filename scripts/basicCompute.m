@@ -1,5 +1,5 @@
 function resdata = basicCompute(dataExtract, tasks)
-%BASICCOMPUTETOMERGE Does some basic computation on data.
+%BASICCOMPUTE Does some basic computation on data.
 %   RESDATA = BASICCOMPUTETOMERGE(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
 %
@@ -68,5 +68,5 @@ end
 %Concatenate data into one single table.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 ntaskRange = ismember(dataExtract.Taskname, tasks);
-resdata = cat(1, dataExtract(ntaskRange, :).Data{:});
+resdata = dataExtract(ntaskRange, :);
 rmpath(anafunpath);
