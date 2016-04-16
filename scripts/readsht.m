@@ -38,7 +38,7 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
         return
     end
 end
-Taskname = shtname;
+Taskname = sheets(shtRange)';
 Data = cell(nsht4process, 1);
 %Preallocating.
 dataExtract = table(Taskname, Data);
@@ -49,7 +49,7 @@ settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 for isht = 1:nsht4process
     initialVarsSht = who;
     %Find out the setting of current task.
-    curTaskName = sheets{shtRange(isht)};
+    curTaskName = Taskname{isht};
     fprintf('Now processing sheet %s\n', curTaskName);
     locset = ismember(settings.TaskName, curTaskName);
     if ~any(locset)

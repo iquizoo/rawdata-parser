@@ -1,12 +1,11 @@
 function res = conflict(TaskIDName, splitRes)
-%FLANKER Does some basic data transformation to conflict-based tasks.
+%CONFLICT Does some basic data transformation to conflict-based tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     38. Flanker,
 %     39-40. Stroop1-2,
-%     44, TaskSwicthing.
-%   The output table contains 8 variables, called RT, ACC, RT_Cong,
-%   ACC_Cong, RT_Incong, ACC_Incong, RT_CongEffect, ACC_CongEffect.
+%     44. TaskSwicthing.
+%   The output table contains 8 variables.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
@@ -32,7 +31,7 @@ end
 repVarSuff = repmat(varSuff, 2, 1);
 outSuff = repVarSuff(:)';
 outvars = strcat(repmat({'RT', 'ACC'}, 1, 4), outSuff);
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return

@@ -26,8 +26,8 @@ if ~isempty(conditions{:})
     %% Split the conditions.
     % Determine when there exists several seperate conditions.
     if curTaskPara.SplitMode == 1
-        conditions = strsplit(conditions{:}, delimiters(1));
-        delimiters = delimiters(2:end);
+        conditions = strsplit(conditions{:});
+        conditions = regexp(conditions, '(?<=\().*(?=\))', 'match', 'once');
         conditionsNames = strsplit(curTaskPara.AddInfo{:});
         if length(conditions) ~= length(conditionsNames)
             warning('UDF:SNGPROC:MODE1ABNORMAL', ...

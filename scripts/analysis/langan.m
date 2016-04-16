@@ -1,5 +1,5 @@
 function res = langan(TaskIDName, splitRes)
-%SRT Does some basic data transformation to simple reactiontime tasks.
+%LANGAN Does some basic data transformation to all language tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     1. Symbol
@@ -16,7 +16,7 @@ function res = langan(TaskIDName, splitRes)
 outvars = {...
     'Count_hit', 'Count_FA', 'Count_miss', 'Count_CR', ...
     'RT_hit', 'RT_FA', 'RT_miss', 'RT_CR'};
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return

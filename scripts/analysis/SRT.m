@@ -9,7 +9,7 @@ function res = SRT(splitRes)
 
 outvars = {...
     'MRT', 'VRT'};
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return

@@ -22,7 +22,7 @@ for irng = cmpRng
     outvars = [outvars, {['RT', num2str(irng)], ['ACC', num2str(irng)]}]; %#ok<*AGROW>
 end
 outvars = [outvars, {'RT', 'ACC'}];
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return

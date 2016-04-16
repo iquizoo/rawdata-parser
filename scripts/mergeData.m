@@ -75,14 +75,14 @@ mrgdata = dataMergeBI;
 %Merge data task by task.
 %Load basic parameters.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-resdata.Taskname = categorical(resdata.Taskname);
-tasks = unique(resdata.Taskname, 'stable');
+resdata.TaskIDName = categorical(resdata.TaskIDName);
+tasks = unique(resdata.TaskIDName, 'stable');
 nTasks = length(tasks);
 for imrgtask = 1:nTasks
     initialVars = who;
-    curTaskName = tasks(imrgtask);
-    curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
-    curTaskData = resdata(resdata.Taskname == curTaskName, :);
+    curTaskIDName = tasks(imrgtask);
+    curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
+    curTaskData = resdata(resdata.TaskIDName == curTaskIDName, :);
     curTaskData.res = cat(1, curTaskData.res{:});
     curTaskOutVars = strcat(curTaskSetting.TaskIDName, '_', curTaskData.res.Properties.VariableNames);
     curTaskData.res.Properties.VariableNames = curTaskOutVars;
@@ -91,7 +91,8 @@ for imrgtask = 1:nTasks
     for ivars = 1:length(curTaskOutVars)
         curvar = curTaskOutVars{ivars};
         mrgdata.(curvar) = nan(height(mrgdata), 1);
-        mrgdata.(curvar)(ismember(mrgdata.userId, curTaskData.userId)) = curTaskData.(curvar);
+        [LiMrgData, LocCurTaskData] = ismember(mrgdata.userId, curTaskData.userId);
+        mrgdata.(curvar)(LiMrgData) = curTaskData.(curvar)(LocCurTaskData(LocCurTaskData ~= 0));
     end
     clearvars('-except', initialVars{:});
 end

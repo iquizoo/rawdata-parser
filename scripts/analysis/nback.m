@@ -1,5 +1,5 @@
 function res = nback(splitRes)
-%SRT Does some basic data transformation to simple reactiontime tasks.
+%NBACK Does some basic data transformation to n-back tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     42-43. Nback1-2
@@ -9,7 +9,7 @@ function res = nback(splitRes)
 
 outvars = {...
     'ACC', 'RT'};
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return

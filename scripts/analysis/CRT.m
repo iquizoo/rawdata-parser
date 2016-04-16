@@ -1,5 +1,5 @@
 function res = CRT(splitRes)
-%DRT Does some basic data transformation to choice reaction time tasks.
+%CRT Does some basic data transformation to choice reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     15-17. CRT
@@ -10,7 +10,7 @@ function res = CRT(splitRes)
 outvars = {...
     'MRT', 'VRT', 'ACC', ...
     'v', 'a', 'Ter'};
-if ~istable(splitRes{:})
+if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return
