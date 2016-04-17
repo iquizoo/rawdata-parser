@@ -14,23 +14,23 @@ switch TaskIDName{:}
     case 'Flanker'
         codeA = [1, 3]; %Congruent.
         codeB = [2, 4]; %Incongruent.
-        varSuff = {'', '_Cong', '_Incong', '_CongEffect'};
+        varSuff = {'_Overall', '_Cong', '_Incong', '_CongEffect'};
     case {...
             'Stroop1',...
             'Stroop2',...
             }
         codeA = 1; %Congruent.
         codeB = 0; %Incongruent.
-        varSuff = {'', '_Cong', '_Incong', '_CongEffect'};
+        varSuff = {'_Overall', '_Cong', '_Incong', '_CongEffect'};
     case 'TaskSwitching'
         codeA = 1; %Repeat.
         codeB = 2; %Switch.
-        varSuff = {'', '_Repeat', '_Switch', '_SwitchCost'};
+        varSuff = {'_Overall', '_Repeat', '_Switch', '_SwitchCost'};
 end
 
 repVarSuff = repmat(varSuff, 2, 1);
 outSuff = repVarSuff(:)';
-outvars = strcat(repmat({'RT', 'ACC'}, 1, 4), outSuff);
+outvars = strcat(repmat({'RT', 'ACC'}, 1, length(varSuff)), outSuff);
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -39,7 +39,8 @@ end
 RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: eliminate trials that are too fast (<100ms)
 RECORD(RECORD.RT < 100, :) = [];
-
+%No response trials used -1 as its ACC record, change it to 0.
+RECORD.ACC(RECORD.ACC == -1) = 0;
 %Overall RT and ACC.
 res.RT = nanmean(RECORD.RT(RECORD.ACC == 1));
 res.ACC = nanmean(RECORD.ACC);

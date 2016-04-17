@@ -5,8 +5,9 @@ function res = span(splitRes)
 %     29. ForSpan,
 %     30. BackSpan,
 %     31. SpatialSpan.
-%   The output table contains 4 variables: TE_ML(Two Error-Maximal Length),
-%   TE_TT(Two Error-Total Trial), ML(Maximal Length), MS(Mean Span).
+%   The output table contains 2 variables: TE_ML(!D)(Two Error-Maximal
+%   Length), TE_TT(!D)(Two Error-Total Trial), ML(Maximal Length), MS(Mean
+%   Span).
 %
 %   Reference: 
 %   Woods, D. L., Kishiyama, M. M., Yund, E. W., Herron, T. J., Edwards,
@@ -17,7 +18,8 @@ function res = span(splitRes)
 % By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 outvars = {...
-    'TE_ML', 'TE_TT', 'ML', 'MS'};
+    ...%'TE_ML', 'TE_TT', ...%Delete these two because of bad performance in analysis.
+    'ML', 'MS'};
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -39,15 +41,15 @@ end
 %correct.
 ML = max(RECORD.SLen(RECORD.ACC == 1));
 if isempty(ML) % No correct trials found.
-    TE_ML = nan;
-    TE_TT = nan;
+%     TE_ML = nan;
+%     TE_TT = nan;
     ML = nan;
     MS = nan;
 else
-    %For the TE_* variables.
-    reduceTrialInd = find(RECORD.Next == -1);
-    TE_ML = sum(RECORD.ACC(1:reduceTrialInd(1)));
-    TE_TT = reduceTrialInd(1) - 1;
+%     %For the TE_* variables.
+%     reduceTrialInd = find(RECORD.Next == -1);
+%     TE_ML = sum(RECORD.ACC(1:reduceTrialInd(1)));
+%     TE_TT = reduceTrialInd(1) - 1;
     %Mean span metric.
     msBase = RECORD.SLen(1) - 0.5; %Mean span baseline, set at 0.5 less than initial length.
     allSLen = unique(RECORD.SLen);
@@ -58,8 +60,11 @@ else
     end
     MS = msBase + msIncre;
 end
-res = {table(TE_ML, TE_TT, ML, MS)};
-res{:}.Properties.VariableDescriptions = {'the total number of trials correct prior to two successive misses', ...
-    'the total number of trials (both correct and incorrect) presented prior to two successive errors', ...
+res = {table(...
+    ...%TE_ML, TE_TT, ...
+    ML, MS)};
+res{:}.Properties.VariableDescriptions = {...
+    ...%'the total number of trials correct prior to two successive misses', ...
+    ...%'the total number of trials (both correct and incorrect) presented prior to two successive errors', ...
     'the longest list correctly reported', ...
     'the list length where 50% of lists would be correctly reported'};

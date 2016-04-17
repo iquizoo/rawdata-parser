@@ -25,6 +25,9 @@ switch TaskIDName{:}
 end
 %Cutoff RTs: for too fast trials.
 RECORD(RECORD.RT < 100, :) = [];
+%ACC variable is not correctly recorded, rectify it here.
+%If the RT is 2000, we interpret it as no response.
+RECORD.ACC(ismember(RECORD.SCat, nogoCode)) = RECORD.RT(ismember(RECORD.SCat, nogoCode)) == 2000;
 %Mean and variance of RT for go trials.
 MRT = nanmean(RECORD.RT(RECORD.ACC == 1 & ~ismember(RECORD.SCat, nogoCode)));
 VRT = nanvar(RECORD.RT(RECORD.ACC == 1 & ~ismember(RECORD.SCat, nogoCode)));
