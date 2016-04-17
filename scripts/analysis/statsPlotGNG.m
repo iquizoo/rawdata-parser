@@ -51,6 +51,14 @@ outDespStats = despStats(:, 1:3);
 writetable(outDespStats, [curTaskXlsDir, filesep, 'Counting of each school and grade.xlsx']);
 
 %% Box plot and outliers.
+outlierVarPref = {'MildOutlierCount_', 'ExtremeOutlierCount_'};
+repOutlierVarSuff = repmat(chkVars, length(outlierVarPref), 1);
+outlierVarSuff = repOutlierVarSuff(:)';
+outlierVarnames = strcat(repmat(outlierVarPref, 1, length(chkVars)), outlierVarSuff);
+curTaskOutlier = grpstats(tbl, 'grade', {@(x)coutlier(x, 'mild'), @(x)coutlier(x, 'extreme')}, ...
+    'DataVars', chkTblVars, ...
+    'VarNames', [{'grade', 'GroupCount'}, outlierVarnames]);
+writetable(curTaskOutlier, [curTaskXlsDir, filesep, 'Counting of outliers of each grade.xlsx']);
 for ichk = 1:length(chkTblVars)
     figure
     boxplot(chkData(:, ichk), tbl.grade, 'Whisker', 3);
@@ -68,6 +76,16 @@ for ichk = 1:length(chkTblVars)
         saveas(gcf, [curTaskFigDir, filesep, ...
         'Box plot of', strrep(desp{2}, '_', ' '),  ' through all grades'], 'jpg');
     close(gcf)
+end
+
+%% Error bar plot.
+%Remove extreme outliers based on the MRT.
+for igrade = 1:length(grades)
+    curgradeidx = tbl.grade == grades{igrade};
+    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{1})(curgradeidx), 'extreme');
+    rmidx = curgradeidx;
+    rmidx(rmidx == 1) = outlieridx;
+    tbl(rmidx, :) = [];
 end
 figure
 axisPos = {'left', 'right'};

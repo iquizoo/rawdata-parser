@@ -91,10 +91,10 @@ for ichk = 1:length(chkTblVars)
 end
 
 %% Error bar plot.
-%Remove extreme outlier of the hit count.
+%Remove extreme outliers of the overall ACC.
 for igrade = 1:length(grades)
     curgradeidx = tbl.grade == grades{igrade};
-    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{1})(curgradeidx), 'extreme');
+    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{2})(curgradeidx), 'extreme');
     rmidx = curgradeidx;
     rmidx(rmidx == 1) = outlieridx;
     tbl(rmidx, :) = [];

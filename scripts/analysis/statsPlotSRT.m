@@ -76,7 +76,7 @@ saveas(gcf, [curTaskFigDir, filesep, ...
 close(gcf)
 
 %% Error bar plot.
-%Remove extreme outlier of the hit count.
+%Remove extreme outliers.
 for igrade = 1:length(grades)
     curgradeidx = tbl.grade == grades{igrade};
     [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{1})(curgradeidx), 'extreme');
@@ -85,7 +85,6 @@ for igrade = 1:length(grades)
     tbl(rmidx, :) = [];
 end
 figure
-% curSuffVarNames = chkTblVars(~cellfun(@isempty, strfind(chkTblVars, varSuff{ivsuff})));
 title(['Error bar (SEM) plot of ', strrep(chkVars{:}, '_', ' '), ' in task ', taskIDName]);
 errorbar(grpstats(tbl.(chkTblVars{:}), tbl.grade), ...
     grpstats(tbl.(chkTblVars{:}), tbl.grade, 'sem'))
