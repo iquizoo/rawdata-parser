@@ -42,8 +42,8 @@ RECORD(RECORD.RT < 100, :) = [];
 %No response trials used -1 as its ACC record, change it to 0.
 RECORD.ACC(RECORD.ACC == -1) = 0;
 %Overall RT and ACC.
-res.RT = nanmean(RECORD.RT(RECORD.ACC == 1));
-res.ACC = nanmean(RECORD.ACC);
+res.RT_Overall = nanmean(RECORD.RT(RECORD.ACC == 1));
+res.ACC_Overall = nanmean(RECORD.ACC);
 %Condition-wise analysis.
 %Condition A.
 res.(['RT', varSuff{2}]) = nanmean(RECORD.RT(ismember(RECORD.SCat, codeA) & RECORD.ACC == 1));
