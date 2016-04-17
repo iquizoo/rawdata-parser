@@ -10,9 +10,9 @@ function res = mentcompute(splitRes)
 
 % The task sets the minimum addition/subtraction number in 8 possible
 % numbers: 1 through 8.
-MinAdd = 1:8;
+MinNum = 1:8;
 outvars = {};
-for imin = MinAdd
+for imin = MinNum
     outvars = [outvars, {['RT', num2str(imin)], ['ACC', num2str(imin)]}]; %#ok<*AGROW>
 end
 outvars = [outvars, {'RT', 'ACC'}];
@@ -33,10 +33,10 @@ RECORD(RECORD.RT < 100, :) = [];
 %     res.(['ACC_R', num2str(irun)]) = mean(RECORD.ACC(RECORD.RUN == irun));
 % end
 %Mean RT and ACC for each minimun add/subtract number.
-minadd = rowfun(@min, RECORD, 'InputVariables', {'NX', 'NY'}, 'OutputFormat', 'uniform');
-for imin = MinAdd
-    res.(['RT', num2str(imin)]) = nanmean(RECORD.RT(minadd == imin & RECORD.ACC == 1));
-    res.(['ACC', num2str(imin)]) = nanmean(RECORD.ACC(minadd == imin));
+minnum = rowfun(@min, RECORD, 'InputVariables', {'NX', 'NY'}, 'OutputFormat', 'uniform');
+for imin = MinNum
+    res.(['RT', num2str(imin)]) = nanmean(RECORD.RT(minnum == imin & RECORD.ACC == 1));
+    res.(['ACC', num2str(imin)]) = nanmean(RECORD.ACC(minnum == imin));
 end
 res.RT = nanmean(RECORD.RT(RECORD.ACC == 1));
 res.ACC = nanmean(RECORD.ACC);
