@@ -18,9 +18,9 @@ end
 RECORD = splitRes{:}.RECORD{:};
 %Find out all the no-go conditions.
 switch TaskIDName{:}
-    case 'GNG_Lure'
+    case 'GNGLure'
         nogoCode = [0, 1, 2, 3, 10, 11];        
-    case 'GNG_Fruit'
+    case 'GNGFruit'
         nogoCode = 0;
 end
 %Cutoff RTs: for too fast trials.
