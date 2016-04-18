@@ -84,7 +84,7 @@ for ichk = 1:length(chkTblVars)
     close(gcf)
 end
 
-%% Error bar plot.
+%% Write a table about descriptive statistics of different ages.
 %Remove extreme outliers based on the hit count.
 for igrade = 1:length(grades)
     curgradeidx = tbl.grade == grades{igrade};
@@ -92,7 +92,33 @@ for igrade = 1:length(grades)
     rmidx = curgradeidx;
     rmidx(rmidx == 1) = outlieridx;
     tbl(rmidx, :) = [];
+    for ihistVar = 1:length(chkTblVars)
+        curgradedata = tbl.(chkTblVars{ihistVar})(tbl.grade == grades{igrade});
+        histogram(curgradedata)
+        [taskIDName, desp] = regexp(chkTblVars{ihistVar}, '^\w+?(?=_)', 'match', 'split', 'once');
+        curChkVar = strrep(desp{2}, '_', ' ');
+        title(['Histogram of ', curChkVar, ...
+            ' of task ', TaskIDName,' GRADE ', num2str(grades{igrade})])
+        if strcmp(curChkVar, 'MRT') || strcmp(curChkVar, 'RT')
+            label = [curChkVar, '(ms)'];
+        else
+            label = curChkVar;
+        end
+        xlabel(label)
+        ylabel('Frequency')
+        hax = gca;
+        hax.FontName = 'Gill Sans MT';
+        hax.FontSize = 12;
+        saveas(gcf, [curTaskFigDir, filesep, ...
+            'Histogram of ', strrep(chkTblVars{ihistVar}, '_', ' '), ...
+            ' GRADE ', num2str(grades{igrade}), '.jpg']);
+        close(gcf);
+    end
 end
+agingDespStats = grpstats(tbl, 'grade', {'mean', 'std'}, 'DataVars', chkTblVars);
+writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of each grade.xlsx']);
+
+%% Error bar plot.
 for ivsuff = 1:length(varSuff)
     figure
     curSuffVarNames = chkTblVars(~cellfun(@isempty, strfind(chkTblVars, varSuff{ivsuff})));

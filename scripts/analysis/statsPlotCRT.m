@@ -4,6 +4,7 @@ function statsPlotCRT(tbl)
 
 %By Zhang, Liang. 04/16/2016. E-mai:psychelzh@gmail.com
 
+%% Part I
 %% Remove data of undefined school or grade.
 tbl(isundefined(tbl.school) | isundefined(tbl.grade), :) = [];
 tblVars = tbl.Properties.VariableNames;
@@ -48,7 +49,7 @@ grades = cellstr(unique(tbl.grade));
 %% Write a table of descriptive statistics.
 despStats = grpstats(tbl, {'school', 'grade'}, 'numel', 'DataVars', VarsOfTaskData);
 outDespStats = despStats(:, 1:3);
-writetable(outDespStats, [curTaskXlsDir, filesep, 'Counting of each school and grade.xlsx'], 'Sheet', 'RT ACC');
+writetable(outDespStats, [curTaskXlsDir, filesep, 'Counting of each school and grade.xlsx']);
 
 %% Box plot and outliers.
 outlierVarPref = {'MildOutlierCount_', 'ExtremeOutlierCount_'};
@@ -58,7 +59,7 @@ outlierVarnames = strcat(repmat(outlierVarPref, 1, length(chkVars)), outlierVarS
 curTaskOutlier = grpstats(tbl, 'grade', {@(x)coutlier(x, 'mild'), @(x)coutlier(x, 'extreme')}, ...
     'DataVars', chkTblVars, ...
     'VarNames', [{'grade', 'GroupCount'}, outlierVarnames]);
-writetable(curTaskOutlier, [curTaskXlsDir, filesep, 'Counting of outliers of each grade.xlsx']);
+writetable(curTaskOutlier, [curTaskXlsDir, filesep, 'Counting of outliers of each grade.xlsx'], 'Sheet', 'RT ACC');
 for ichk = 1:length(chkTblVars)
     figure
     boxplot(chkData(:, ichk), tbl.grade, 'Whisker', 3);
@@ -78,15 +79,41 @@ for ichk = 1:length(chkTblVars)
     close(gcf)
 end
 
-%% Error bar plot.
-%Remove extreme outliers based on the ACC.
+%% Write a table about descriptive statistics of different ages.
+%Remove extreme outliers based on ACC.
 for igrade = 1:length(grades)
     curgradeidx = tbl.grade == grades{igrade};
-    [~, outlieridx] = coutlier(tbl.(chkTblVars{2})(curgradeidx), 'extreme');
+    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{2})(curgradeidx), 'extreme');
     rmidx = curgradeidx;
     rmidx(rmidx == 1) = outlieridx;
     tbl(rmidx, :) = [];
+    for ihistVar = 1:length(chkTblVars)
+        curgradedata = tbl.(chkTblVars{ihistVar})(tbl.grade == grades{igrade});
+        histogram(curgradedata)
+        [taskIDName, desp] = regexp(chkTblVars{ihistVar}, '^\w+?(?=_)', 'match', 'split', 'once');
+        curChkVar = strrep(desp{2}, '_', ' ');
+        title(['Histogram of ', curChkVar, ...
+            ' of task ', TaskIDName,' GRADE ', num2str(grades{igrade})])
+        if strcmp(curChkVar, 'MRT') || strcmp(curChkVar, 'RT')
+            label = [curChkVar, '(ms)'];
+        else
+            label = curChkVar;
+        end
+        xlabel(label)
+        ylabel('Frequency')
+        hax = gca;
+        hax.FontName = 'Gill Sans MT';
+        hax.FontSize = 12;
+        saveas(gcf, [curTaskFigDir, filesep, ...
+            'Histogram of ', strrep(chkTblVars{ihistVar}, '_', ' '), ...
+            ' GRADE ', num2str(grades{igrade}), '.jpg']);
+        close(gcf);
+    end
 end
+agingDespStats = grpstats(tbl, 'grade', {'mean', 'std'}, 'DataVars', chkTblVars);
+writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of each grade.xlsx'], 'Sheet', 'RT ACC');
+
+%% Error bar plot.
 figure
 axisPos = {'left', 'right'};
 title(['Error bar (SEM) plot in task ', taskIDName]);
@@ -113,7 +140,7 @@ saveas(gcf, [curTaskFigDir, filesep, ...
     'Error bar (SEM) plot of ', strjoin(chkVars, '&')], 'jpg');
 close(gcf)
 
-
+%% Part II
 %% Get all the checking variable names to plot.
 chkVars = {...
     'v', 'a'};
@@ -131,11 +158,6 @@ tbl(all(isnan(chkData), 2), :) = [];
 chkData(all(isnan(chkData), 2), :) = [];
 tbl.grade = removecats(tbl.grade);
 grades = cellstr(unique(tbl.grade));
-
-%% Write a table of descriptive statistics.
-despStats = grpstats(tbl, {'school', 'grade'}, 'numel', 'DataVars', VarsOfTaskData);
-outDespStats = despStats(:, 1:3);
-writetable(outDespStats, [curTaskXlsDir, filesep, 'Counting of each school and grade.xlsx']);
 
 %% Box plot and outliers.
 outlierVarPref = {'MildOutlierCount_', 'ExtremeOutlierCount_'};
@@ -164,6 +186,34 @@ for ichk = 1:length(chkTblVars)
         'Box plot of', strrep(desp{2}, '_', ' '),  ' through all grades'], 'jpg');
     close(gcf)
 end
+
+%% Write a table about descriptive statistics of different ages.
+for igrade = 1:length(grades)
+    for ihistVar = 1:length(chkTblVars)
+        curgradedata = tbl.(chkTblVars{ihistVar})(tbl.grade == grades{igrade});
+        histogram(curgradedata)
+        [taskIDName, desp] = regexp(chkTblVars{ihistVar}, '^\w+?(?=_)', 'match', 'split', 'once');
+        curChkVar = strrep(desp{2}, '_', ' ');
+        title(['Histogram of ', curChkVar, ...
+            ' of task ', TaskIDName,' GRADE ', num2str(grades{igrade})])
+        if strcmp(curChkVar, 'MRT') || strcmp(curChkVar, 'RT')
+            label = [curChkVar, '(ms)'];
+        else
+            label = curChkVar;
+        end
+        xlabel(label)
+        ylabel('Frequency')
+        hax = gca;
+        hax.FontName = 'Gill Sans MT';
+        hax.FontSize = 12;
+        saveas(gcf, [curTaskFigDir, filesep, ...
+            'Histogram of ', strrep(chkTblVars{ihistVar}, '_', ' '), ...
+            ' GRADE ', num2str(grades{igrade}), '.jpg']);
+        close(gcf);
+    end
+end
+agingDespStats = grpstats(tbl, 'grade', {'mean', 'std'}, 'DataVars', chkTblVars);
+writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of each grade.xlsx'], 'Sheet', 'v a');
 
 %% Error bar plot.
 figure
