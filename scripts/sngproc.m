@@ -3,20 +3,13 @@ function [splitRes, status] = sngproc(conditions, curTaskPara)
 
 %By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
 
+status = 0;
 %Extract useful information form parameters.
 curTaskPara = curTaskPara{:};
-if isempty(curTaskPara) || isnan(curTaskPara.SplitMode)
-    warning('UDF:SNGPROC:PARANOTFOUND', ...
-        'No parameters specification is found,\n')
-    splitRes = {table};
-    status = -2;
-    return
-end
-%Delimiters.
-delimiters = curTaskPara.Delimiters{:};
-
-if ~isempty(conditions{:})
+if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(conditions{:})
     %% Split the conditions into recons, get the settings of each condition.
+    %Delimiters.
+    delimiters = curTaskPara.Delimiters{:};
     % Determine when there exists several seperate conditions.
     switch curTaskPara.SplitMode
         case 1 % See the notation in the Excel file: tasksetting.xlsx
@@ -27,14 +20,9 @@ if ~isempty(conditions{:})
             % recons contains the strings of all conditions extracted from conditions.
             recons = cell(1, ncond);
             for icond = 1:ncond
-                curConName = conditionsNames{icond};
                 curRecon = regexp(conditions{:}, ...
                     ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
                 recons{icond} = curRecon;
-                if isempty(curRecon)
-                    warning('UDF:SNGPROC:MODE1ABNORMAL', ...
-                        'No data for condition of %s.\n', curConName)
-                end
             end
             [VariablesNames, charVars] = varNamesSplit(curTaskPara, ncond);
         case 3 % See the notation in the Excel file: tasksetting.xlsx
@@ -45,12 +33,20 @@ if ~isempty(conditions{:})
             AltVariablesNamesSplit = cellfun(@strsplit, AltVariablesNames, 'UniformOutput', false);
             nAltVars = cellfun(@length, AltVariablesNamesSplit);
             %Get the appropriate variable names of the different template.
-            spRec = strsplit(recons{1}, delimiters(1));
-            spTrialRec = strsplit(spRec{1}, delimiters(2));
+            spRec = cellfun(@strsplit, ...
+                recons, repmat({delimiters(1)}, size(recons)), ...
+                'UniformOutput', false);
+            spTrialRec = cellfun(@strsplit, ...
+                spRec{1}, repmat({delimiters(2)}, size(spRec{1})), ...
+                'UniformOutput', false);
             switch curTaskPara.TemplateIdentity
                 case {1, 12}
-                    nOutStrUnit = length(spTrialRec);
-                    altChoice = nAltVars == nOutStrUnit;
+                    nspTrial = cellfun(@length, spTrialRec);
+                    nspTrial = unique(nspTrial);
+                    altChoice = find(ismember(nAltVars, nspTrial));
+                    if length(altChoice) ~= 1
+                        altChoice = 1; % Choose the first alternative template by default.
+                    end
                 case 17
                     firstnum = str2double(spTrialRec{1});
                     if ismember(firstnum, 1:4)
@@ -81,30 +77,38 @@ if ~isempty(conditions{:})
     ncond = length(conditionsNames);
     for icond = 1:ncond
         curCondTrials = reconsTrialApart.(conditionsNames{icond});
-        curCondTrialsSplit = cellfun(@strsplit, ...
-            curCondTrials, repmat({delimiters(2)}, size(curCondTrials)),...
-            'UniformOutput', false);
-        curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
-        %If the length of the split-out string is not equal to the number
-        %of output variable names.
-        curCondNVars = nVars{icond};
-        curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
-        if all(curCondTrialsSplitLen ~= curCondNVars)
-            warning('UDF:SNGPROC:NOFORMATDATA', ...
-                'Recorded data not correctly formatted. Please check!\n');
-            status = -1;
+        if ~all(cellfun(@isempty, curCondTrials))
+            curCondTrialsSplit = cellfun(@strsplit, ...
+                curCondTrials, repmat({delimiters(2)}, size(curCondTrials)),...
+                'UniformOutput', false);
+            curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
+            %If the length of the split-out string is not equal to the number
+            %of output variable names.
+            curCondNVars = nVars{icond};
+            curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
+            if all(curCondTrialsSplitLen ~= curCondNVars)
+                warning('UDF:SNGPROC:NOFORMATDATA', ...
+                    'Recorded data not correctly formatted. Please check!\n');
+                status = -1;
+            end
+            curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
+            curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
+            reconsTrialApart.(conditionsNames{icond}) = ...
+                {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
         else
-            status = 0;
+            warning('UDF:SNGPROC:MODE1ABNORMAL', ...
+                'No data for condition of %s.\n', conditionsNames{icond});
+            status = -1;
+            curCondNVars = nVars{icond};
+            reconsTrialApart.(conditionsNames{icond}) = ...
+                {array2table(nan(1, curCondNVars), 'VariableNames', VariablesNames{icond})};
         end
-        curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
-        curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
-        reconsTrialApart.(conditionsNames{icond}) = ...
-            {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
     end
 else
-    warning('UDF:SNGPROC:EMPTYDATA', ...
-        'Data not recorded! Please check!\n');
-    status = -1;
+    warning('UDF:SNGPROC:NOPARASETTINGS', ...
+        'No parameters specification found.\n')
+    status = -2;
+    reconsTrialApart = table;
 end
 splitRes = {reconsTrialApart};
 end
