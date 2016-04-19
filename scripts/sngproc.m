@@ -3,130 +3,133 @@ function [splitRes, status] = sngproc(conditions, curTaskPara)
 
 %By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
 
+status = 0;
 %Extract useful information form parameters.
 curTaskPara = curTaskPara{:};
-if isempty(curTaskPara) || isnan(curTaskPara.SplitMode)
-    warning('UDF:SNGPROC:PARANOTFOUND', ...
-        'No parameters specification is found,\n')
-    splitRes = {table};
-    status = -2;
-    return
-end
-%Delimiters.
-delimiters = curTaskPara.Delimiters{1};
-%Output table variables names.
-if curTaskPara.SplitMode ~= 3
-    VariablesNames = strsplit(curTaskPara.VariablesNames{:});
-    nvars = length(VariablesNames);
-    %Output that need to be transformed into numeric data.
-    charVars = str2double(num2cell(num2str(curTaskPara.VariablesChar)'));
-    trans = ~ismember(1:nvars, charVars);
-end
-if ~isempty(conditions{:})
-    %% Split the conditions.
+if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(conditions{:})
+    %% Split the conditions into recons, get the settings of each condition.
+    %Delimiters.
+    delimiters = curTaskPara.Delimiters{:};
     % Determine when there exists several seperate conditions.
-    if curTaskPara.SplitMode == 1
-        conditions = strsplit(conditions{:});
-        conditions = regexp(conditions, '(?<=\().*(?=\))', 'match', 'once');
-        conditionsNames = strsplit(curTaskPara.AddInfo{:});
-        if length(conditions) ~= length(conditionsNames)
-            warning('UDF:SNGPROC:MODE1ABNORMAL', ...
-                'Partition conditions mismatch expectation, will return empty result. Please check the data.\n')
-            nc = length(conditionsNames);
-            conditions = table;
-            %When split mode is not 3, the variable names of output is
-            %well-defined.
-            if curTaskPara.SplitMode ~= 3
-                for ic = 1:nc
-                    curStrOut = cell(1, nvars);
-                    conditions.(conditionsNames{ic}) = {cell2table(curStrOut, 'VariableNames', VariablesNames)};
-                end
+    switch curTaskPara.SplitMode
+        case 1 % See the notation in the Excel file: tasksetting.xlsx
+            splitInfo = strsplit(curTaskPara.AddInfo{:}, '|');
+            conditionsNames = strsplit(splitInfo{1});
+            conditionsPre = strsplit(splitInfo{2});
+            ncond = length(conditionsNames);
+            % recons contains the strings of all conditions extracted from conditions.
+            recons = cell(1, ncond);
+            for icond = 1:ncond
+                curRecon = regexp(conditions{:}, ...
+                    ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
+                recons{icond} = curRecon;
             end
-            splitRes = {conditions};
-            status = -1;
-            return
-        end
-    else
-        conditionsNames = {'RECORD'};
+            [VariablesNames, charVars] = varNamesSplit(curTaskPara, ncond);
+        case 3 % See the notation in the Excel file: tasksetting.xlsx
+            conditionsNames = {'RECORD'};
+            % recons contains the strings of all conditions extracted from conditions.
+            recons = conditions;
+            [AltVariablesNames, charAltVars] = varNamesSplit(curTaskPara);
+            AltVariablesNamesSplit = cellfun(@strsplit, AltVariablesNames, 'UniformOutput', false);
+            nAltVars = cellfun(@length, AltVariablesNamesSplit);
+            %Get the appropriate variable names of the different template.
+            spRec = cellfun(@strsplit, ...
+                recons, repmat({delimiters(1)}, size(recons)), ...
+                'UniformOutput', false);
+            spTrialRec = cellfun(@strsplit, ...
+                spRec{1}, repmat({delimiters(2)}, size(spRec{1})), ...
+                'UniformOutput', false);
+            switch curTaskPara.TemplateIdentity
+                case {1, 12}
+                    nspTrial = cellfun(@length, spTrialRec);
+                    nspTrial = unique(nspTrial);
+                    altChoice = find(ismember(nAltVars, nspTrial));
+                    if length(altChoice) ~= 1
+                        altChoice = 1; % Choose the first alternative template by default.
+                    end
+                case 17
+                    firstnum = str2double(spTrialRec{1});
+                    if ismember(firstnum, 1:4)
+                        altChoice = 1;
+                    else
+                        altChoice = 2;
+                    end
+            end
+            VariablesNames = AltVariablesNames(altChoice);
+            charVars = charAltVars(altChoice);
+        otherwise
+            conditionsNames = {'RECORD'};
+            recons = conditions;
+            [VariablesNames, charVars] = varNamesSplit(curTaskPara, 1);
     end
-    %% Determine the outpit variable names for those tasks of split mode 3.
-    if curTaskPara.SplitMode == 3
-        %First, get the two alternatives of the variable names and string
-        %formatted variables.
-        % Alternative 1.
-        alt1VariablesNames = strsplit(curTaskPara.VariablesNames{:});
-        alt1nvars = length(alt1VariablesNames);
-        alt1charVars = str2double(num2cell(num2str(curTaskPara.VariablesChar)'));
-        alt1trans = ~ismember(1:alt1nvars, alt1charVars);
-        % Alternative 2.
-        altInfo = strsplit(curTaskPara.AddInfo{:}, '|');
-        alt2VariablesNames = strsplit(altInfo{2});
-        alt2nvars = length(alt2VariablesNames);
-        alt2charVars = str2double(num2cell(altInfo{1}'));
-        alt2trans = ~ismember(1:alt2nvars, alt2charVars);
-        %This is a tricky thing here.
-        switch curTaskPara.TemplateIdentity
-            case {1, 12}
-                splOutStr = strsplit(conditions{1}, delimiters(1));
-                splOutStrUnit = strsplit(splOutStr{1}, delimiters(2));
-                nOutStrUnit = length(splOutStrUnit);
-                if nOutStrUnit == alt1nvars
-                    VariablesNames = alt1VariablesNames;
-                    nvars = alt1nvars;
-                    trans = alt1trans;
-                elseif nOutStrUnit == alt2nvars
-                    VariablesNames = alt2VariablesNames;
-                    nvars = alt2nvars;
-                    trans = alt2trans;
-                else
-                    warning('UDF:SNGPROC:NOSUITTEMPLATE', ...
-                        'No suitable template found. Please check the data!\n')
-                    splitRes = {table};
-                    status = -1;
-                    return
-                end
-            case 17
-                splOutStr = strsplit(conditions{1}, delimiters(1));
-                splOutStrUnit = strsplit(splOutStr{1}, delimiters(2));
-                firstnum = str2double(splOutStrUnit{1});
-                if ismember(firstnum, 1:4)
-                    VariablesNames = alt1VariablesNames;
-                    nvars = alt1nvars;
-                    trans = alt1trans;
-                else
-                    VariablesNames = alt2VariablesNames;
-                    nvars = alt2nvars;
-                    trans = alt2trans;
-                end
-        end
-    end
+    VariablesNames = cellfun(@strsplit, VariablesNames, 'UniformOutput', false);
+    nVars = cellfun(@length, VariablesNames, 'UniformOutput', false);
+    allLocs = cellfun(@colon, num2cell(ones(size(nVars))), nVars, 'UniformOutput', false);
+    trans = cellfun(@not, ...
+        cellfun(@ismember, allLocs, charVars, 'UniformOutput', false), ...
+        'UniformOutput', false);
+
     %% Routine split.
-    conditions = cell2table(conditions, 'VariableNames', conditionsNames);
+    reconsTrialApart = cellfun(@strsplit, ...
+        recons, repmat({delimiters(1)}, size(recons)),...
+        'UniformOutput', false);
+    reconsTrialApart = cell2table(reconsTrialApart, 'VariableNames', conditionsNames);
     ncond = length(conditionsNames);
     for icond = 1:ncond
-        curCondStr = conditions.(conditionsNames{icond});
-        curCondStr = strsplit(curCondStr{:}, delimiters(1));
-        curCondStrSplit = cellfun(@strsplit, ...
-            curCondStr, repmat({delimiters(2)}, size(curCondStr)),...
-            'UniformOutput', false);
-        curCondStrSplitLen = cellfun(@length, curCondStrSplit);
-        %If the length of the split-out string is not equal to the number
-        %of output variable names.
-        curCondStrSplit(curCondStrSplitLen ~= nvars) = {num2cell(nan(1, nvars))};
-        if all(curCondStrSplitLen ~= nvars)
-            warning('UDF:SNGPROC:NOFORMATDATA', ...
-                'Recorded data not correctly formatted. Please check!\n');
-            status = -1;
+        curCondTrials = reconsTrialApart.(conditionsNames{icond});
+        if ~all(cellfun(@isempty, curCondTrials))
+            curCondTrialsSplit = cellfun(@strsplit, ...
+                curCondTrials, repmat({delimiters(2)}, size(curCondTrials)),...
+                'UniformOutput', false);
+            curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
+            %If the length of the split-out string is not equal to the number
+            %of output variable names.
+            curCondNVars = nVars{icond};
+            curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
+            if all(curCondTrialsSplitLen ~= curCondNVars)
+                warning('UDF:SNGPROC:NOFORMATDATA', ...
+                    'Recorded data not correctly formatted. Please check!\n');
+                status = -1;
+            end
+            curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
+            curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
+            reconsTrialApart.(conditionsNames{icond}) = ...
+                {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
         else
-            status = 0;
+            warning('UDF:SNGPROC:MODE1ABNORMAL', ...
+                'No data for condition of %s.\n', conditionsNames{icond});
+            status = -1;
+            curCondNVars = nVars{icond};
+            reconsTrialApart.(conditionsNames{icond}) = ...
+                {array2table(nan(1, curCondNVars), 'VariableNames', VariablesNames{icond})};
         end
-        curCondStrSplit = cat(1, curCondStrSplit{:});
-        curCondStrSplit(:, trans) = num2cell(str2double(curCondStrSplit(:, trans)));
-        conditions.(conditionsNames{icond}) = {cell2table(curCondStrSplit, 'VariableNames', VariablesNames)};
     end
 else
-    warning('UDF:SNGPROC:EMPTYDATA', ...
-        'Data not recorded! Please check!\n');
-    status = -1;
+    warning('UDF:SNGPROC:NOPARASETTINGS', ...
+        'No parameters specification found.\n')
+    status = -2;
+    reconsTrialApart = table;
 end
-splitRes = {conditions};
+splitRes = {reconsTrialApart};
+end
+
+function [VariablesNames, charVars] = varNamesSplit(curTaskPara, n)
+%Get the settings of each condition, n denotes number of conditions.
+
+% Variable names.
+VariablesNames = strsplit(curTaskPara.VariablesNames{:}, '|');
+% Variable char locs.
+VariablesChar = strsplit(curTaskPara.VariablesChar{:}, '|');
+tpVariablesChar = cellfun(@transpose, VariablesChar, 'UniformOutput', false);
+ctpVariablesChar = cellfun(@num2cell, tpVariablesChar, 'UniformOutput', false);
+charVars = cellfun(@str2double, ctpVariablesChar, 'UniformOutput', false);
+if curTaskPara.SplitMode == 3
+    n = max(length(VariablesNames), length(charVars));
+end
+if length(VariablesNames) < n
+    VariablesNames = repmat(VariablesNames, 1, n);
+end
+if length(charVars) < n
+    charVars = repmat(charVars, 1, n);
+end
+end
