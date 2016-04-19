@@ -34,7 +34,7 @@ ntasks = length(dataExtract.Taskname);
 taskRange = find(ismember(dataExtract.Taskname, tasks));
 ntasks4process = length(taskRange);
 if isequal(taskRange, (1:ntasks)')
-    fprintf('Will processing all the tasks!');
+    fprintf('Will process all the tasks!\n');
 end
 %Begin computing.
 for itask = 1:ntasks4process

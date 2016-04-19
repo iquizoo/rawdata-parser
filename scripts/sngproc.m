@@ -99,9 +99,8 @@ if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(condition
             warning('UDF:SNGPROC:MODE1ABNORMAL', ...
                 'No data for condition of %s.\n', conditionsNames{icond});
             status = -1;
-            curCondNVars = nVars{icond};
             reconsTrialApart.(conditionsNames{icond}) = ...
-                {array2table(nan(1, curCondNVars), 'VariableNames', VariablesNames{icond})};
+                [];
         end
     end
 else
