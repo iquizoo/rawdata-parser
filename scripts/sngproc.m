@@ -1,12 +1,24 @@
 function [splitRes, status] = sngproc(conditions, curTaskPara)
 %SNGPROC Preprocessing the data of one single subject.
+%   [SPLITRES, STATUS] = SNGPROC(CONDITIONS, CURTASKPARA) does the
+%   splitting jobs to conditions according to the parameters specified in
+%   curtaskpara. The two input arguments are both cell type, containing a
+%   string in the former, and a table in the latter. Splitting result is
+%   stored in splitRes, and status is used to denote whether an exception
+%   happens or not.
 
 %By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
+
+%Basic logic:
+%          ############################################
+%          #  Original string
+%          ####################
+%                     
 
 status = 0;
 %Extract useful information form parameters.
 curTaskPara = curTaskPara{:};
-if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(conditions{:})
+if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode)
     %% Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters = curTaskPara.Delimiters{:};
@@ -39,15 +51,15 @@ if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(condition
             spTrialRec = cellfun(@strsplit, ...
                 spRec{1}, repmat({delimiters(2)}, size(spRec{1})), ...
                 'UniformOutput', false);
-            switch curTaskPara.TemplateIdentity
-                case {1, 12}
+            switch curTaskPara.TemplateToken{:}
+                case {'LT', 'WM'} %language task, working memory
                     nspTrial = cellfun(@length, spTrialRec);
                     nspTrial = unique(nspTrial);
                     altChoice = find(ismember(nAltVars, nspTrial));
                     if length(altChoice) ~= 1
                         altChoice = 1; % Choose the first alternative template by default.
                     end
-                case 17
+                case 'F' %Flanker.
                     firstnum = str2double(spTrialRec{1});
                     if ismember(firstnum, 1:4)
                         altChoice = 1;

@@ -73,7 +73,7 @@ for ichk = 1:length(chkTblVars)
     hax = gca;
     hax.FontName = 'Gill Sans MT';
     hax.FontSize = 12;
-        saveas(gcf, [curTaskFigDir, filesep, ...
+    saveas(gcf, [curTaskFigDir, filesep, ...
         'Box plot of', strrep(desp{2}, '_', ' '),  ' through all grades'], 'jpg');
     close(gcf)
 end
@@ -114,18 +114,14 @@ writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of e
 
 %% Error bar plot.
 figure
-axisPos = {'left', 'right'};
+% axisPos = {'left', 'right'};
 title(['Error bar (SEM) plot in task ', taskIDName]);
 for ivar = 1:2
-    yyaxis(axisPos{ivar})
+%     yyaxis(axisPos{ivar})
     errorbar(grpstats(tbl.(chkTblVars{ivar}), tbl.grade), ...
         grpstats(tbl.(chkTblVars{ivar}), tbl.grade, 'sem'))
     xlabel('Grade')
-    ebylabel = regexp(chkTblVars{ivar}, strjoin(chkVars, '|'), 'match', 'once');
-    if strcmp(ebylabel, 'MRT') || strcmp(ebylabel, 'RT')
-        ebylabel = [ebylabel, '(ms)'];
-    end
-    ylabel(strrep(ebylabel, '_', ' '))
+    ylabel('Count')
     hax = gca;
     hax.YGrid = 'on';
     hax.GridLineStyle = '-';
@@ -135,6 +131,7 @@ for ivar = 1:2
     hax.FontSize = 12;
     hold on
 end
+legend(strrep(chkVars, '_', ' '), 'Location', 'best')
 saveas(gcf, [curTaskFigDir, filesep, ...
     'Error bar (SEM) plot of ', strjoin(chkVars, '&')], 'jpg');
 close(gcf)

@@ -8,34 +8,32 @@ function res = DRT(splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-outvars = {...
-    'MRT', 'VRT', ...
-    'Rate_hit', 'Rate_FA'};
+outvars = {'MRT'};
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
+RECORD(isnan(RECORD.ACC), :) = [];
 %Find out the no-go condition.
-condOf3000 = cell2mat(RECORD.SCat(RECORD.RT == 3000));
-unistr = unique(condOf3000);
-nstr = nan(size(unistr));
-for istr = 1:length(unistr)
-    nstr(istr) = sum(condOf3000 == unistr(istr));
+allcond = unique(RECORD.SCat);
+firstTrial = RECORD(1, :);
+firstCond = firstTrial.ACC == 1 && firstTrial.RT < 3000;
+if firstCond
+    ngcond = allcond(~ismember(allcond, firstTrial.SCat));
+else
+    ngcond = firstTrial.SCat;
 end
-[~, idx] = max(nstr);
-ngcond = unistr(idx);
 
 %Calculate MRT for go trials.
-%Cutoff RTs: eliminate RTs that are too fast (<100ms) or too slow (>2500ms)
-RECORD(RECORD.RT < 100 | RECORD.RT > 2500, :) = [];
+%Cutoff RTs: eliminate RTs that are too fast (<100ms).
 goRTs = RECORD.RT(~ismember(RECORD.SCat, ngcond));
 MRT = nanmean(goRTs);
-VRT = nanvar(goRTs);
+% VRT = nanvar(goRTs);
+% 
+% %hit rate and false alarm rate.
+% Rate_hit = nanmean(RECORD.ACC(~ismember(RECORD.SCat, ngcond)));
+% Rate_FA = 1 -  nanmean(RECORD.ACC(ismember(RECORD.SCat, ngcond)));
 
-%hit rate and false alarm rate.
-Rate_hit = nanmean(RECORD.ACC(~ismember(RECORD.SCat, ngcond)));
-Rate_FA = 1 -  nanmean(RECORD.ACC(ismember(RECORD.SCat, ngcond)));
-
-res = {table(MRT, VRT, Rate_hit, Rate_FA)};
+res = {table(MRT)};

@@ -7,6 +7,9 @@ function statsPlotSRT(tbl)
 %% Remove data of undefined school or grade.
 tbl(isundefined(tbl.school) | isundefined(tbl.grade), :) = [];
 tblVars = tbl.Properties.VariableNames;
+if isempty(tbl)
+    return
+end
 
 %% Get TaskIDName.
 VarsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
