@@ -49,22 +49,51 @@ if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode)
                 recons, repmat({delimiters(1)}, size(recons)), ...
                 'UniformOutput', false);
             spTrialRec = cellfun(@strsplit, ...
-                spRec{1}, repmat({delimiters(2)}, size(spRec{1})), ...
+                spRec{:}, repmat({delimiters(2)}, size(spRec{1})), ...
                 'UniformOutput', false);
             switch curTaskPara.TemplateToken{:}
-                case {'LT', 'WM'} %language task, working memory
+                case {'LT', 'GNG'} %language task, working memory, Go/No-Go
                     nspTrial = cellfun(@length, spTrialRec);
-                    nspTrial = unique(nspTrial);
                     altChoice = find(ismember(nAltVars, nspTrial));
-                    if length(altChoice) ~= 1
-                        altChoice = 1; % Choose the first alternative template by default.
+                case 'WM'
+                    nspTrial = cellfun(@length, spTrialRec);
+                    % Trial length of 1 denotes artificial data, esp. one
+                    % ',' at the end.
+                    nspTrial(nspTrial == 1) = [];
+                    nspTrial = unique(nspTrial);
+                    if length(nspTrial) > 1
+                        altChoice = 3;
+                        trialRecons = cell(size(spTrialRec));
+                        for itrl = 1:length(spTrialRec)
+                            curTrialRec = spTrialRec{itrl};
+                            curTrialRecRecons = cell(1, nAltVars(altChoice));
+                            curTrialRecRecons([1:2, end]) = curTrialRec([1:2, end]);
+                            SSeries = str2double(curTrialRec(3:end - 1));
+                            SSeries = dec2hex(SSeries)';
+                            curTrialRecRecons{3} = SSeries;
+                            trialRecons{itrl} = strjoin(curTrialRecRecons, delimiters(2));
+                        end
+                        recons = {strjoin(trialRecons, delimiters(1))};
+                    else
+                        altChoice = find(ismember(nAltVars(1:2), nspTrial));
                     end
                 case 'F' %Flanker.
-                    firstnum = str2double(spTrialRec{1});
-                    if ismember(firstnum, 1:4)
+                    spTrialRec = str2double(cat(1, spTrialRec{:}));
+                    chkcol = spTrialRec(:, 1);
+                    chkcol(isnan(chkcol)) = [];
+                    if all(ismember(chkcol, 1:4)) %The first column is Stimuli category.
                         altChoice = 1;
                     else
                         altChoice = 2;
+                    end
+                case 'RTB' %Bread toasting (SRT)
+                    spTrialRec = str2double(cat(1, spTrialRec{:}));
+                    chkcol = spTrialRec(:, 2);
+                    chkcol(isnan(chkcol)) = [];
+                    if all(ismember(chkcol, 0:1)) %The second column is ACC.
+                        altChoice = 2;
+                    else
+                        altChoice = 1;
                     end
             end
             VariablesNames = AltVariablesNames(altChoice);

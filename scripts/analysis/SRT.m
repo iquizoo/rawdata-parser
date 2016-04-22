@@ -6,17 +6,43 @@ function res = SRT(splitRes)
 %   The output table contains 2 variables, called MRT, VRT.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+%04/21/2016, change log: Add an ACC variable to record accuracy, esp. useful for bread
+%and watch task.
 
-outvars = {...
-    'MRT', 'VRT'};
+%chkVar is used to check outliers.
+chkVar = {};
+%coupleVars are formatted out variables.
+varPref = {'ACC', 'MRT'};
+varSuff = {''};
+delimiter = '';
+coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
+%further required variables.
+singletonVars = {'VRT'};
+outvars = [chkVar, coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
     return
 end
 RECORD = splitRes{:}.RECORD{:};
-%Cutoff RTs: for too fast and too slow RTs.
-RECORD(RECORD.RT < 100 | RECORD.RT > 2500, :) = [];
-MRT = nanmean(RECORD.RT); %Mean RT.
-VRT = nanvar(RECORD.RT); %Variance of RT, note not standard deviation.
-res = {table(MRT, VRT)};
+%Cutoff RTs: for too fast and too slow RTs. After discussion, only trials
+%that are too fast are removed. Note RT == 0 mostly means no response.
+RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
+%Removed trials without response.
+RECORD(RECORD.Resp == 0, :) = [];
+%Remove NaN trials.
+RECORD(isnan(RECORD.ACC), :) = [];
+%For the task 'SRT'. The original record of ACC of each trial is not always
+%right.
+if ismember('STIM', RECORD.Properties.VariableNames)
+    %transform: 'l' -> 1 , 'r' -> 2.
+    RECORD.STIM = (RECORD.STIM ==  'r') + 1;
+    RECORD.ACC = RECORD.STIM == RECORD.Resp;
+end
+%Accuracy.
+ACC = mean(RECORD.ACC);
+%Mean RT.
+MRT = mean(RECORD.RT(RECORD.ACC == 1));
+%Standard deviation of RT. Square root of variance.
+VRT = std(RECORD.RT(RECORD.ACC == 1));
+res = {table(ACC, MRT, VRT)};
