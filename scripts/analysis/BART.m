@@ -5,8 +5,19 @@ function res = BART(splitRes)
 %     47. BART
 %   The output table contains 1 variables, called MNHit.
 
-outvars = {...
-    'MNHit'};
+%By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+
+%chkVar is used to check outliers.
+chkVar = {};
+%coupleVars are formatted out variables.
+varPref = {'MNHit'};
+varSuff = {''};
+delimiter = '';
+coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
+%further required variables.
+singletonVars = {};
+%Out variables names are composed by three part.
+outvars = [chkVar, coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
