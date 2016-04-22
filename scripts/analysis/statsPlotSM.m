@@ -1,5 +1,5 @@
-function statsPlotSRT(tbl)
-%statsPlotSRT Plots basic graphs of report.
+function statsPlotSM(tbl)
+%STATSPLOTSM Plots basic graphs of report.
 %
 
 %By Zhang, Liang. 04/16/2016. E-mai:psychelzh@gmail.com
@@ -28,8 +28,11 @@ if ~exist(curTaskFigDir, 'dir')
 end
 
 %% Get all the checking variable names to plot.
-chkVars = {...
-    'MRT', 'ACC'};
+varPref = {'Overall', 'R1', 'R2'};
+varSuff = {'_ACC', '_RT'};
+repVarSuff = repmat(varSuff, length(varPref), 1);
+chkVarSuff = repVarSuff(:)';
+chkVars = strcat(repmat(varPref, 1, length(varSuff)), chkVarSuff);
 tblVars = tbl.Properties.VariableNames;
 chkTblVarsLoc = false(size(tblVars));
 for ivar = 1:length(chkVars)
@@ -58,36 +61,39 @@ outlierVarnames = strcat(repmat(outlierVarPref, 1, length(chkVars)), outlierVarS
 curTaskOutlier = grpstats(tbl, 'grade', {@(x)coutlier(x, 'mild'), @(x)coutlier(x, 'extreme')}, ...
     'DataVars', chkTblVars, ...
     'VarNames', [{'grade', 'GroupCount'}, outlierVarnames]);
-writetable(curTaskOutlier, [curTaskXlsDir, filesep, 'Counting of outliers of each grade.xlsx'], 'Sheet', 'RT ACC');
+writetable(curTaskOutlier, [curTaskXlsDir, filesep, 'Counting of outliers of each grade.xlsx']);
 for ichk = 1:length(chkTblVars)
     figure
+    set(gcf, 'Visible', 'off')
     boxplot(chkData(:, ichk), tbl.grade, 'Whisker', 3);
     xlabel('Grade')
     [taskIDName, desp] = regexp(chkTblVars{ichk}, '^\w+?(?=_)', 'match', 'split', 'once');
     title(['Box plot of', strrep(desp{2}, '_', ' '), ' in task ', taskIDName, ' through all grades'])
-    bpylabel = regexp(chkTblVars{ichk}, strjoin(chkVars, '|'), 'match', 'once');
-    if strcmp(bpylabel, 'MRT')
+    bpylabel = regexp(chkTblVars{ichk}, strjoin(varPref, '|'), 'match', 'once');
+    if strcmp(bpylabel, 'MRT') || strcmp(bpylabel, 'RT')
         bpylabel = [bpylabel, '(ms)'];
     end
     ylabel(strrep(bpylabel, '_', ' '))
     hax = gca;
     hax.FontName = 'Gill Sans MT';
     hax.FontSize = 12;
-        saveas(gcf, [curTaskFigDir, filesep, ...
+    saveas(gcf, [curTaskFigDir, filesep, ...
         'Box plot of', strrep(desp{2}, '_', ' '),  ' through all grades'], 'jpg');
     close(gcf)
 end
 
 %% Write a table about descriptive statistics of different ages.
-%Remove extreme outliers based on ACC.
+%Remove extreme outliers based on the hit count.
 for igrade = 1:length(grades)
     curgradeidx = tbl.grade == grades{igrade};
-    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{3})(curgradeidx), 'extreme');
+    [~, outlieridx] = coutlier(tbl.(VarsOfTaskData{1})(curgradeidx), 'extreme');
     rmidx = curgradeidx;
     rmidx(rmidx == 1) = outlieridx;
     tbl(rmidx, :) = [];
     for ihistVar = 1:length(chkTblVars)
         curgradedata = tbl.(chkTblVars{ihistVar})(tbl.grade == grades{igrade});
+        figure
+        set(gcf, 'Visible', 'off')
         histogram(curgradedata)
         [taskIDName, desp] = regexp(chkTblVars{ihistVar}, '^\w+?(?=_)', 'match', 'split', 'once');
         curChkVar = strrep(desp{2}, '_', ' ');
@@ -110,31 +116,34 @@ for igrade = 1:length(grades)
     end
 end
 agingDespStats = grpstats(tbl, 'grade', {'mean', 'std'}, 'DataVars', chkTblVars);
-writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of each grade.xlsx'], 'Sheet', 'RT ACC');
+writetable(agingDespStats, [curTaskXlsDir, filesep, 'Descriptive statistics of each grade.xlsx']);
 
 %% Error bar plot.
-figure
-axisPos = {'left', 'right'};
-title(['Error bar (SEM) plot in task ', taskIDName]);
-for ivar = 1:2
-    yyaxis(axisPos{ivar})
-    errorbar(grpstats(tbl.(chkTblVars{ivar}), tbl.grade), ...
-        grpstats(tbl.(chkTblVars{ivar}), tbl.grade, 'sem'))
-    xlabel('Grade')
-    ebylabel = regexp(chkTblVars{ivar}, strjoin(chkVars, '|'), 'match', 'once');
-    if strcmp(ebylabel, 'MRT') || strcmp(ebylabel, 'RT')
-        ebylabel = [ebylabel, '(ms)'];
+for ivsuff = 1:length(varPref)
+    curSuffVarNames = chkTblVars(~cellfun(@isempty, strfind(chkTblVars, varPref{ivsuff})));
+    axisPos = {'left', 'right'};
+    for ivar = 1:2
+        yyaxis(axisPos{ivar})
+        errorbar(grpstats(tbl.(curSuffVarNames{ivar}), tbl.grade), ...
+            grpstats(tbl.(curSuffVarNames{ivar}), tbl.grade, 'sem'))
+        xlabel('Grade')
+        ebylabel = regexp(curSuffVarNames{ivar}, strjoin(varSuff, '|'), 'match', 'once');
+        if strcmp(ebylabel, '_MRT') || strcmp(ebylabel, '_RT')
+            ebylabel = [ebylabel, '(ms)'];
+        end
+        ylabel(strrep(ebylabel, '_', ' '))
+        hax = gca;
+        hax.YGrid = 'on';
+        hax.GridLineStyle = '-';
+        hax.XTick = 1:length(grades);
+        hax.XTickLabel = grades;
+        hax.FontName = 'Gill Sans MT';
+        hax.FontSize = 12;
+        hold on
     end
-    ylabel(strrep(ebylabel, '_', ' '))
-    hax = gca;
-    hax.YGrid = 'on';
-    hax.GridLineStyle = '-';
-    hax.XTick = 1:length(grades);
-    hax.XTickLabel = grades;
-    hax.FontName = 'Gill Sans MT';
-    hax.FontSize = 12;
-    hold on
 end
+title(['Error bar (SEM) plot of task ', taskIDName]);
+legend(varPref, 'Location', 'north')
 saveas(gcf, [curTaskFigDir, filesep, ...
-    'Error bar (SEM) plot of ', strjoin(chkVars, '&')], 'jpg');
+    'Error bar (SEM) plot of all'], 'jpg');
 close(gcf)
