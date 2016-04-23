@@ -8,8 +8,11 @@ function res = nsnan(TaskIDName, splitRes)
 %     4. Pinyin
 %     5. Lexic
 %     6. Semantic
-%   The output table contains 8 variables, called Count_hit, Count_FA,
-%   Count_miss, Count_CR, RT_hit, RT_FA, RT_miss, RT_CR
+%     11-14. DRT
+%     36. GNGLure
+%     37. GNGFruit
+%   The output table contains 8 variables, called Rate_Overall, RT_Overall,
+%   Rate_hit, Rate_FA, RT_hit, RT_FA, dprime, c.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
@@ -32,6 +35,8 @@ end
 RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: for too fast trials.
 RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
+%Do not remove trials without response, because some trials of GNG task is
+%designed to suppress a response for subjects.
 %Remove NaN trials.
 RECORD(isnan(RECORD.ACC), :) = [];
 %Modify SCat.

@@ -4,6 +4,7 @@ function res = conflict(TaskIDName, splitRes)
 %   Basically, the supported tasks are as follows:
 %     38. Flanker,
 %     39-40. Stroop1-2,
+%     41. NumStroop
 %     44. TaskSwicthing.
 %   The output table contains 8 variables.
 
@@ -13,11 +14,12 @@ function res = conflict(TaskIDName, splitRes)
 chkVar = {};
 %coupleVars are formatted out variables.
 varPref = {'RT', 'ACC'};
-switch TaskIDName{:}
+switch TaskIDName{:} % Addition: get the miss code of each task.
     case 'Flanker'
         codeA = [1, 3]; %Congruent.
         codeB = [2, 4]; %Incongruent.
         varSuff = {'Overall', 'Cong', 'Incong', 'CongEffect'};
+        missResp = 0;
     case {...
             'Stroop1',...
             'Stroop2',...
@@ -26,10 +28,16 @@ switch TaskIDName{:}
         codeA = 1; %Congruent.
         codeB = 0; %Incongruent.
         varSuff = {'Overall', 'Cong', 'Incong', 'CongEffect'};
+        if strcmp(TaskIDName{:}, 'NumStroop')
+            missResp = 2;
+        else
+            missResp = 0;
+        end
     case 'TaskSwitching'
         codeA = 1; %Repeat.
         codeB = 2; %Switch.
         varSuff = {'Overall', 'Repeat', 'Switch', 'SwitchCost'};
+        missResp = -1;
 end
 delimiter = '_';
 coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
@@ -45,8 +53,11 @@ end
 RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: eliminate trials that are too fast (<100ms)
 RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
-%Trials without response, denoted by -1 in ACC, should be removed.
-RECORD(RECORD.ACC == -1, :) = [];
+%Remove trials of no response.
+if ~ismember(RECORD.Properties.VariableNames, 'Resp')
+    RECORD.Resp = RECORD.ACC;
+end
+RECORD(RECORD.Resp == missResp, :) = [];
 %Overall RT and ACC.
 res.RT_Overall = nanmean(RECORD.RT(RECORD.ACC == 1));
 res.ACC_Overall = nanmean(RECORD.ACC);

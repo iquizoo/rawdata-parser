@@ -1,4 +1,4 @@
-function res = meman(taskIDName, splitRes)
+function res = memansep(taskIDName, splitRes)
 %MEMAN Does some basic data transformation to memory task.
 %
 %   Basically, the supported tasks are as follows:

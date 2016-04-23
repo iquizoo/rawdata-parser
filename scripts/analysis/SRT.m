@@ -3,7 +3,9 @@ function res = SRT(splitRes)
 %
 %   Basically, the supported tasks are as follows:
 %     7-10. SRT
-%   The output table contains 2 variables, called MRT, VRT.
+%     18. SRTWatch
+%     19. SRTBread
+%   The output table contains 3 variables, called ACC, MRT, VRT.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 %04/21/2016, change log: Add an ACC variable to record accuracy, esp. useful for bread
@@ -28,8 +30,8 @@ RECORD = splitRes{:}.RECORD{:};
 %Cutoff RTs: for too fast and too slow RTs. After discussion, only trials
 %that are too fast are removed. Note RT == 0 mostly means no response.
 RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
-%Removed trials without response.
-RECORD(RECORD.Resp == 0, :) = [];
+%Do not remove trials without response, because some trials of stopwatch
+%and fruit task is designed to suppress a response for subjects.
 %Remove NaN trials.
 RECORD(isnan(RECORD.ACC), :) = [];
 %For the task 'SRT'. The original record of ACC of each trial is not always

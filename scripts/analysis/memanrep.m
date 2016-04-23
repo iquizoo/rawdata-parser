@@ -1,4 +1,4 @@
-function res = smmeman(splitRes)
+function res = memanrep(splitRes)
 %SMMEMAN Does some basic data transformation to semantic memory task.
 %
 %   Basically, the supported tasks are as follows:
@@ -24,22 +24,28 @@ if ~istable(splitRes{:}) || isempty(splitRes{:})
     return
 end
 % STUDY = splitRes{:}.STUDY{:};
-TEST = splitRes{:}.TEST{:};
+if ~ismember(splitRes{:}.Properties.VariableNames, 'RECORD')
+    %This means it is the semantic memory task.
+    RECORD = splitRes{:}.TEST{:};
+else
+    %This means it is the associative memory task.
+    RECORD = splitRes{:}.RECORD{:};
+end
 %Cutoff RTs: for too fast trials.
-TEST(TEST.RT < 100 & TEST.RT > 0, :) = [];
+RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
 %Remove NaN trials.
-TEST(isnan(TEST.ACC), :) = [];
+RECORD(isnan(RECORD.ACC), :) = [];
 %Remove trials of no response, which denoted by -1 in Resp.
-TEST(TEST.Resp == -1, :) = [];
+RECORD(RECORD.Resp == -1, :) = [];
 %ACC and RT for overall performance.
-res.([varPref{1}, delimiter, varSuff{1}]) = mean(TEST.ACC);
-res.([varPref{1}, delimiter, varSuff{2}]) = mean(TEST.RT(TEST.ACC == 1));
+res.([varPref{1}, delimiter, varSuff{1}]) = mean(RECORD.ACC);
+res.([varPref{1}, delimiter, varSuff{2}]) = mean(RECORD.RT(RECORD.ACC == 1));
 %Run-wise ACC and RT.
 runs = 1:2;
 for run = runs
     res.([varPref{run + 1}, delimiter, varSuff{1}]) = ...
-        mean(TEST.ACC(TEST.REP == run));
+        mean(RECORD.ACC(RECORD.REP == run));
     res.([varPref{run + 1}, delimiter, varSuff{2}]) = ...
-        mean(TEST.RT(TEST.ACC == 1 & TEST.REP == run));
+        mean(RECORD.RT(RECORD.ACC == 1 & RECORD.REP == run));
 end
 res = {struct2table(res)};
