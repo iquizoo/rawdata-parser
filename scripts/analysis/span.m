@@ -17,9 +17,17 @@ function res = span(splitRes)
 
 % By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-outvars = {...
-    ...%'TE_ML', 'TE_TT', ...%Delete these two because of bad performance in analysis.
-    'ML', 'MS'};
+%chkVar is used to check outliers.
+chkVar = {};
+%coupleVars are formatted out variables.
+varPref = {'ML', 'MS'};
+varSuff = {''};
+delimiter = '';
+coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
+%further required variables.
+singletonVars = {};
+%Out variables names are composed by three part.
+outvars = [chkVar, coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -41,30 +49,31 @@ end
 %correct.
 ML = max(RECORD.SLen(RECORD.ACC == 1));
 if isempty(ML) % No correct trials found.
-%     TE_ML = nan;
-%     TE_TT = nan;
     ML = nan;
     MS = nan;
 else
-%     %For the TE_* variables.
-%     reduceTrialInd = find(RECORD.Next == -1);
-%     TE_ML = sum(RECORD.ACC(1:reduceTrialInd(1)));
-%     TE_TT = reduceTrialInd(1) - 1;
     %Mean span metric.
-    msBase = RECORD.SLen(1) - 0.5; %Mean span baseline, set at 0.5 less than initial length.
+    baseLen = RECORD.SLen(1);
+    msBase = baseLen - 0.5; %Mean span baseline, set at 0.5 less than initial length.
     allSLen = unique(RECORD.SLen);
+    %If the SLen is larger than baseLen, Mean Span is increased.
+    increSLen = allSLen(allSLen >= baseLen);
     msIncre = 0;
-    for iLen = 1:length(allSLen)
+    for iLen = 1:length(increSLen)
         %Incremented by hit rate of each SLen.
-        msIncre = msIncre + mean(RECORD.ACC(RECORD.SLen == allSLen(iLen))); 
+        msIncre = msIncre + mean(RECORD.ACC(RECORD.SLen == increSLen(iLen)));
     end
-    MS = msBase + msIncre;
+    %If the SLen is larger than baseLen, Mean Span is decreased.
+    decreSLen = allSLen(allSLen < baseLen);
+    msDecre = 0;
+    for iLen = 1:length(decreSLen)
+        %Decreased by miss rate of each SLen.
+        msDecre = msDecre + 1 - mean(RECORD.ACC(RECORD.SLen == decreSLen(iLen)));
+    end
+    MS = msBase + msIncre - msDecre;
 end
 res = {table(...
-    ...%TE_ML, TE_TT, ...
     ML, MS)};
 res{:}.Properties.VariableDescriptions = {...
-    ...%'the total number of trials correct prior to two successive misses', ...
-    ...%'the total number of trials (both correct and incorrect) presented prior to two successive errors', ...
     'the longest list correctly reported', ...
     'the list length where 50% of lists would be correctly reported'};

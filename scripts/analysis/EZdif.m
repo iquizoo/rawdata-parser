@@ -1,13 +1,13 @@
 function [v, a, Ter] = EZdif(Pc, MRT, VRT, s)
 %EZDIF Calculates parameters of EZ-diffusion model.
-%
 %   [V,A,TER] = EZdif(PC,MRT,VRT) receives 3 inputs, respectively: Pc is
-%   the proportion of correct, i.e., rate of accuracy; MRT is mean reaction
-%   time of correct responses; VRT is variance of reactio time of correct
-%   responses. And its outputs, V is the drifting rate, which is said as a
-%   fixed property of the condition or the participant; A is the boundary 
-%   separation, which is said to be under the control of the participant
-%   (Wagenmakers, 2007); and TER is the nondecision time.
+%   the proportion of correct, i.e., rate of accuracy; MRT(unit: sec) is
+%   mean reaction time of correct responses; VRT(unit: sec) is variance of
+%   reactio time of correct responses. And its outputs, V is the drifting
+%   rate, which is said as a fixed property of the condition or the
+%   participant; A is the boundary separation, which is said to be under
+%   the control of the participant (Wagenmakers, 2007); and TER is the
+%   nondecision time.
 %
 %   [V,A,TER] = EZdif(...,s) receives the fourth inputs S as the scaling
 %   parameter, which is just an arbitrary value.

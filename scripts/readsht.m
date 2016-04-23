@@ -77,7 +77,7 @@ for isht = 1:nsht4process
     %Get a table curTaskCfg to combine two variables: conditions and para,
     %which are used in the function sngproc. See more in function sngproc.
     curTaskSetting = settings(locset, :);
-    curTaskPara = para(ismember(para.TemplateIdentity, curTaskSetting.TemplateIdentity), :);
+    curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
     curTaskCfg = table;
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);

@@ -7,8 +7,17 @@ function res = nback(splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-outvars = {...
-    'ACC', 'RT'};
+%chkVar is used to check outliers.
+chkVar = {};
+%coupleVars are formatted out variables.
+varPref = {'ACC', 'RT'};
+varSuff = {''};
+delimiter = '';
+coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
+%further required variables.
+singletonVars = {};
+%Out variables names are composed by three part.
+outvars = [chkVar, coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -18,8 +27,10 @@ RECORD = splitRes{:}.RECORD{:};
 %Remove trials that no response is needed.
 RECORD(RECORD.CResp == -1, :) = [];
 %Cutoff RTs: for too fast trials.
-RECORD(RECORD.RT < 100, :) = [];
+RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
+%Remove NaN trials.
+RECORD(isnan(RECORD.ACC), :) = [];
 
-ACC = nanmean(RECORD.ACC);
-RT = nanmean(RECORD.RT);
+ACC = mean(RECORD.ACC);
+RT = mean(RECORD.RT);
 res = {table(ACC, RT)};

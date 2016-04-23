@@ -1,12 +1,24 @@
 function [splitRes, status] = sngproc(conditions, curTaskPara)
 %SNGPROC Preprocessing the data of one single subject.
+%   [SPLITRES, STATUS] = SNGPROC(CONDITIONS, CURTASKPARA) does the
+%   splitting jobs to conditions according to the parameters specified in
+%   curtaskpara. The two input arguments are both cell type, containing a
+%   string in the former, and a table in the latter. Splitting result is
+%   stored in splitRes, and status is used to denote whether an exception
+%   happens or not.
 
 %By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
+
+%Basic logic:
+%          ############################################
+%          #  Original string
+%          ####################
+%                     
 
 status = 0;
 %Extract useful information form parameters.
 curTaskPara = curTaskPara{:};
-if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(conditions{:})
+if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode)
     %% Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters = curTaskPara.Delimiters{:};
@@ -37,22 +49,51 @@ if ~isempty(curTaskPara) && ~isnan(curTaskPara.SplitMode) %&& ~isempty(condition
                 recons, repmat({delimiters(1)}, size(recons)), ...
                 'UniformOutput', false);
             spTrialRec = cellfun(@strsplit, ...
-                spRec{1}, repmat({delimiters(2)}, size(spRec{1})), ...
+                spRec{:}, repmat({delimiters(2)}, size(spRec{1})), ...
                 'UniformOutput', false);
-            switch curTaskPara.TemplateIdentity
-                case {1, 12}
+            switch curTaskPara.TemplateToken{:}
+                case {'LT', 'GNG'} %language task, working memory, Go/No-Go
                     nspTrial = cellfun(@length, spTrialRec);
-                    nspTrial = unique(nspTrial);
                     altChoice = find(ismember(nAltVars, nspTrial));
-                    if length(altChoice) ~= 1
-                        altChoice = 1; % Choose the first alternative template by default.
+                case 'WM'
+                    nspTrial = cellfun(@length, spTrialRec);
+                    % Trial length of 1 denotes artificial data, esp. one
+                    % ',' at the end.
+                    nspTrial(nspTrial == 1) = [];
+                    nspTrial = unique(nspTrial);
+                    if length(nspTrial) > 1
+                        altChoice = 3;
+                        trialRecons = cell(size(spTrialRec));
+                        for itrl = 1:length(spTrialRec)
+                            curTrialRec = spTrialRec{itrl};
+                            curTrialRecRecons = cell(1, nAltVars(altChoice));
+                            curTrialRecRecons([1:2, end]) = curTrialRec([1:2, end]);
+                            SSeries = str2double(curTrialRec(3:end - 1));
+                            SSeries = dec2hex(SSeries)';
+                            curTrialRecRecons{3} = SSeries;
+                            trialRecons{itrl} = strjoin(curTrialRecRecons, delimiters(2));
+                        end
+                        recons = {strjoin(trialRecons, delimiters(1))};
+                    else
+                        altChoice = find(ismember(nAltVars(1:2), nspTrial));
                     end
-                case 17
-                    firstnum = str2double(spTrialRec{1});
-                    if ismember(firstnum, 1:4)
+                case 'F' %Flanker.
+                    spTrialRec = str2double(cat(1, spTrialRec{:}));
+                    chkcol = spTrialRec(:, 1);
+                    chkcol(isnan(chkcol)) = [];
+                    if all(ismember(chkcol, 1:4)) %The first column is Stimuli category.
                         altChoice = 1;
                     else
                         altChoice = 2;
+                    end
+                case 'RTB' %Bread toasting (SRT)
+                    spTrialRec = str2double(cat(1, spTrialRec{:}));
+                    chkcol = spTrialRec(:, 2);
+                    chkcol(isnan(chkcol)) = [];
+                    if all(ismember(chkcol, 0:1)) %The second column is ACC.
+                        altChoice = 2;
+                    else
+                        altChoice = 1;
                     end
             end
             VariablesNames = AltVariablesNames(altChoice);

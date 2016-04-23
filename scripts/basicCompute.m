@@ -34,11 +34,7 @@ ntasks = length(dataExtract.Taskname);
 taskRange = find(ismember(dataExtract.Taskname, tasks));
 ntasks4process = length(taskRange);
 if isequal(taskRange, (1:ntasks)')
-    userin = input('Will processing all the tasks, continue([Y]/N)?', 's');
-    if strcmpi(userin, 'n') || strcmpi(userin, 'no')
-        resdata = [];
-        return
-    end
+    fprintf('Will process all the tasks!\n');
 end
 %Begin computing.
 for itask = 1:ntasks4process
