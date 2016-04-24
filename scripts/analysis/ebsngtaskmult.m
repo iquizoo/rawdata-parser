@@ -27,7 +27,7 @@ nVarCats = length(chkVarsCat);
 nVarCond = length(chkVarsCond);
 %Determine y axes and labels.
 yRTloc = ~cellfun(@isempty, regexp(chkVarsCat, 'RT', 'once'));
-isDBYaxes = nVarCats == 2;
+isDBYaxes = false;
 %Get all the grades for XTickLabel.
 grades = cellstr(unique(tbl.grade));
 %Preallocation.
@@ -36,21 +36,24 @@ hnames = cell(nVarCond, 1);
 %Condition-wise error bar plot.
 for ivarcond = 1:nVarCond
     curVarCond = chkVarsCond{ivarcond};
-    if isDBYaxes
-        if all(ismember(chkVarsCat, {'ML', 'MS'}))
-            isDBYaxes = ~isDBYaxes;
-            ylabels = 'Length';
-        else
-            axisPos = {'left', 'right'};
-            ylabels = strrep(chkVarsCat, '_', ' ');
-            ylabels = strrep(ylabels, 'prime', '''');
-            ylabels(yRTloc) = strcat(ylabels(yRTloc), '(ms)');
-            if strcmp(curVarCond, 'Overall')
-                ylabels = strrep(ylabels, 'Rate', 'ACC');
+    switch nVarCats
+        case 1
+            ylabels = chkVarsCat;
+        case 2
+            if all(ismember(chkVarsCat, {'ML', 'MS'}))
+                ylabels = 'Length';
+            else
+                isDBYaxes = true;
+                axisPos = {'left', 'right'};
+                ylabels = strrep(chkVarsCat, '_', ' ');
+                ylabels = strrep(ylabels, 'prime', '''');
+                ylabels(yRTloc) = strcat(ylabels(yRTloc), '(ms)');
+                if strcmp(curVarCond, 'Overall')
+                    ylabels = strrep(ylabels, 'Rate', 'ACC');
+                end
             end
-        end
-    elseif nVarCats == 1
-        ylabels = chkVarsCat;
+        otherwise
+            ylabels = curVarCond;
     end
     curTblVars = strcat(TaskIDName, '_', chkVarsCat, delimiter, curVarCond);
     %Open an invisible figure.

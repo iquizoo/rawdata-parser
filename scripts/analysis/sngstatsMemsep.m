@@ -12,9 +12,9 @@ function res = sngstatsMemsep(taskIDName, splitRes)
 varPref = {'Overall', 'R1', 'R2'};
 switch taskIDName{:}
     case 'PicMemory'
-        varSuff = {'hit', 'sim_FA', 'new_FA'};
+        varSuff = {'hit', 'simFA', 'newFA'};
     case 'WordMemory'
-        varSuff = {'hit', 'lure_FA', 'foil_FA'};
+        varSuff = {'hit', 'lureFA', 'foilFA'};
 end
 delimiter = '_';
 coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));

@@ -50,20 +50,50 @@ tasksNeedTrans = tasks(~isTaskIDName);
 tasks(~isTaskIDName) = settings.TaskIDName(locTaskName);
 ntasks = length(tasks);
 fprintf('Will plot figures of %d tasks...\n', ntasks);
+%Use lastexcept as an indicator of exception in last task.
+lastexcept = false;
+latestsprint = '';
 %Task-wise checking.
 for itask = 1:ntasks
     initialVars = who;
     close all
     curTaskIDName = tasks{itask};
     origTaskName = origtasks{itask};
-    fprintf('Now plot figures of task %s(%s).\n', origTaskName, curTaskIDName);
+    %Delete last line without exception.
+    if ~lastexcept && itask ~= 1
+        fprintf(repmat('\b', 1, length(latestsprint)))
+    end
+    latestsprint = sprintf('Now plot figures of task %s(%s).', origTaskName, curTaskIDName);
+    fprintf(latestsprint);
     curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
     if isempty(curTaskSettings)
-        fprintf('Exception encountered when processing task %s, aborting!\n', origTaskName);
+        fprintf('\nException encountered when processing task %s, aborting!', origTaskName);
+        lastexcept = true;
         continue
     elseif height(curTaskSettings) > 1
         curTaskSettings = curTaskSettings(1, :);
     end
+    %% Get the data of current task.
+    allMrgDataVars = mrgdata.Properties.VariableNames;
+    % Some transformation of basic information, e.g. school and grade.
+    curTaskVarsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
+    curTaskDataBI = mrgdata(:, ismember(allMrgDataVars, curTaskVarsOfBasicInformation));
+    % Experiment data.
+    curTaskLoc = ~cellfun(@isempty, ...
+        regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
+    if ~any(curTaskLoc)
+        fprintf('\nNo experiment data result found for current task. Aborting...')
+        lastexcept = true;
+        continue
+    end
+    curTaskDataExp = mrgdata(:, curTaskLoc);
+    curTaskVarsOfExperimentData = curTaskDataExp.Properties.VariableNames;
+    curTaskData = [curTaskDataBI, curTaskDataExp];
+    %Pre-plot data clean job.
+    curTaskData(all(isnan(curTaskDataExp{:, :}), 2), :) = [];
+    curTaskData(isundefined(curTaskData.school) | isundefined(curTaskData.grade), :) = [];
+    curTaskData.grade = removecats(curTaskData.grade);
+    grades = cellstr(unique(curTaskData.grade));
     %% Set the store directories and file names of figures and excels.
     % Excel file.
     xlsDir = 'Docs';
@@ -77,26 +107,6 @@ for itask = 1:ntasks
     if ~exist(curTaskFigDir, 'dir')
         mkdir(curTaskFigDir)
     end
-    %% Get the data of current task.
-    allMrgDataVars = mrgdata.Properties.VariableNames;
-    % Some transformation of basic information, e.g. school and grade.
-    curTaskVarsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
-    curTaskDataBI = mrgdata(:, ismember(allMrgDataVars, curTaskVarsOfBasicInformation));
-    % Experiment data.
-    curTaskLoc = ~cellfun(@isempty, ...
-        regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
-    if ~any(curTaskLoc)
-        fprintf('No experiment data result found for current task. Aborting...\n')
-        continue
-    end
-    curTaskDataExp = mrgdata(:, curTaskLoc);
-    curTaskVarsOfExperimentData = curTaskDataExp.Properties.VariableNames;
-    curTaskData = [curTaskDataBI, curTaskDataExp];
-    %Pre-plot data clean job.
-    curTaskData(all(isnan(curTaskDataExp{:, :}), 2), :) = [];
-    curTaskData(isundefined(curTaskData.school) | isundefined(curTaskData.grade), :) = [];
-    curTaskData.grade = removecats(curTaskData.grade);
-    grades = cellstr(unique(curTaskData.grade));
     %% Write a table of basic information statistics.
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
@@ -166,6 +176,8 @@ for itask = 1:ntasks
         cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
         delete(hs)
     end
+    lastexcept = false;
     clearvars('-except', initialVars{:});
 end
 rmpath(anafunpath);
+fprintf('\n')

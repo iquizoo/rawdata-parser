@@ -37,13 +37,13 @@ RECORD(isnan(RECORD.ACC), :) = [];
 RECORD(RECORD.Resp == -1, :) = [];
 %ACC and RT for overall performance.
 res.([varPref{1}, delimiter, varSuff{1}]) = mean(RECORD.ACC);
-res.([varPref{1}, delimiter, varSuff{2}]) = mean(RECORD.RT(RECORD.ACC == 1));
+res.([varPref{2}, delimiter, varSuff{1}]) = mean(RECORD.RT(RECORD.ACC == 1));
 %Run-wise ACC and RT.
 runs = 1:2;
 for run = runs
-    res.([varPref{run + 1}, delimiter, varSuff{1}]) = ...
+    res.([varPref{1}, delimiter, varSuff{run + 1}]) = ...
         mean(RECORD.ACC(RECORD.REP == run));
-    res.([varPref{run + 1}, delimiter, varSuff{2}]) = ...
+    res.([varPref{2}, delimiter, varSuff{run + 1}]) = ...
         mean(RECORD.RT(RECORD.ACC == 1 & RECORD.REP == run));
 end
 res = {struct2table(res)};
