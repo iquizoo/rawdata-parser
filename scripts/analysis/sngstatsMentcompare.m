@@ -1,4 +1,4 @@
-function res = mentcompare(TaskIDName, splitRes)
+function res = sngstatsMentcompare(TaskIDName, splitRes)
 %MENTCOMPARE Does some basic data transformation to mental comparison task.
 %
 %   Basically, the supported tasks are as follows:

@@ -1,4 +1,4 @@
-function res = SRT(splitRes)
+function res = sngstatsSRT(splitRes)
 %SRT Does some basic data transformation to simple reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -11,8 +11,6 @@ function res = SRT(splitRes)
 %04/21/2016, change log: Add an ACC variable to record accuracy, esp. useful for bread
 %and watch task.
 
-%chkVar is used to check outliers.
-chkVar = {};
 %coupleVars are formatted out variables.
 varPref = {'ACC', 'MRT'};
 varSuff = {''};
@@ -20,7 +18,7 @@ delimiter = '';
 coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
 %further required variables.
 singletonVars = {'VRT'};
-outvars = [chkVar, coupleVars, singletonVars];
+outvars = [coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -37,8 +35,8 @@ RECORD(isnan(RECORD.ACC), :) = [];
 %For the task 'SRT'. The original record of ACC of each trial is not always
 %right.
 if ismember('STIM', RECORD.Properties.VariableNames)
-    %transform: 'l' -> 1 , 'r' -> 2.
-    RECORD.STIM = (RECORD.STIM ==  'r') + 1;
+    %transform: 'l'/'1' -> 1 , 'r'/'2' -> 2.
+    RECORD.STIM = (RECORD.STIM ==  'r' | RECORD.STIM ==  '2') + 1;
     RECORD.ACC = RECORD.STIM == RECORD.Resp;
 end
 %Accuracy.

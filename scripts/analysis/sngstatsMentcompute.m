@@ -1,4 +1,4 @@
-function res = mentcompute(splitRes)
+function res = sngstatsMentcompute(splitRes)
 %MENTCOMPUTE Does some basic data transformation to mental computation task.
 %
 %   Basically, the supported tasks are as follows:

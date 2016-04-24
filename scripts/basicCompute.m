@@ -54,7 +54,8 @@ for itask = 1:ntasks4process
         dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
         continue
     end
-    anafun = str2func(curTaskSetting.AnalysisFun{:});
+    %Note: sngstats means 'single task statistics'.
+    anafun = str2func(['sngstats', curTaskSetting.AnalysisFun{:}]);
     anavars = strsplit(curTaskSetting.AnalysisVariableNames{:});
     anares = rowfun(anafun, curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
     curTaskData.res = anares.res;
