@@ -7,9 +7,11 @@ function dataExtract = readsht(fname, shtname)
 %Modified to use in another problem. 
 %Modification completed at 2016/04/13.
 
+%Folder contains all the analysis and plots functions.
+anafunpath = 'analysis';
+addpath(anafunpath);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
-
 %Check input variables. Some basic checking for shtname variable.
 if nargin < 2
     shtname = sheets';
@@ -22,11 +24,8 @@ end
 if isrow(shtname)
     shtname = shtname';
 end
-
 %Log file.
 logfid = fopen('ReadLog.log', 'w');
-
-%Sheet-wise processing.
 %Initializing works.
 nsht = length(sheets);
 shtRange = find(ismember(sheets, shtname));
@@ -45,7 +44,7 @@ dataExtract = table(Taskname, Data);
 %Load parameters.
 para = readtable('taskSettings.xlsx', 'Sheet', 'para');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-%Begin processing.
+%Sheet-wise processing.
 for isht = 1:nsht4process
     initialVarsSht = who;
     %Find out the setting of current task.
@@ -105,3 +104,4 @@ for isht = 1:nsht4process
     clearvars('-except', initialVarsSht{:});
 end
 fclose(logfid);
+rmpath(anafunpath);

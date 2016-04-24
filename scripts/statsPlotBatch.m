@@ -1,28 +1,51 @@
-function statsPlotBatch(mrgdata, tasks, mode)
+function statsPlotBatch(mrgdata, tasks, cfg)
 %STATSPLOTBATCH does a batch job of plot all the figures.
 %   STATSPLOTBATCH(MRGDATA) plots all the figures specified in mrgdata,
-%   based on 'extreme' outlier mode.
+%   based on 'extreme' outlier mode, and output 'jpeg' formatted figures.
 %
 %   STATSPLOTBATCH(MRGDATA, TASKS) does job only on the specified tasks,
-%   also based on 'extreme' outlier mode.
+%   also based on 'extreme' outlier mode, and output 'jpeg' formatted
+%   figures.
 %
-%   STATSPLOTBATCH(MRGDATA, TASKS, MODE) does job only on the specified
-%   tasks, and outliers selection is user defined.
+%   CFG is a structure used to specify the following information.
+%       cfg.minsubs:  One numeric data, means the minimum subjects number
+%       of each entry (one grade in a school). Default: 20.
+%       cfg.outliermode: String. Either 'extreme' or 'mild'. Default:
+%       'extreme'.
+%       cfg.figfmt: String. One supported figure format. See help saveas.
+%       Default: 'jpeg'.
 
 %By Zhang, Liang. Email:psychelzh@gmail.com
 
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
 addpath(anafunpath);
+%Add a folder to store all the results.
+curCallFullname = mfilename('fullpath');
+curDir = fileparts(curCallFullname);
+resFolder = fullfile(fileparts(curDir), 'DATA_RES');
 %Read in the settings table.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 %Check input arguments.
-if nargin <= 2
-    mode = 'extreme';
-end
 if nargin <= 1
     tasks = unique(settings.TaskIDName, 'stable');
 end
+if nargin <= 2
+    cfg = [];
+end
+%Check configuration.
+if ~isfield(cfg, 'minsubs') || isempty(cfg.minsubs)
+    cfg.minsubs = 20;
+end
+if ~isfield(cfg, 'outliermode') || isempty(cfg.outliermode)
+    cfg.outliermode = 'extreme';
+end
+if ~isfield(cfg, 'figfmt') || isempty(cfg.figfmt)
+    cfg.figfmt = 'jpeg';
+end
+minsubs = cfg.minsubs;
+outliermode = cfg.outliermode;
+figfmt = cfg.figfmt;
 %Use cellstr data type.
 if ischar(tasks)
     tasks = {tasks};
@@ -63,11 +86,17 @@ for itask = 1:ntasks
     if ~lastexcept && itask ~= 1
         fprintf(repmat('\b', 1, length(latestsprint)))
     end
-    latestsprint = sprintf('Now plot figures of task %s(%s).', origTaskName, curTaskIDName);
+    %Get the ordinal string.
+    ordStr = [num2str(itask), 'th'];
+    ordStr = strrep(ordStr, '1th', '1st');
+    ordStr = strrep(ordStr, '2th', '2nd');
+    ordStr = strrep(ordStr, '3th', '3rd');
+    latestsprint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
     fprintf(latestsprint);
+    lastexcept = false;
     curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
     if isempty(curTaskSettings)
-        fprintf('\nException encountered when processing task %s, aborting!', origTaskName);
+        fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
         lastexcept = true;
         continue
     elseif height(curTaskSettings) > 1
@@ -82,7 +111,7 @@ for itask = 1:ntasks
     curTaskLoc = ~cellfun(@isempty, ...
         regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
     if ~any(curTaskLoc)
-        fprintf('\nNo experiment data result found for current task. Aborting...')
+        fprintf('No experiment data result found for current task. Aborting...\n')
         lastexcept = true;
         continue
     end
@@ -97,13 +126,13 @@ for itask = 1:ntasks
     %% Set the store directories and file names of figures and excels.
     % Excel file.
     xlsDir = 'Docs';
-    curTaskXlsDir = fullfile(curTaskIDName, xlsDir);
+    curTaskXlsDir = fullfile(resFolder, curTaskIDName, xlsDir);
     if ~exist(curTaskXlsDir, 'dir')
         mkdir(curTaskXlsDir)
     end
     % Figures.
     figDir = 'Figs';
-    curTaskFigDir = fullfile(curTaskIDName, figDir);
+    curTaskFigDir = fullfile(resFolder, curTaskIDName, figDir);
     if ~exist(curTaskFigDir, 'dir')
         mkdir(curTaskFigDir)
     end
@@ -111,24 +140,43 @@ for itask = 1:ntasks
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
     outDespStats = despStats(:, 1:3);
-    writetable(outDespStats, [curTaskXlsDir, filesep, 'Counting of each school and grade.xlsx']);
+    writetable(outDespStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
+    %Special issue: see if delete those data with too few subjects (less than 10).
+    minorLoc = outDespStats.GroupCount < minsubs;
+    shadyEntryInd = find(minorLoc);
+    if ~isempty(shadyEntryInd)
+        lastexcept = true;
+        fprintf('Entry with too few subjects encountered, will delete following entries in the displayed data table:\n')
+        disp(outDespStats(shadyEntryInd, :))
+        disp(outDespStats)
+        resp = input('Sure to delete?[Y]/N:', 's');
+        if isempty(resp)
+            resp = 'yes';
+        end
+        if strcmpi(resp, 'y') || strcmpi(resp, 'yes')
+            curTaskData(ismember(curTaskData.school, outDespStats.school(shadyEntryInd)) ...
+                & ismember(curTaskData.grade, outDespStats.grade(shadyEntryInd)), :) = [];
+            curTaskData.grade = removecats(curTaskData.grade);
+            grades = cellstr(unique(curTaskData.grade));
+        end
+    end
     %% Outlier checking.
     chkVar = curTaskSettings.chkVar{:};
     % Output Excel.
     chkTblVar = strcat(curTaskIDName, '_', chkVar);
     chkOutlierOutVars = ['ExtremeOutlierCount_', chkVar];
-    curTaskOutlier = grpstats(curTaskData, 'grade', @(x)coutlier(x, mode), ...
+    curTaskOutlier = grpstats(curTaskData, 'grade', @(x)coutlier(x, outliermode), ...
         'DataVars', chkTblVar, ...
         'VarNames', {'Grade', 'Total', chkOutlierOutVars});
     writetable(curTaskOutlier, fullfile(curTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
     % Output boxplot figure.
     hbp = figure;
     hbp.Visible = 'off';
-    whisker = 1.5 * strcmp(mode, 'mild') + 3 * strcmp(mode, 'extreme');
+    whisker = 1.5 * strcmp(outliermode, 'mild') + 3 * strcmp(outliermode, 'extreme');
     bpsngtask(curTaskData, curTaskIDName, chkVar, whisker)
     bpname = fullfile(curTaskFigDir, ...
-        ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades.png']);
-    saveas(hbp, bpname)
+        ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
+    saveas(hbp, bpname, figfmt)
     delete(hbp)
     %Remove outliers and plot histograms.
     for igrade = 1:length(grades)
@@ -138,7 +186,7 @@ for itask = 1:ntasks
         curTaskData(curgradeidx, :) = [];
     end
     [hs, hnames] =  histsngtask(curTaskData, curTaskIDName);
-    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
+    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
     delete(hs)
     %% Write a table about descriptive statistics of different ages.
     agingDespStats = grpstats(curTaskData, 'grade', {'mean', 'std'}, ...
@@ -160,13 +208,13 @@ for itask = 1:ntasks
         curTaskDelimiter = '_';
     end
     [hs, hnames] = ebplotfun(curTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
-    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
+    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
     delete(hs)
     %Error bar plot of singleton variables.
     curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
     if ~all(cellfun(@isempty, curTaskSngVars))
         [hs, hnames] = ebsngtasksingleton(curTaskData, curTaskIDName, curTaskSngVars);
-        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
+        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
         delete(hs)
     end
     %Error bar plot of singleton variables CP.
@@ -176,8 +224,6 @@ for itask = 1:ntasks
         cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
         delete(hs)
     end
-    lastexcept = false;
     clearvars('-except', initialVars{:});
 end
 rmpath(anafunpath);
-fprintf('\n')

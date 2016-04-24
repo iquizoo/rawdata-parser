@@ -31,7 +31,7 @@ for isngvar = 1:nsngVars
     [titlevar, label] = var2caption(TaskIDName, curSngVar);
     ylabel(label)
     title(['Error bar (SEM) plot of ', titlevar, ' in task ', TaskIDName]);
-    hnames{isngvar} = ['Error bar (SEM) plot of ', titlevar, '.png'];
+    hnames{isngvar} = ['Error bar (SEM) plot of ', titlevar];
     %Set the font and background to make it look better.
     hax = gca;
     hax.YGrid = 'on';

@@ -64,7 +64,7 @@ for ivarcond = 1:nVarCond
     if isempty(curVarCond)
         curVarTitle = strjoin(chkVarsCat, '&');
     end
-    hnames{ivarcond} = ['Error bar (SEM) plot of ', curVarTitle, '.png'];
+    hnames{ivarcond} = ['Error bar (SEM) plot of ', curVarTitle];
     for ivarcat = 1:nVarCats
         if isDBYaxes % yyaxis will be used.
             yyaxis(axisPos{ivarcat})
@@ -75,16 +75,16 @@ for ivarcond = 1:nVarCond
         if isDBYaxes
             ylabel(ylabels{ivarcat})
         end
-        %Set the font and background to make it look better.
-        hax = gca;
-        hax.YGrid = 'on';
-        hax.GridLineStyle = '-';
-        hax.XTick = 1:length(grades);
-        hax.XTickLabel = grades;
-        hax.FontName = 'Gill Sans MT';
-        hax.FontSize = 12;
         hold on
     end
+    %Set the font and background to make it look better.
+    hax = gca;
+    hax.YGrid = 'on';
+    hax.GridLineStyle = '-';
+    hax.XTick = 1:length(grades);
+    hax.XTickLabel = grades;
+    hax.FontName = 'Gill Sans MT';
+    hax.FontSize = 12;
     %Add label to x axis, and set title to it. Note errorbar plot will
     %clear all the set of current axis.
     xlabel('Grade')

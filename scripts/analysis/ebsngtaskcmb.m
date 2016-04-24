@@ -31,7 +31,7 @@ grades = cellstr(unique(tbl.grade));
 h = figure;
 h.Visible = 'off';
 %Set file name.
-hname = 'Error bar (SEM) plot in combination.png';
+hname = 'Error bar (SEM) plot in combination';
 %Category-wise error bar plot.
 for ivarcat = 1:nVarCats
     yyaxis(axisPos{ivarcat})
@@ -58,4 +58,4 @@ hax.FontSize = 12;
 xlabel('Grade')
 title(['Error bar (SEM) plot in task ', TaskIDName]);
 %Use legend to indicate condition information.
-legend(chkVarsCond)
+legend(chkVarsCond, 'Location', 'north')

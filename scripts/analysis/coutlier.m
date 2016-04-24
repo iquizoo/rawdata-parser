@@ -1,4 +1,4 @@
-function [n, idx] = coutlier(x, mode)
+function [n, idx] = coutlier(x, outliermode)
 % function idx = coutlier(x, mode)
 
 %Get the first quartile and the third quartile.
@@ -6,7 +6,7 @@ Q = quantile(x, [0.25, 0.75]);
 %Interquantile range.
 IQ = Q(2) - Q(1);
 %For mild outliers, w = 1.5; for extreme outliers, w = 3.
-switch mode
+switch outliermode
     case 'mild'
         w = 1.5;
     case 'extreme'
