@@ -57,6 +57,6 @@ for igrade = 1:nGrades
         hax.FontName = 'Gill Sans MT';
         hax.FontSize = 12;
         hnames{iplotvar, igrade} = ...
-            ['Histogram of ', titleVarName, ' in Grade ', curGrade, '.png'];
+            ['Histogram of ', titleVarName, ' in Grade ', curGrade];
     end
 end

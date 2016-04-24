@@ -140,9 +140,10 @@ for itask = 1:ntasks
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
     outDespStats = despStats(:, 1:3);
+    outDespStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
     writetable(outDespStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
     %Special issue: see if delete those data with too few subjects (less than 10).
-    minorLoc = outDespStats.GroupCount < minsubs;
+    minorLoc = outDespStats.Count < minsubs;
     shadyEntryInd = find(minorLoc);
     if ~isempty(shadyEntryInd)
         lastexcept = true;
@@ -154,8 +155,8 @@ for itask = 1:ntasks
             resp = 'yes';
         end
         if strcmpi(resp, 'y') || strcmpi(resp, 'yes')
-            curTaskData(ismember(curTaskData.school, outDespStats.school(shadyEntryInd)) ...
-                & ismember(curTaskData.grade, outDespStats.grade(shadyEntryInd)), :) = [];
+            curTaskData(ismember(curTaskData.school, outDespStats.School(shadyEntryInd)) ...
+                & ismember(curTaskData.grade, outDespStats.Grade(shadyEntryInd)), :) = [];
             curTaskData.grade = removecats(curTaskData.grade);
             grades = cellstr(unique(curTaskData.grade));
         end
@@ -164,7 +165,7 @@ for itask = 1:ntasks
     chkVar = curTaskSettings.chkVar{:};
     % Output Excel.
     chkTblVar = strcat(curTaskIDName, '_', chkVar);
-    chkOutlierOutVars = ['ExtremeOutlierCount_', chkVar];
+    chkOutlierOutVars = 'Outliers';
     curTaskOutlier = grpstats(curTaskData, 'grade', @(x)coutlier(x, outliermode), ...
         'DataVars', chkTblVar, ...
         'VarNames', {'Grade', 'Total', chkOutlierOutVars});
@@ -221,7 +222,7 @@ for itask = 1:ntasks
     curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
     if ~all(cellfun(@isempty, curTaskSngVarsCP))
         [hs, hnames] = ebsngtaskmult(curTaskData, curTaskIDName, curTaskSngVarsCP);
-        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
+        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
         delete(hs)
     end
     clearvars('-except', initialVars{:});
