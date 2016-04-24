@@ -53,17 +53,15 @@ for ivarcond = 1:nVarCond
         ylabels = chkVarsCat;
     end
     curTblVars = strcat(TaskIDName, '_', chkVarsCat, delimiter, curVarCond);
-    %Open an invisible figure, add label to x axis, and set title to it.
+    %Open an invisible figure.
     hs(ivarcond) = figure;
     hs(ivarcond).Visible = 'off';
-    xlabel('Grade')
-    title(['Error bar (SEM) plot of ', strrep(curVarCond, '_', ' '), ' in task ', TaskIDName]);
-    %Set file name.
-    if ~isempty(curVarCond)
-        hnames{ivarcond} = ['Error bar (SEM) plot of ', strrep(curVarCond, '_', ' '), '.png'];
-    else
-        hnames{ivarcond} = 'Error bar (SEM) plot.png';
+    %Set file name. Transform curVarCond to title-compatible condition name.
+    curVarTitle = curVarCond;
+    if isempty(curVarCond)
+        curVarTitle = strjoin(chkVarsCat, '&');
     end
+    hnames{ivarcond} = ['Error bar (SEM) plot of ', curVarTitle, '.png'];
     for ivarcat = 1:nVarCats
         if isDBYaxes % yyaxis will be used.
             yyaxis(axisPos{ivarcat})
@@ -84,6 +82,10 @@ for ivarcond = 1:nVarCond
         hax.FontSize = 12;
         hold on
     end
+    %Add label to x axis, and set title to it. Note errorbar plot will
+    %clear all the set of current axis.
+    xlabel('Grade')
+    title(['Error bar (SEM) plot of ', curVarTitle, ' in task ', TaskIDName]);
     if ~isDBYaxes % yyaxis not used.
         ylabel(ylabels)
         if nVarCats > 1 % nonsingleton variable category, then use legend to denote variable category.

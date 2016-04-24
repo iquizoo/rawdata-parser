@@ -24,40 +24,38 @@ nVarCond = length(chkVarsCond);
 yRTloc = ~cellfun(@isempty, regexp(chkVarsCat, 'RT', 'once'));
 axisPos = {'left', 'right'};
 ylabels = strrep(chkVarsCat, '_', ' ');
-ylabels{yRTloc} = [ylabels{yRTloc}, '(ms)'];
+ylabels(yRTloc) = strcat(ylabels(yRTloc), '(ms)');
 %Get all the grades for XTickLabel.
 grades = cellstr(unique(tbl.grade));
-%Open an invisible figure, add label to x axis, and set title to it.
+%Open an invisible figure.
 h = figure;
 h.Visible = 'off';
-xlabel('Grade')
-title(['Error bar (SEM) plot in task ', TaskIDName]);
 %Set file name.
-hname = {['Error bar (SEM) plot', '.png']};
+hname = 'Error bar (SEM) plot in combination.png';
 %Category-wise error bar plot.
 for ivarcat = 1:nVarCats
-    if isDBYaxes % yyaxis will be used.
-        yyaxis(axisPos{ivarcat})
-    end
+    yyaxis(axisPos{ivarcat})
     curVarCat = chkVarsCat{ivarcat};
     curTblVars = strcat(TaskIDName, '_', curVarCat, delimiter, chkVarsCond);
     for ivarcond = 1:nVarCond
         %Plot one instance of error bar, use 'sem' as the error.
         errorbar(grpstats(tbl.(curTblVars{ivarcond}), tbl.grade), ...
             grpstats(tbl.(curTblVars{ivarcond}), tbl.grade, 'sem'))
-        if isDBYaxes
-            ylabel(ylabels{ivarcat})
-        end
-        %Set the font and background to make it look better.
-        hax = gca;
-        hax.YGrid = 'on';
-        hax.GridLineStyle = '-';
-        hax.XTick = 1:length(grades);
-        hax.XTickLabel = grades;
-        hax.FontName = 'Gill Sans MT';
-        hax.FontSize = 12;
+        ylabel(ylabels{ivarcat})
         hold on
     end
 end
+%Set the font and background to make it look better.
+hax = gca;
+hax.YGrid = 'on';
+hax.GridLineStyle = '-';
+hax.XTick = 1:length(grades);
+hax.XTickLabel = grades;
+hax.FontName = 'Gill Sans MT';
+hax.FontSize = 12;
+%Add label to x axis, and set title to it. Note errorbar plot will clear
+%all the set of current axis.
+xlabel('Grade')
+title(['Error bar (SEM) plot in task ', TaskIDName]);
 %Use legend to indicate condition information.
 legend(chkVarsCond)

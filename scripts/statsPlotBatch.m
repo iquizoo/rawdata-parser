@@ -21,14 +21,14 @@ if nargin <= 2
     mode = 'extreme';
 end
 if nargin <= 1
-    tasks = settings.TaskIDName;
+    tasks = unique(settings.TaskIDName, 'stable');
 end
 %Use cellstr data type.
 if ischar(tasks)
     tasks = {tasks};
 end
 if isempty(tasks) %No task specified, then plots all the tasks.
-    tasks = settings.TaskIDName;
+    tasks = unique(settings.TaskIDName, 'stable');
 end
 locNotFound = ~ismember(tasks, settings.TaskName) & ~ismember(tasks, settings.TaskIDName);
 %Remove tasks that do not exist.
@@ -53,6 +53,7 @@ fprintf('Will plot figures of %d tasks...\n', ntasks);
 %Task-wise checking.
 for itask = 1:ntasks
     initialVars = who;
+    close all
     curTaskIDName = tasks{itask};
     origTaskName = origtasks{itask};
     fprintf('Now plot figures of task %s(%s).\n', origTaskName, curTaskIDName);
@@ -84,6 +85,10 @@ for itask = 1:ntasks
     % Experiment data.
     curTaskLoc = ~cellfun(@isempty, ...
         regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
+    if ~any(curTaskLoc)
+        fprintf('No experiment data result found for current task. Aborting...\n')
+        continue
+    end
     curTaskDataExp = mrgdata(:, curTaskLoc);
     curTaskVarsOfExperimentData = curTaskDataExp.Properties.VariableNames;
     curTaskData = [curTaskDataBI, curTaskDataExp];
@@ -123,7 +128,7 @@ for itask = 1:ntasks
         curTaskData(curgradeidx, :) = [];
     end
     [hs, hnames] =  histsngtask(curTaskData, curTaskIDName);
-    cellfun(@saveas, num2cell(hs), fullfile(curTaskFigDir, hnames))
+    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
     delete(hs)
     %% Write a table about descriptive statistics of different ages.
     agingDespStats = grpstats(curTaskData, 'grade', {'mean', 'std'}, ...
@@ -145,20 +150,20 @@ for itask = 1:ntasks
         curTaskDelimiter = '_';
     end
     [hs, hnames] = ebplotfun(curTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
-    cellfun(@saveas, num2cell(hs), fullfile(curTaskFigDir, hnames))
+    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
     delete(hs)
     %Error bar plot of singleton variables.
     curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
     if ~all(cellfun(@isempty, curTaskSngVars))
         [hs, hnames] = ebsngtasksingleton(curTaskData, curTaskIDName, curTaskSngVars);
-        cellfun(@saveas, num2cell(hs), fullfile(curTaskFigDir, hnames))
+        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
         delete(hs)
     end
     %Error bar plot of singleton variables CP.
     curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
     if ~all(cellfun(@isempty, curTaskSngVarsCP))
         [hs, hnames] = ebsngtaskmult(curTaskData, curTaskIDName, curTaskSngVarsCP);
-        cellfun(@saveas, num2cell(hs), fullfile(curTaskFigDir, hnames))
+        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)))
         delete(hs)
     end
     clearvars('-except', initialVars{:});

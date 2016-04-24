@@ -22,15 +22,16 @@ for isngvar = 1:nsngVars
     %Open an invisible figure, add x label, ylabel and set a file name.
     hs(isngvar) = figure;
     hs(isngvar).Visible = 'off';
-    xlabel('Grade')
-    curSngVar = sngVars{isngvar};
-    ylabel(curSngVar)
-    hnames{isngvar} = ['Error bar (SEM) plot of ', strrep(curSngVar, '_', ' '), '.png'];
-    %Get data and plot.
+    %%Get data and plot.
     curSngVar = sngVars{isngvar};
     curTblVar = strcat(TaskIDName, '_', curSngVar);
-    title(['Error bar (SEM) plot of ', strrep(curSngVar, '_', ' '), ' in task ', TaskIDName]);
     errorbar(grpstats(tbl.(curTblVar), tbl.grade), grpstats(tbl.(curTblVar), tbl.grade, 'sem'))
+    %Set label, title and file name.
+    xlabel('Grade')
+    [titlevar, label] = var2caption(TaskIDName, curSngVar);
+    ylabel(label)
+    title(['Error bar (SEM) plot of ', titlevar, ' in task ', TaskIDName]);
+    hnames{isngvar} = ['Error bar (SEM) plot of ', titlevar, '.png'];
     %Set the font and background to make it look better.
     hax = gca;
     hax.YGrid = 'on';

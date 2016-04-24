@@ -8,8 +8,8 @@ function res = sngstatsMemrep(splitRes)
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 %coupleVars are formatted out variables.
-varPref = {'Overall', 'R1', 'R2'};
-varSuff = {'ACC', 'RT'};
+varPref = {'ACC', 'RT'};
+varSuff = {'Overall', 'R1', 'R2'};
 delimiter = '_';
 coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
 %further required variables.
