@@ -1,4 +1,4 @@
-function res = nsnan(TaskIDName, splitRes)
+function res = sngstatsNsn(TaskIDName, splitRes)
 %NSNAN Does some basic data transformation to all noise/signal-noise tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -16,8 +16,6 @@ function res = nsnan(TaskIDName, splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%chkVar is used to check outliers.
-chkVar = {};
 %coupleVars are formatted out variables.
 varPref = {'Rate', 'RT'};
 varSuff = {'Overall', 'hit', 'FA'};
@@ -26,7 +24,7 @@ coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varS
 %further required variables.
 singletonVars = {'dprime', 'c'};
 %Out variables names are composed by three part.
-outvars = [chkVar, coupleVars, singletonVars];
+outvars = [coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
@@ -114,11 +112,9 @@ switch TaskIDName{:}
                 allSTIM = unique(RECORD.STIM(~isnan(RECORD.ACC)));
                 firstTrial = RECORD(1, :);
                 firstIsGo = firstTrial.ACC == 1 && firstTrial.RT < 3000;
-                if firstIsGo
-                    NGSTIM = allSTIM(~ismember(allSTIM, firstTrial.STIM));
-                else
-                    NGSTIM = firstTrial.STIM;
-                end
+                firstTrialInfo = strcmp(allSTIM, firstTrial.STIM);
+                %Here is an interesting way to find out no-go stimulus.
+                NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));
             case {'GNGLure', 'GNGFruit'}
                 switch TaskIDName{:}
                     case 'GNGLure'

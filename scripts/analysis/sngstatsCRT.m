@@ -1,4 +1,4 @@
-function res = CRT(splitRes)
+function res = sngstatsCRT(splitRes)
 %CRT Does some basic data transformation to choice reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -7,8 +7,6 @@ function res = CRT(splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%chkVar is used to check outliers.
-chkVar = {};
 %coupleVars are formatted out variables.
 varPref = {'ACC', 'MRT'};
 varSuff = {''};
@@ -17,7 +15,7 @@ coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varS
 %further required variables.
 singletonVars = {'VRT', 'v', 'a', 'Ter'};
 %Out variables names are composed by three part.
-outvars = [chkVar, coupleVars, singletonVars];
+outvars = [coupleVars, singletonVars];
 if ~istable(splitRes{:}) || isempty(splitRes{:})
     res = {array2table(nan(1, length(outvars)), ...
         'VariableNames', outvars)};
