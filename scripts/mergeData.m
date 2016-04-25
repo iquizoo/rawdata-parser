@@ -6,6 +6,10 @@ function mrgdata = mergeData(resdata)
 %
 %   See also basicCompute.
 
+%Set the school information.
+schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
+schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
+%Vertcat data.
 resdata = cat(1, resdata.Data{:});
 % Some transformation of basic information, e.g. school and grade.
 varsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
@@ -19,12 +23,12 @@ for ivobi = 2:length(varsOfBasicInformation)
     %Set those schools of no interest into empty string, so as to be
     %transformed into undefined.
     if strcmp(cvobi, 'school')
-        schOI = {'劳卫小学';'北房中学';'新开路东总布小学';...
-            '棠中外语学校附属小学';'棠湖中学外语实验学校';'玉带山小学';'石楼中学';'重庆市劳卫小学'};
-        schONIloc = ~ismember(dataMergeBI.school, schOI);
-        if any(schONIloc)
-            dataMergeBI.school(schONIloc) = {''};
+        %Locations of schools of interest.
+        schOIloc = ismember(dataMergeBI.school, schInfo.SchoolName);
+        if any(~schOIloc)
+            dataMergeBI.school(~schOIloc) = {''};
         end
+        dataMergeBI.school(schOIloc) = values(schMap, dataMergeBI.school(schOIloc));
     end
     %Convert grade strings to numeric data.
     if strcmp(cvobi, 'grade')
