@@ -69,7 +69,7 @@ for isht = 1:nsht4process
                 case 'cell'
                     curTaskData.(curVar) = repmat({''}, height(curTaskData), 1);
                 case 'double'
-                    curTaskData.(curVar) = nan(height(curTaskData), 1);
+                    curTaskData.(curVar) = str2double(curTaskData.(curVar));
             end
         end
     end

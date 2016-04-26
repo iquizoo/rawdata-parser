@@ -26,9 +26,14 @@ curDir = fileparts(curCallFullname);
 resFolder = fullfile(fileparts(curDir), 'DATA_RES');
 %Read in the settings table.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+% Some transformation of meta information, e.g. school and grade.
+allMrgDataVars = mrgdata.Properties.VariableNames;
+taskVarsOfMetaInformation = {'userId', 'gender', 'school', 'grade'};
+taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaInformation));
+taskDataMI = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaInformation));
 %Check input arguments.
 if nargin <= 1
-    tasks = unique(settings.TaskIDName, 'stable');
+    tasks = [];
 end
 if nargin <= 2
     cfg = [];
@@ -46,12 +51,12 @@ end
 minsubs = cfg.minsubs;
 outliermode = cfg.outliermode;
 figfmt = cfg.figfmt;
+if isempty(tasks) %No task specified, then plots all the tasks specified in mrgdata.
+    tasks = unique(regexp(taskVarsOfExperimentData, '^.*?(?=_)', 'match', 'once'));
+end
 %Use cellstr data type.
 if ischar(tasks)
     tasks = {tasks};
-end
-if isempty(tasks) %No task specified, then plots all the tasks.
-    tasks = unique(settings.TaskIDName, 'stable');
 end
 locNotFound = ~ismember(tasks, settings.TaskName) & ~ismember(tasks, settings.TaskIDName);
 %Remove tasks that do not exist.
@@ -103,10 +108,6 @@ for itask = 1:ntasks
         curTaskSettings = curTaskSettings(1, :);
     end
     %% Get the data of current task.
-    allMrgDataVars = mrgdata.Properties.VariableNames;
-    % Some transformation of basic information, e.g. school and grade.
-    curTaskVarsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
-    curTaskDataBI = mrgdata(:, ismember(allMrgDataVars, curTaskVarsOfBasicInformation));
     % Experiment data.
     curTaskLoc = ~cellfun(@isempty, ...
         regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
@@ -117,25 +118,26 @@ for itask = 1:ntasks
     end
     curTaskDataExp = mrgdata(:, curTaskLoc);
     curTaskVarsOfExperimentData = curTaskDataExp.Properties.VariableNames;
-    curTaskData = [curTaskDataBI, curTaskDataExp];
+    curTaskData = [taskDataMI, curTaskDataExp];
     %Pre-plot data clean job.
     curTaskData(all(isnan(curTaskDataExp{:, :}), 2), :) = [];
     curTaskData(isundefined(curTaskData.school) | isundefined(curTaskData.grade), :) = [];
     curTaskData.grade = removecats(curTaskData.grade);
     grades = cellstr(unique(curTaskData.grade));
     %% Set the store directories and file names of figures and excels.
+    % Remove the existing items.
+    curTaskResDir = fullfile(resFolder, curTaskIDName);
+    if exist(curTaskResDir, 'dir')
+        rmdir(curTaskResDir, 's')
+    end
     % Excel file.
     xlsDir = 'Docs';
-    curTaskXlsDir = fullfile(resFolder, curTaskIDName, xlsDir);
-    if ~exist(curTaskXlsDir, 'dir')
-        mkdir(curTaskXlsDir)
-    end
+    curTaskXlsDir = fullfile(curTaskResDir, xlsDir);
+    mkdir(curTaskXlsDir)
     % Figures.
     figDir = 'Figs';
-    curTaskFigDir = fullfile(resFolder, curTaskIDName, figDir);
-    if ~exist(curTaskFigDir, 'dir')
-        mkdir(curTaskFigDir)
-    end
+    curTaskFigDir = fullfile(curTaskResDir, figDir);
+    mkdir(curTaskFigDir)
     %% Write a table of basic information statistics.
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
