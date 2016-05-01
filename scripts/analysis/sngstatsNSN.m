@@ -1,4 +1,4 @@
-function res = sngstatsNsn(TaskIDName, splitRes)
+function res = sngstatsNSN(TaskIDName, splitRes)
 %NSNAN Does some basic data transformation to all noise/signal-noise tasks.
 %
 %   Basically, the supported tasks are as follows:
