@@ -126,9 +126,8 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
     for icond = 1:ncond
         curCondTrials = reconsTrialApart.(conditionsNames{icond});
         if ~all(cellfun(@isempty, curCondTrials))
-            curCondTrialsSplit = cellfun(@strsplit, ...
-                curCondTrials, repmat({delimiters(2)}, size(curCondTrials)),...
-                'UniformOutput', false);
+            curCondTrialsSplit = cellfun(@(x) strsplit(x, delimiters(2)), ...
+                curCondTrials, 'UniformOutput', false);
             curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
             %If the length of the split-out string is not equal to the number
             %of output variable names.
@@ -174,13 +173,11 @@ if length(VariablesChar) < ncond
     VariablesChar = repmat(VariablesChar, 1, ncond);
 end
 %Condition names
-VariablesNames = cellfun(@strsplit, ...
-    VariablesNames, repmat({'\'}, size(VariablesNames)), ...
-    'UniformOutput', false);
+VariablesNames = cellfun(@(x) strsplit(x, '\'), ...
+    VariablesNames, 'UniformOutput', false);
 %Variable char locs.
-VariablesChar = cellfun(@strsplit, ...
-    VariablesChar, repmat({'\'}, size(VariablesNames)), ...
-    'UniformOutput', false);
+VariablesChar = cellfun(@(x) strsplit(x, '\'), ...
+    VariablesChar, 'UniformOutput', false);
 charVars = cell(size(VariablesChar));
 for icond = 1:ncond
     curCondVariablesChar = VariablesChar{icond};
@@ -219,9 +216,8 @@ switch token
         end
     case 'CPT1' %Some of the fields need discarding.
         trialRecons = cellfun(@(x) x([1:4, end]), trialRec, 'UniformOutput', false);
-        trialRecons = cellfun(@strjoin, ...
-            trialRecons, repmat({delimiters(2)}, size(trialRecons)), ...
-            'UniformOutput', false);
+        trialRecons = cellfun(@(x) strjoin(x, delimiters(2)), ...
+            trialRecons, 'UniformOutput', false);
 end
 recons = {strjoin(trialRecons, delimiters(1))};
 end
