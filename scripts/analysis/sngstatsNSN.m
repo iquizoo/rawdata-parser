@@ -1,5 +1,5 @@
 function res = sngstatsNSN(TaskIDName, splitRes)
-%NSNAN Does some basic data transformation to all noise/signal-noise tasks.
+%SNGSTATSNSN Does some basic data transformation to all noise/signal-noise tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     1. Symbol
@@ -39,7 +39,7 @@ RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
 RECORD(isnan(RECORD.ACC), :) = [];
 %Modify SCat.
 langTask = {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic'};
-GNGTask = {'DRT', 'GNGLure', 'GNGFruit'};
+otherTask = {'DRT', 'GNGLure', 'GNGFruit', 'CPT1'};
 switch TaskIDName{:}
     case langTask
         switch TaskIDName{:}
@@ -102,7 +102,7 @@ switch TaskIDName{:}
         end
         %SCat: 1. Denote to respond with 'yes', 2. Denote to repond with 'no'.
         RECORD.SCat = CResp.SCat(locSTIM);
-    case GNGTask
+    case otherTask
         switch TaskIDName{:}
             case 'DRT'
                 %Find out the no-go stimulus.
@@ -115,12 +115,12 @@ switch TaskIDName{:}
                 firstTrialInfo = strcmp(allSTIM, firstTrial.STIM);
                 %Here is an interesting way to find out no-go stimulus.
                 NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));
-            case {'GNGLure', 'GNGFruit'}
+            case {'GNGLure', 'GNGFruit', 'CPT1'}
                 switch TaskIDName{:}
                     case 'GNGLure'
                         %0-3, 10-11 -> NoGo
                         NGSTIM = [0:3, 10:11];
-                    case 'GNGFruit'
+                    case {'GNGFruit', 'CPT1'}
                         %0 -> NoGo
                         NGSTIM = 0;
                 end
