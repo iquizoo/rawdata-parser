@@ -1,40 +1,14 @@
-function res = sngstatsMemrep(splitRes)
-%SMMEMAN Does some basic data transformation to semantic memory task.
+function res = sngstatsMemrep(RECORD, varPref, delimiter, varSuff)
+%SNGSTATSMEMREP Does some basic data transformation to semantic memory task.
 %
 %   Basically, the supported tasks are as follows:
-%     35. SemanticMemory
+%     AssocMemory
+%     SemanticMemory
 %   The output table contains 9 variables.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%coupleVars are formatted out variables.
-varPref = {'ACC', 'RT'};
-varSuff = {'Overall', 'R1', 'R2'};
-delimiter = '_';
-coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
-%further required variables.
-singletonVars = {};
-%Out variables names are composed by three part.
-outvars = [coupleVars, singletonVars];
-if ~istable(splitRes{:}) || isempty(splitRes{:})
-    res = {array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars)};
-    return
-end
-% STUDY = splitRes{:}.STUDY{:};
-if ~ismember(splitRes{:}.Properties.VariableNames, 'RECORD')
-    %This means it is the semantic memory task.
-    RECORD = splitRes{:}.TEST{:};
-else
-    %This means it is the associative memory task.
-    RECORD = splitRes{:}.RECORD{:};
-end
-%Cutoff RTs: for too fast trials.
-RECORD(RECORD.RT < 100 & RECORD.RT > 0, :) = [];
-%Remove NaN trials.
-RECORD(isnan(RECORD.ACC), :) = [];
-%Remove trials of no response, which denoted by -1 in Resp.
-RECORD(RECORD.Resp == -1, :) = [];
+res = table;
 %ACC and RT for overall performance.
 res.([varPref{1}, delimiter, varSuff{1}]) = mean(RECORD.ACC);
 res.([varPref{2}, delimiter, varSuff{1}]) = mean(RECORD.RT(RECORD.ACC == 1));
@@ -46,4 +20,3 @@ for run = runs
     res.([varPref{2}, delimiter, varSuff{run + 1}]) = ...
         mean(RECORD.RT(RECORD.ACC == 1 & RECORD.REP == run));
 end
-res = {struct2table(res)};

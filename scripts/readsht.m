@@ -38,9 +38,10 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
     end
 end
 Taskname = sheets(shtRange)';
+TaskIDName = cell(nsht4process, 1);
 Data = cell(nsht4process, 1);
 %Preallocating.
-dataExtract = table(Taskname, Data);
+dataExtract = table(Taskname, TaskIDName, Data);
 %Load parameters.
 para = readtable('taskSettings.xlsx', 'Sheet', 'para');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
@@ -58,8 +59,8 @@ for isht = 1:nsht4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Get the information of interest, and check the format.
-    varsOfInterest = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
-    varsOfInterestClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    varsOfInterest = {'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
+    varsOfInterestClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
     curTaskData(:, ~ismember(curTaskData.Properties.VariableNames, varsOfInterest)) = [];
     for ivar = 1:length(varsOfInterest)
         curVar = varsOfInterest{ivar};
@@ -97,7 +98,7 @@ for isht = 1:nsht4process
     end
     %Store the TaskIDName from settings, which is usually used in the
     %following analysis.
-    curTaskData.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
+    dataExtract.TaskIDName(isht) = curTaskSetting.TaskIDName;
     curTaskData.splitRes = cursplit.splitRes; % Store the split results.
     curTaskData.status = cursplit.status; % Store the status,
     dataExtract.Data{isht} = curTaskData;
