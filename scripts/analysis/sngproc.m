@@ -31,7 +31,7 @@ status = 0;
 %Extract useful information form parameters.
 curTaskPara = curTaskPara{:};
 if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
-    %% Split the conditions into recons, get the settings of each condition.
+    %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters = curTaskPara.Delimiters{:};
     %ConditionInformation contains information of condition splitting.
@@ -118,7 +118,7 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
     trans = cellfun(@not, ...
         cellfun(@ismember, allLocs, charVars, 'UniformOutput', false), ...
         'UniformOutput', false);
-    %% Routine split.
+    %Routine split.
     reconsTrialApart = cellfun(@strsplit, ...
         recons, repmat({delimiters(1)}, size(recons)),...
         'UniformOutput', false);
@@ -140,14 +140,15 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
             end
             curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
             curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
+            %Here cell type is used, because the RECORD have multiple rows.
             reconsTrialApart.(conditionsNames{icond}) = ...
                 {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
         else
             warning('UDF:SNGPROC:MODE1ABNORMAL', ...
                 'No data for condition of %s.\n', conditionsNames{icond});
             status = -1;
-            reconsTrialApart.(conditionsNames{icond}) = ...
-                [];
+            reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
+                'VariableNames', VariablesNames{icond})}; 
         end
     end
 else

@@ -38,12 +38,12 @@ end
 for itask = 1:ntasks4process
     initialVarsTask = who;
     %% Find out the setting of current task.
-    curTaskIDName = dataExtract.TaskIDName{taskRange(itask)};
     curTaskName = dataExtract.Taskname{taskRange(itask)};
     fprintf('Now processing task %s\n', curTaskName);
     %Setting for the computation of current task.
     curTaskData = dataExtract.Data{taskRange(itask)};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
+    curTaskIDName = curTaskSetting.TaskIDName{:};
     if isempty(curTaskSetting.AnalysisFun{:})
         fprintf('No analysis function found for current task. Will delete this task. Aborting...\n');
         dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
@@ -76,4 +76,5 @@ for itask = 1:ntasks4process
     clearvars('-except', initialVarsTask{:});
 end
 resdata = dataExtract(taskRange, :);
+resdata(cellfun(@isempty, resdata.Data), :) = []; %Remove rows without any data.
 rmpath(anafunpath);

@@ -37,11 +37,10 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
         return
     end
 end
-Taskname = sheets(shtRange)';
-TaskIDName = cell(nsht4process, 1);
-Data = cell(nsht4process, 1);
 %Preallocating.
-dataExtract = table(Taskname, TaskIDName, Data);
+Taskname = sheets(shtRange)';
+Data = cell(nsht4process, 1);
+dataExtract = table(Taskname, Data);
 %Load parameters.
 para = readtable('taskSettings.xlsx', 'Sheet', 'para');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
@@ -98,7 +97,7 @@ for isht = 1:nsht4process
     end
     %Store the TaskIDName from settings, which is usually used in the
     %following analysis.
-    dataExtract.TaskIDName(isht) = curTaskSetting.TaskIDName;
+    curTaskData.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
     curTaskData.splitRes = cursplit.splitRes; % Store the split results.
     curTaskData.status = cursplit.status; % Store the status,
     dataExtract.Data{isht} = curTaskData;
