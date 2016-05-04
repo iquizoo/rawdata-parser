@@ -1,11 +1,10 @@
-function res = sngstatsSpan(RECORD)
-%SNGSTATSSPAN Does some basic data transformation to working memory span tasks.
+function res = sngstatsSpan(splitRes)
+%SPAN Does some basic data transformation to working memory span tasks.
 %
 %   Basically, the supported tasks are as follows:
-%     MOT
-%     ForSpan,
-%     BackSpan,
-%     SpatialSpan.
+%     29. ForSpan,
+%     30. BackSpan,
+%     31. SpatialSpan.
 %   The output table contains 2 variables: TE_ML(!D)(Two Error-Maximal
 %   Length), TE_TT(!D)(Two Error-Total Trial), ML(Maximal Length), MS(Mean
 %   Span).
@@ -18,6 +17,32 @@ function res = sngstatsSpan(RECORD)
 
 % By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
+%coupleVars are formatted out variables.
+varPref = {'ML', 'MS'};
+varSuff = {''};
+delimiter = '';
+coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
+%further required variables.
+singletonVars = {};
+%Out variables names are composed by three part.
+outvars = [coupleVars, singletonVars];
+if ~istable(splitRes{:}) || isempty(splitRes{:})
+    res = {array2table(nan(1, length(outvars)), ...
+        'VariableNames', outvars)};
+    return
+end
+RECORD = splitRes{:}.RECORD{:};
+%Remove trials with nan as its ACC.
+RECORD(isnan(RECORD.ACC), :) = [];
+%Some of the recording does not include SLen (Stimuli Length) as one of
+%their variable, get it here.
+if ~ismember('SLen', RECORD.Properties.VariableNames)
+    RECORD.SLen = cellfun(@length, RECORD.SSeries);
+end
+%Some of the recording does not include Next as one variable, get it here.
+if ~ismember('Next', RECORD.Properties.VariableNames)
+    RECORD.Next = [diff(RECORD.SLen); 0];
+end
 %ML (maximal length) could be a judgement if there are any trials that are
 %correct.
 ML = max(RECORD.SLen(RECORD.ACC == 1));
@@ -45,7 +70,8 @@ else
     end
     MS = msBase + msIncre - msDecre;
 end
-res = table(ML, MS);
-res.Properties.VariableDescriptions = {...
+res = {table(...
+    ML, MS)};
+res{:}.Properties.VariableDescriptions = {...
     'the longest list correctly reported', ...
     'the list length where 50% of lists would be correctly reported'};

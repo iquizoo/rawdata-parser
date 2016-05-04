@@ -37,9 +37,9 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
         return
     end
 end
-%Preallocating.
 Taskname = sheets(shtRange)';
 Data = cell(nsht4process, 1);
+%Preallocating.
 dataExtract = table(Taskname, Data);
 %Load parameters.
 para = readtable('taskSettings.xlsx', 'Sheet', 'para');
@@ -58,8 +58,8 @@ for isht = 1:nsht4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Get the information of interest, and check the format.
-    varsOfInterest = {'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
-    varsOfInterestClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    varsOfInterest = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
+    varsOfInterestClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
     curTaskData(:, ~ismember(curTaskData.Properties.VariableNames, varsOfInterest)) = [];
     for ivar = 1:length(varsOfInterest)
         curVar = varsOfInterest{ivar};
