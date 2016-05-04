@@ -9,13 +9,13 @@ function mrgdata = mergeData(resdata)
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
-%Vertcat metadata.
+%Vertcat data.
 resdata = cat(1, resdata.Data{:});
 % Some transformation of basic information, e.g. school and grade.
-varsOfMetaData = {'userId', 'gender', 'school', 'grade'};
-dataMergeBI = resdata(:, ismember(resdata.Properties.VariableNames, varsOfMetaData));
-for ivobi = 2:length(varsOfMetaData)
-    cvobi = varsOfMetaData{ivobi};
+varsOfBasicInformation = {'userId', 'gender', 'school', 'grade'};
+dataMergeBI = resdata(:, ismember(resdata.Properties.VariableNames, varsOfBasicInformation));
+for ivobi = 2:length(varsOfBasicInformation)
+    cvobi = varsOfBasicInformation{ivobi};
     cVarNotCharLoc = ~cellfun(@ischar, dataMergeBI.(cvobi));
     if any(cVarNotCharLoc)
         dataMergeBI.(cvobi)(cVarNotCharLoc) = {''};
@@ -56,8 +56,8 @@ for iusr = 1:nusr
     curUsrBI = dataMergeBI(dataMergeBI.userId == curUsrID, :);
     if height(curUsrBI) > 1 %Mutiple entries for current user's basic information.
         mrgResolved = true;
-        for ivobi = 2:length(varsOfMetaData)
-            cvobi = varsOfMetaData{ivobi};
+        for ivobi = 2:length(varsOfBasicInformation)
+            cvobi = varsOfBasicInformation{ivobi};
             if ~all(isundefined(curUsrBI.(cvobi))) && ... %All of the information is undefined.
                     length(unique(curUsrBI.(cvobi))) ~= 1 %Only one category is found.
                 mrgResolved = false;
