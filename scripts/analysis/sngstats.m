@@ -1,6 +1,15 @@
 function res = sngstats(splitRes, tasksettings, taskSTIMMap)
 %SNGSTATS forms a wrapper function to compute those single task statistics.
+%   RES = SNGSTATS(SPLITRES, TASKSETTING) does basic computation job for
+%   most of the tasks when no SCat(have a look at the data to see what SCat
+%   is) modification is needed. Locally, RT cutoffs, NaN cleaning and other
+%   miscellaneous tasks to prepare data for processing.
+%   RES = SNGSTATS(SPLITRES, TASKSETTING, TASKSTIMMAP) adds a map container
+%   for modification of SCat in RECORD.
 %
+%   See also sngstatsBART, sngstatsCRT, sngstatsConflict, sngstatsMemrep,
+%   sngstatsMemsep, sngstatsMentcompare, sngstatsMentcompute, sngstatsNSN,
+%   sngstatsNback, sngstatsSRT, sngstatsSpan
 
 %By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
@@ -53,11 +62,11 @@ if ~isempty(splitRes{:})
                case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                        'GNGLure', 'GNGFruit', 'CPT1', ...%otherTasks in NSN. %NSN
                        }
+                   %Remove NaN trials.
+                   RECORD(isnan(RECORD.RT), :) = [];
                    if exist('taskSTIMMap', 'var')
                        RECORD = mapSCat(RECORD, taskSTIMMap, 'STIM');
                    end
-                   %Remove NaN trials.
-                   RECORD(isnan(RECORD.RT), :) = [];
                    %Before removing RTs, record the time used if required.
                    if ismember('TotalTime', outvars)
                        spres.TotalTime = sum(RECORD.RT);
@@ -183,7 +192,17 @@ if ~isempty(splitRes{:})
            else
                curTaskRes = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
            end
-           curTaskRes.Properties.VariableNames = strcat(curTaskRes.Properties.VariableNames, ...
+           %Treat mean RT of any condition is less than 300ms as missing.
+           curTaskResVarNames = curTaskRes.Properties.VariableNames;
+           MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
+               regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost)', 'once')));
+           for irtvar = 1:length(MRTvars)
+               if curTaskRes.(MRTvars{irtvar}) < 300
+                   curTaskRes{:, :} = nan;
+                   break
+               end
+           end
+           curTaskRes.Properties.VariableNames = strcat(curTaskResVarNames, ...
                delimiterMC, mrgcond{ivar});
            res = [res, curTaskRes]; %#ok<*AGROW>
         end

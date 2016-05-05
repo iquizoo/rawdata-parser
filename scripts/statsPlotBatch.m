@@ -28,9 +28,9 @@ resFolder = fullfile(fileparts(curDir), 'DATA_RES');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 % Some transformation of meta information, e.g. school and grade.
 allMrgDataVars = mrgdata.Properties.VariableNames;
-taskVarsOfMetaInformation = {'userId', 'gender', 'school', 'grade'};
-taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaInformation));
-taskDataMI = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaInformation));
+taskVarsOfMetaDataOfInterest = {'userId', 'gender', 'school', 'grade'};
+taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
+taskMetaData = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
 %Check input arguments.
 if nargin <= 1
     tasks = [];
@@ -93,9 +93,9 @@ for itask = 1:ntasks
     end
     %Get the ordinal string.
     ordStr = [num2str(itask), 'th'];
-    ordStr = strrep(ordStr, '1th', '1st');
-    ordStr = strrep(ordStr, '2th', '2nd');
-    ordStr = strrep(ordStr, '3th', '3rd');
+    ordStr = regexprep(ordStr, '(?<!1)1th', '1st');
+    ordStr = regexprep(ordStr, '(?<!1)2th', '2nd');
+    ordStr = regexprep(ordStr, '(?<!1)3th', '3rd');
     latestsprint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
     fprintf(latestsprint);
     lastexcept = false;
@@ -116,11 +116,14 @@ for itask = 1:ntasks
         lastexcept = true;
         continue
     end
-    curTaskDataExp = mrgdata(:, curTaskLoc);
-    curTaskVarsOfExperimentData = curTaskDataExp.Properties.VariableNames;
-    curTaskData = [taskDataMI, curTaskDataExp];
+    curTaskMetaData = taskMetaData;
+    curTaskVarsOfMetaData = curTaskMetaData.Properties.VariableNames;
+    curTaskExpData = mrgdata(:, curTaskLoc);
+    curTaskVarsOfExperimentData = curTaskExpData.Properties.VariableNames;
+    curTaskData = [curTaskMetaData, curTaskExpData];
+    curTaskVarsData = curTaskData.Properties.VariableNames;
     %Pre-plot data clean job.
-    curTaskData(all(isnan(curTaskDataExp{:, :}), 2), :) = [];
+    curTaskData(all(isnan(curTaskExpData{:, :}), 2), :) = [];
     curTaskData(isundefined(curTaskData.school) | isundefined(curTaskData.grade), :) = [];
     curTaskData.grade = removecats(curTaskData.grade);
     grades = cellstr(unique(curTaskData.grade));
@@ -138,7 +141,7 @@ for itask = 1:ntasks
     figDir = 'Figs';
     curTaskFigDir = fullfile(curTaskResDir, figDir);
     mkdir(curTaskFigDir)
-    %% Write a table of basic information statistics.
+    %% Write a table of meta data.
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
     outDespStats = despStats(:, 1:3);
@@ -163,69 +166,110 @@ for itask = 1:ntasks
             grades = cellstr(unique(curTaskData.grade));
         end
     end
-    %% Outlier checking.
-    chkVar = curTaskSettings.chkVar{:};
-    % Output Excel.
-    chkTblVar = strcat(curTaskIDName, '_', chkVar);
-    chkOutlierOutVars = 'Outliers';
-    curTaskOutlier = grpstats(curTaskData, 'grade', @(x)coutlier(x, outliermode), ...
-        'DataVars', chkTblVar, ...
-        'VarNames', {'Grade', 'Total', chkOutlierOutVars});
-    writetable(curTaskOutlier, fullfile(curTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
-    % Output boxplot figure.
-    hbp = figure;
-    hbp.Visible = 'off';
-    whisker = 1.5 * strcmp(outliermode, 'mild') + 3 * strcmp(outliermode, 'extreme');
-    bpsngtask(curTaskData, curTaskIDName, chkVar, whisker)
-    bpname = fullfile(curTaskFigDir, ...
-        ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
-    saveas(hbp, bpname, figfmt)
-    delete(hbp)
-    %Remove outliers and plot histograms.
-    for igrade = 1:length(grades)
-        curgradeidx = curTaskData.grade == grades{igrade};
-        [~, outlieridx] = coutlier(curTaskData.(chkTblVar)(curgradeidx), 'extreme');
-        curgradeidx(curgradeidx == 1) = outlieridx;
-        curTaskData(curgradeidx, :) = [];
-    end
-    [hs, hnames] =  histsngtask(curTaskData, curTaskIDName);
-    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
-    delete(hs)
-    %% Write a table about descriptive statistics of different ages.
-    agingDespStats = grpstats(curTaskData, 'grade', {'mean', 'std'}, ...
-        'DataVars', curTaskVarsOfExperimentData);
-    writetable(agingDespStats, fullfile(curTaskXlsDir, 'Descriptive statistics of each grade.xlsx'));
-    %% Errorbar plots.
-    %Errorbar plot CP.
-    cmbTasks = {'AssocMemory', 'SemanticMemory'};
-    if ismember(curTaskIDName, cmbTasks)
-        ebplotfun = @ebsngtaskcmb;
+    %% Get metadata and expdata seperated again.
+    curTaskMetaData = curTaskData(:, ismember(curTaskVarsData, curTaskVarsOfMetaData));
+    curTaskExpData = curTaskData(:, ismember(curTaskVarsData, curTaskVarsOfExperimentData));
+    %% Condition-wise plotting.
+    curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
+    if all(cellfun(@isempty, curTaskMrgConds))
+        curTaskDelimiterMC = '';
     else
-        ebplotfun = @ebsngtaskmult;
+        curTaskDelimiterMC = '_';
     end
-    curTaskChkVarsCat = strsplit(curTaskSettings.chkVarsCat{:});
-    curTaskChkVarsCond = strsplit(curTaskSettings.chkVarsCond{:});
-    if all(cellfun(@isempty, curTaskChkVarsCond))
-        curTaskDelimiter = '';
-    else
-        curTaskDelimiter = '_';
-    end
-    [hs, hnames] = ebplotfun(curTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
-    cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
-    delete(hs)
-    %Error bar plot of singleton variables.
-    curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
-    if ~all(cellfun(@isempty, curTaskSngVars))
-        [hs, hnames] = ebsngtasksingleton(curTaskData, curTaskIDName, curTaskSngVars);
-        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
+    ncond = length(curTaskMrgConds);
+    for icond = 1:ncond
+        %% Outlier checking.
+        curMrgCond = curTaskMrgConds{icond};
+        %Update file storage directory.
+        curCondTaskXlsDir = fullfile(curTaskXlsDir, curMrgCond);
+        if ~exist(curCondTaskXlsDir, 'dir')
+            mkdir(curCondTaskXlsDir)
+        end
+        curCondTaskFigDir = fullfile(curTaskFigDir, curMrgCond);
+        if ~exist(curCondTaskFigDir, 'dir')
+            mkdir(curCondTaskFigDir)
+        end
+        %Get the data of current condition.
+        if isempty(curMrgCond)
+            curCondTaskExpData = curTaskExpData;
+        else
+            curCondTaskExpData = curTaskExpData(:, ~cellfun(@isempty, ...
+                cellfun(@(x) regexp(x, [curTaskDelimiterMC, curMrgCond, '$'], 'once'), ...
+                curTaskVarsOfExperimentData, 'UniformOutput', false)));
+            curCondTaskExpData.Properties.VariableNames = ...
+                regexprep(curCondTaskExpData.Properties.VariableNames, [curTaskDelimiterMC, curMrgCond, '$'], '');
+        end
+        curCondTaskData = [curTaskMetaData, curCondTaskExpData];
+        curCondTaskVarsOfExperimentData = curCondTaskExpData.Properties.VariableNames;
+        chkVar = strcat(curTaskSettings.chkVar{:});
+        % Output Excel.
+        chkTblVar = strcat(curTaskIDName, '_', chkVar);
+        chkOutlierOutVars = 'Outliers';
+        curTaskOutlier = grpstats(curCondTaskData, 'grade', @(x)coutlier(x, outliermode), ...
+            'DataVars', chkTblVar, ...
+            'VarNames', {'Grade', 'Total', chkOutlierOutVars});
+        writetable(curTaskOutlier, ...
+            fullfile(curCondTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
+        % Output boxplot figure.
+        hbp = figure;
+        hbp.Visible = 'off';
+        whisker = 1.5 * strcmp(outliermode, 'mild') + 3 * strcmp(outliermode, 'extreme');
+        bpsngtask(curCondTaskData, curTaskIDName, chkVar, whisker)
+        bpname = fullfile(curCondTaskFigDir, ...
+            ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
+        saveas(hbp, bpname, figfmt)
+        delete(hbp)
+        %Remove outliers and plot histograms.
+        for igrade = 1:length(grades)
+            curgradeidx = curCondTaskData.grade == grades{igrade};
+            [~, outlieridx] = coutlier(curCondTaskData.(chkTblVar)(curgradeidx), 'extreme');
+            curgradeidx(curgradeidx == 1) = outlieridx;
+            curCondTaskData(curgradeidx, :) = [];
+        end
+        [hs, hnames] =  histsngtask(curCondTaskData, curTaskIDName);
+        cellfun(@(x, y) saveas(x, y, figfmt), ...
+            num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
         delete(hs)
-    end
-    %Error bar plot of singleton variables CP.
-    curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
-    if ~all(cellfun(@isempty, curTaskSngVarsCP))
-        [hs, hnames] = ebsngtaskmult(curTaskData, curTaskIDName, curTaskSngVarsCP);
-        cellfun(@saveas, num2cell(hs), cellstr(fullfile(curTaskFigDir, hnames)), repmat({figfmt}, size(hs)))
+        %% Write a table about descriptive statistics of different ages.
+        agingDespStats = grpstats(curCondTaskData, 'grade', {'mean', 'std'}, ...
+            'DataVars', curCondTaskVarsOfExperimentData);
+        writetable(agingDespStats, ...
+            fullfile(curCondTaskXlsDir, 'Descriptive statistics of each grade.xlsx'));
+        %% Errorbar plots.
+        %Errorbar plot CP.
+        cmbTasks = {'AssocMemory', 'SemanticMemory'};
+        if ismember(curTaskIDName, cmbTasks)
+            ebplotfun = @ebsngtaskcmb;
+        else
+            ebplotfun = @ebsngtaskmult;
+        end
+        curTaskChkVarsCat = strsplit(curTaskSettings.VarsCat{:});
+        curTaskChkVarsCond = strsplit(curTaskSettings.VarsCond{:});
+        if all(cellfun(@isempty, curTaskChkVarsCond))
+            curTaskDelimiter = '';
+        else
+            curTaskDelimiter = '_';
+        end
+        [hs, hnames] = ebplotfun(curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
+        cellfun(@(x, y) saveas(x, y, figfmt), ...
+            num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
         delete(hs)
+        %Error bar plot of singleton variables.
+        curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
+        if ~all(cellfun(@isempty, curTaskSngVars))
+            [hs, hnames] = ebsngtasksingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
+            cellfun(@(x, y) saveas(x, y, figfmt), ...
+                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
+            delete(hs)
+        end
+        %Error bar plot of singleton variables CP.
+        curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
+        if ~all(cellfun(@isempty, curTaskSngVarsCP))
+            [hs, hnames] = ebsngtaskmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
+            cellfun(@(x, y) saveas(x, y, figfmt), ...
+                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
+            delete(hs)
+        end
     end
     clearvars('-except', initialVars{:});
 end
