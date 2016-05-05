@@ -1,5 +1,5 @@
 function res = sngstatsMentcompute(splitRes)
-%MENTCOMPUTE Does some basic data transformation to mental computation task.
+%SNGSTATSMENTCOMPUTE Does some basic data transformation to mental computation task.
 %
 %   Basically, the supported tasks are as follows:
 %     20. SpeedAdd

@@ -1,5 +1,5 @@
 function res = sngstatsMentcompare(TaskIDName, splitRes)
-%MENTCOMPARE Does some basic data transformation to mental comparison task.
+%SNGSTATSMENTCOMPARE Does some basic data transformation to mental comparison task.
 %
 %   Basically, the supported tasks are as follows:
 %     22. DigitCmp

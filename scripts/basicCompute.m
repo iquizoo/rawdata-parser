@@ -7,24 +7,21 @@ function resdata = basicCompute(dataExtract, tasks)
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
-%Checking input arguments.
+%% Initialization jobs.
+% Checking input arguments.
 if nargin < 2
     tasks = dataExtract.Taskname;
 end
-
 %Folder contains all the analysis functions.
 anafunpath = 'analysis';
 addpath(anafunpath);
 %Load basic parameters.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-
 % Basic computation.
-% Task-wise computation.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = []; %Remove rows without any data.
-% Initializing works.
+%When constructing table, character array is not allowed, but cell string
+%is allowed.
 if ~iscell(tasks)
-    %When constructing table, character array is not allowed, but cell
-    %string is allowed.
     tasks = {tasks};
 end
 if isrow(tasks)
@@ -68,16 +65,28 @@ for itask = 1:ntasks4process
         lastexcept = true;
         continue
     end
-    %Note: sngstats means 'single task statistics'.
-    anafun = str2func(['sngstats', curTaskSetting.AnalysisFun{:}]);
-    anavars = strsplit(curTaskSetting.AnalysisVariableNames{:});
-    anares = rowfun(anafun, curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
+    anavars = 'splitRes';
+    %% Get curTaskSTIMMap for some tasks (esp. for NSN), and analysis for every subject.
+    switch curTaskIDName
+        case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
+                'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
+                'Flanker', 'TaskSwitching', ...%Conflict
+                }
+            curTaskEncode = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
+            curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
+            %TaskIDName as one input argument because RT cutoffs are
+            %different for different tasks.
+            anares = rowfun(@(x) sngstats(x, curTaskSetting, curTaskSTIMMap), ...
+                curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
+        otherwise
+            anares = rowfun(@(x) sngstats(x, curTaskSetting), ...
+                curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
+    end
+    %% Post-computation jobs.
     curTaskData.res = anares.res;
     dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = curTaskData;
     clearvars('-except', initialVarsTask{:});
 end
-%Concatenate data into one single table.
-dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
-ntaskRange = ismember(dataExtract.Taskname, tasks);
-resdata = dataExtract(ntaskRange, :);
+resdata = dataExtract(taskRange, :);
+resdata(cellfun(@isempty, resdata.Data), :) = []; %Remove rows without any data.
 rmpath(anafunpath);

@@ -1,5 +1,5 @@
-function res = sngstatsBART(splitRes)
-%BART Does some basic data transformation to BART task.
+function res = sngstatsBART(RECORD)
+%SNGSTATSBART Does some basic data transformation to BART task.
 %
 %   Basically, the supported tasks are as follows:
 %     BART
@@ -7,21 +7,5 @@ function res = sngstatsBART(splitRes)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%coupleVars are formatted out variables.
-varPref = {'MNHit'};
-varSuff = {''};
-delimiter = '';
-coupleVars = strcat(repmat(varPref, 1, length(varSuff)), delimiter, repelem(varSuff, 1, length(varPref)));
-%further required variables.
-singletonVars = {};
-%Out variables names are composed by three part.
-outvars = [coupleVars, singletonVars];
-if ~istable(splitRes{:}) || isempty(splitRes{:})
-    res = {array2table(nan(1, length(outvars)), ...
-        'VariableNames', outvars)};
-    return
-end
-RECORD = splitRes{:}.RECORD{:};
-%Caculate the average hit number.
-MNHit = nanmean(RECORD.NHit(RECORD.Feedback == 0));
-res = {table(MNHit)};
+res = table;
+res.MNHit = nanmean(RECORD.NHit(RECORD.Feedback == 0));
