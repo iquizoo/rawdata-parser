@@ -36,22 +36,36 @@ ntasks4process = length(taskRange);
 if isequal(taskRange, (1:ntasks)')
     fprintf('Will process all the tasks!\n');
 end
+%% Task-wise computation.
+%Use lastexcept as an indicator of exception in last task.
+lastexcept = false;
+latestsprint = '';
 %Begin computing.
 for itask = 1:ntasks4process
     initialVarsTask = who;
-    %Find out the setting of current task.
-    curTaskName = dataExtract.Taskname{taskRange(itask)};
-    fprintf('Now processing task %s\n', curTaskName);
-    %Setting for the computation of current task.
+    %% Find out the setting of current task.
     curTaskData = dataExtract.Data{taskRange(itask)};
+    curTaskName = dataExtract.Taskname{taskRange(itask)};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
+    curTaskIDName = curTaskSetting.TaskIDName{:};
+    %Delete last line without exception.
+    if ~lastexcept
+        fprintf(repmat('\b', 1, length(latestsprint)))
+    end
+    %Get the ordinal string.
+    ordStr = num2ord(itask);
+    latestsprint = sprintf('Now process the %s task %s(%s).\n', ordStr, curTaskName, curTaskIDName);
+    fprintf(latestsprint);
+    lastexcept = false;
     if isempty(curTaskSetting.AnalysisFun{:})
         fprintf('No analysis function found for current task. Will delete this task. Aborting...\n');
         dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
+        lastexcept = true;
         continue
     elseif all(cellfun(@isempty, curTaskData.splitRes))
         fprintf('No correct recorded data is found. Will delete this task. Aborting...\n');
         dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
+        lastexcept = true;
         continue
     end
     %Note: sngstats means 'single task statistics'.
