@@ -88,14 +88,11 @@ for itask = 1:ntasks
     curTaskIDName = tasks{itask};
     origTaskName = origtasks{itask};
     %Delete last line without exception.
-    if ~lastexcept && itask ~= 1
+    if ~lastexcept
         fprintf(repmat('\b', 1, length(latestsprint)))
     end
     %Get the ordinal string.
-    ordStr = [num2str(itask), 'th'];
-    ordStr = regexprep(ordStr, '(?<!1)1th', '1st');
-    ordStr = regexprep(ordStr, '(?<!1)2th', '2nd');
-    ordStr = regexprep(ordStr, '(?<!1)3th', '3rd');
+    ordStr = num2ord(itask);
     latestsprint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
     fprintf(latestsprint);
     lastexcept = false;
