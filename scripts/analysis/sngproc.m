@@ -148,7 +148,7 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
                 'No data for condition of %s.\n', conditionsNames{icond});
             status = -1;
             reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
-                'VariableNames', VariablesNames{icond})}; 
+                'VariableNames', VariablesNames{icond})};
         end
     end
 else
