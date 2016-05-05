@@ -14,9 +14,12 @@ function statsPlotBatch(mrgdata, tasks, cfg)
 %       'extreme'.
 %       cfg.figfmt: String. One supported figure format. See help saveas.
 %       Default: 'jpeg'.
+%       cfg.slidegen: logical/integer capable of converting to logical.
+%       When true, generate slide markdown. Default: false.
 
 %By Zhang, Liang. Email:psychelzh@gmail.com
 
+%% Directory setting works.
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
 addpath(anafunpath);
@@ -24,6 +27,7 @@ addpath(anafunpath);
 curCallFullname = mfilename('fullpath');
 curDir = fileparts(curCallFullname);
 resFolder = fullfile(fileparts(curDir), 'DATA_RES');
+%% Settings processing in total.
 %Read in the settings table.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 % Some transformation of meta information, e.g. school and grade.
@@ -31,6 +35,7 @@ allMrgDataVars = mrgdata.Properties.VariableNames;
 taskVarsOfMetaDataOfInterest = {'userId', 'gender', 'school', 'grade'};
 taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
 taskMetaData = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
+%% Checking inputs and parameters.
 %Check input arguments.
 if nargin <= 1
     tasks = [];
@@ -39,18 +44,11 @@ if nargin <= 2
     cfg = [];
 end
 %Check configuration.
-if ~isfield(cfg, 'minsubs') || isempty(cfg.minsubs)
-    cfg.minsubs = 20;
-end
-if ~isfield(cfg, 'outliermode') || isempty(cfg.outliermode)
-    cfg.outliermode = 'extreme';
-end
-if ~isfield(cfg, 'figfmt') || isempty(cfg.figfmt)
-    cfg.figfmt = 'jpeg';
-end
+cfg = chkconfig(cfg);
 minsubs = cfg.minsubs;
 outliermode = cfg.outliermode;
 figfmt = cfg.figfmt;
+slidegen = cfg.slidegen;
 if isempty(tasks) %No task specified, then plots all the tasks specified in mrgdata.
     tasks = unique(regexp(taskVarsOfExperimentData, '^.*?(?=_)', 'match', 'once'));
 end
@@ -76,8 +74,27 @@ origtasks = tasks;
 tasksNeedTrans = tasks(~isTaskIDName);
 [~, locTaskName] = ismember(tasksNeedTrans, settings.TaskName);
 tasks(~isTaskIDName) = settings.TaskIDName(locTaskName);
+%Rearrange tasks in the order of tasksettings.
+allTaskIDName = unique(settings.TaskIDName, 'stable');
+loc4process = ismember(allTaskIDName, tasks);
+allTaskIDName(~loc4process) = [];
+[~, newOrder] = ismember(allTaskIDName, tasks);
+origtasks = origtasks(newOrder);
+tasks = tasks(newOrder);
+%% Initialization works before plotting.
 ntasks = length(tasks);
 fprintf('Will plot figures of %d tasks...\n', ntasks);
+if slidegen
+    %The pandoc slides markdown string generator and output file setting.
+    fid = fopen('Beijing Brain Project.md', 'w', 'n', 'UTF-8');
+    %Basic signs used in markdown.
+    newline = '\r\n';
+    Title = '%% Beijing Brain Project';
+    Authors = '%% Zhang Liang; Peng Maomiao; Wu Xiaomeng';
+    Date = ['%% ', date];
+    %Use lastsection as the last section number.
+    lastsection = 0;
+end
 %Use lastexcept as an indicator of exception in last task.
 lastexcept = false;
 latestsprint = '';
@@ -270,4 +287,21 @@ for itask = 1:ntasks
     end
     clearvars('-except', initialVars{:});
 end
+if slidegen
+    slidesMarkdown = strjoin({Title, Authors, Date, }, newline);
+    fprintf(fid, slidesMarkdown);
+    fclose(fid);
+end
 rmpath(anafunpath);
+
+function cfg = chkconfig(cfg)
+%CHKCONFIG converts cfg into the standard configuration.
+
+fields = {'minsubs' 'outliermode' 'figfmt' 'slidegen'};
+dflts  = {     20     'extreme'    'jpeg'     false  };
+for ifield = 1:length(fields)
+    curfield = fields{ifield};
+    if ~isfield(cfg, curfield) || isempty(cfg.(curfield))
+        cfg.(curfield) = dflts{ifield};
+    end
+end

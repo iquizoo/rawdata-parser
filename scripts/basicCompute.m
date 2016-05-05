@@ -30,6 +30,8 @@ end
 ntasks = length(dataExtract.Taskname);
 taskRange = find(ismember(dataExtract.Taskname, tasks));
 ntasks4process = length(taskRange);
+%Display some message.
+fprintf('Now do some basic computation and transformation to the extracted data.\n');
 if isequal(taskRange, (1:ntasks)')
     fprintf('Will process all the tasks!\n');
 end
