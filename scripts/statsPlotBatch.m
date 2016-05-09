@@ -89,15 +89,28 @@ if slidegen
     fid = fopen('Beijing Brain Project.md', 'w', 'n', 'UTF-8');
     %Basic signs used in markdown.
     newline = '\r\n';
+    secpre = '#';
+    slidepre = '##';
+    %Meta data.
     Title = '%% Beijing Brain Project';
     Authors = '%% Zhang Liang; Peng Maomiao; Wu Xiaomeng';
     Date = ['%% ', date];
+    %Set section maps.
+    [~, usedTaskLoc] = ismember(tasks, settings.TaskIDName);
+    sectionNumers = settings.SlideSection(usedTaskLoc);
+    sectionNumerMap = containers.Map(tasks, sectionNumers);
+    sectionNames = settings.SectionSummary(usedTaskLoc);
+    sectionNameMap = containers.Map(tasks, sectionNames);
+    nsections = length(unique(sectionNumers));
+    SectionTitles = cell(1, nsections);
+    SectionData = cell(1, nsections);
     %Use lastsection as the last section number.
-    lastsection = 0;
+    lastSection = 0;
+    partOrder = 0;
 end
 %Use lastexcept as an indicator of exception in last task.
-lastexcept = false;
-latestsprint = '';
+lastExcept = false;
+latestPrint = '';
 %Task-wise checking.
 for itask = 1:ntasks
     initialVars = who;
@@ -105,18 +118,18 @@ for itask = 1:ntasks
     curTaskIDName = tasks{itask};
     origTaskName = origtasks{itask};
     %Delete last line without exception.
-    if ~lastexcept
-        fprintf(repmat('\b', 1, length(latestsprint)))
+    if ~lastExcept
+        fprintf(repmat('\b', 1, length(latestPrint)))
     end
     %Get the ordinal string.
     ordStr = num2ord(itask);
-    latestsprint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
-    fprintf(latestsprint);
-    lastexcept = false;
+    latestPrint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
+    fprintf(latestPrint);
+    lastExcept = false;
     curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
     if isempty(curTaskSettings)
         fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
-        lastexcept = true;
+        lastExcept = true;
         continue
     elseif height(curTaskSettings) > 1
         curTaskSettings = curTaskSettings(1, :);
@@ -127,7 +140,7 @@ for itask = 1:ntasks
         regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
     if ~any(curTaskLoc)
         fprintf('No experiment data result found for current task. Aborting...\n')
-        lastexcept = true;
+        lastExcept = true;
         continue
     end
     curTaskMetaData = taskMetaData;
@@ -155,6 +168,16 @@ for itask = 1:ntasks
     figDir = 'Figs';
     curTaskFigDir = fullfile(curTaskResDir, figDir);
     mkdir(curTaskFigDir)
+    %% Create section titles.
+    if slidegen
+        curSectionNum = sectionNumerMap(curTaskIDName);
+        curSectionName = sectionNameMap(curTaskIDName);
+        if curSectionNum ~= lastSection
+            partOrder = partOrder + 1;
+            curSectionOrder = find(sectionNumers, curSectionNum);
+            SectionTitles{curSectionOrder} = [secpre, ' Part', num2str(partOrder), ' ', curSectionName];
+        end
+    end
     %% Write a table of meta data.
     despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
         'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
@@ -165,7 +188,7 @@ for itask = 1:ntasks
     minorLoc = outDespStats.Count < minsubs;
     shadyEntryInd = find(minorLoc);
     if ~isempty(shadyEntryInd)
-        lastexcept = true;
+        lastExcept = true;
         fprintf('Entry with too few subjects encountered, will delete following entries in the displayed data table:\n')
         disp(outDespStats(shadyEntryInd, :))
         disp(outDespStats)
@@ -233,6 +256,15 @@ for itask = 1:ntasks
             ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
         saveas(hbp, bpname, figfmt)
         delete(hbp)
+        if slidegen
+            bpSlideTitle = [slidepre, emphasis(curTaskIDName, '**'), ' ', ...
+                emphasis(['box plot to show outliers based on ', strrep(chkVar, '_', ' ')], '__')];
+            figfullpath = [bpname, '.', figfmt];
+            caption = 'Box plot';
+            bpSlideContent = putimage(figfullpath, caption);
+            
+            SectionData{curSectionOrder} = [SectionData{curSectionOrder}, strjoin({bpSlideTitle, bpSlideContent}, newline)];
+        end
         %Remove outliers and plot histograms.
         for igrade = 1:length(grades)
             curgradeidx = curCondTaskData.grade == grades{igrade};
@@ -293,6 +325,7 @@ if slidegen
     fclose(fid);
 end
 rmpath(anafunpath);
+end
 
 function cfg = chkconfig(cfg)
 %CHKCONFIG converts cfg into the standard configuration.
@@ -304,4 +337,17 @@ for ifield = 1:length(fields)
     if ~isfield(cfg, curfield) || isempty(cfg.(curfield))
         cfg.(curfield) = dflts{ifield};
     end
+end
+end
+
+function emstr = emphasis(str, flank)
+%EMPHASIS generates pandoc bold string.
+
+emstr = strcat(flank, str, flank);
+end
+
+function imstr = putimage(path, caption)
+%PUTIMAGE generates a string of pandoc code to put image onto slide.
+
+imstr = ['![' caption '](' path ')'];
 end
