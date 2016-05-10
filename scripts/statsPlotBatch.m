@@ -19,6 +19,8 @@ function statsPlotBatch(mrgdata, tasks, cfg)
 
 %By Zhang, Liang. Email:psychelzh@gmail.com
 
+%Basic signs used in markdown.
+global newline secpre subsecpre slidepre
 %% Directory setting works.
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
@@ -32,9 +34,9 @@ resFolder = fullfile(fileparts(curDir), 'DATA_RES');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 % Some transformation of meta information, e.g. school and grade.
 allMrgDataVars = mrgdata.Properties.VariableNames;
-taskVarsOfMetaDataOfInterest = {'userId', 'gender', 'school', 'grade'};
-taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
-taskMetaData = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaDataOfInterest));
+taskVarsOfMetaData = {'userId', 'gender', 'school', 'grade'};
+taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMetaData));
+taskMetaData = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaData));
 %% Checking inputs and parameters.
 %Check input arguments.
 if nargin <= 1
@@ -90,11 +92,13 @@ if slidegen
     %Basic signs used in markdown.
     newline = '\r\n';
     secpre = '#';
-    slidepre = '##';
+    subsecpre = '##';
+    slidepre = '###';
     %Meta data.
-    Title = '%% Beijing Brain Project';
-    Authors = '%% Zhang Liang; Peng Maomiao; Wu Xiaomeng';
-    Date = ['%% ', date];
+    Title = translate('% Beijing Brain Project');
+    Authors = translate('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
+    Date = translate(['% ', date]);
+    metadata = strjoin({Title, Authors, Date}, newline);
     %Set section maps.
     [~, usedTaskLoc] = ismember(tasks, settings.TaskIDName);
     sectionNumers = settings.SlideSection(usedTaskLoc);
@@ -147,13 +151,12 @@ for itask = 1:ntasks
     curTaskVarsOfMetaData = curTaskMetaData.Properties.VariableNames;
     curTaskExpData = mrgdata(:, curTaskLoc);
     curTaskVarsOfExperimentData = curTaskExpData.Properties.VariableNames;
-    curTaskData = [curTaskMetaData, curTaskExpData];
-    curTaskVarsData = curTaskData.Properties.VariableNames;
     %Pre-plot data clean job.
-    curTaskData(all(isnan(curTaskExpData{:, :}), 2), :) = [];
-    curTaskData(isundefined(curTaskData.school) | isundefined(curTaskData.grade), :) = [];
-    curTaskData.grade = removecats(curTaskData.grade);
-    grades = cellstr(unique(curTaskData.grade));
+    curTaskMissingMetadataRow = isundefined(curTaskMetaData.school) | isundefined(curTaskMetaData.grade);
+    curTaskMissingExpDataRows = all(isnan(curTaskExpData{:, :}), 2);
+    curTaskMetaData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
+    curTaskExpData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
+    curTaskMetaData.grade = removecats(curTaskMetaData.grade);
     %% Set the store directories and file names of figures and excels.
     % Remove the existing items.
     curTaskResDir = fullfile(resFolder, curTaskIDName);
@@ -172,15 +175,17 @@ for itask = 1:ntasks
     if slidegen
         curSectionNum = sectionNumerMap(curTaskIDName);
         curSectionName = sectionNameMap(curTaskIDName);
+        curSectionOrder = find(sectionNumers, curSectionNum);
         if curSectionNum ~= lastSection
             partOrder = partOrder + 1;
-            curSectionOrder = find(sectionNumers, curSectionNum);
-            SectionTitles{curSectionOrder} = [secpre, ' Part', num2str(partOrder), ' ', curSectionName];
+            SectionTitles{curSectionOrder} = [secpre, ' Part ', num2str(partOrder), ' ', curSectionName];
+            lastSection = curSectionNum;
         end
     end
     %% Write a table of meta data.
-    despStats = grpstats(curTaskData, {'school', 'grade'}, 'numel', ...
-        'DataVars', curTaskVarsOfExperimentData(1)); %Only for count use, no need for all variables.
+    curTaskVarsOfMetaDataOfInterest = {'school', 'grade'};
+    curTaskMetaDataOfInterest = curTaskMetaData(:, ismember(curTaskVarsOfMetaData, curTaskVarsOfMetaDataOfInterest));
+    despStats = grpstats(curTaskMetaDataOfInterest, {'school', 'grade'}, 'numel');
     outDespStats = despStats(:, 1:3);
     outDespStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
     writetable(outDespStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
@@ -197,15 +202,17 @@ for itask = 1:ntasks
             resp = 'yes';
         end
         if strcmpi(resp, 'y') || strcmpi(resp, 'yes')
-            curTaskData(ismember(curTaskData.school, outDespStats.School(shadyEntryInd)) ...
-                & ismember(curTaskData.grade, outDespStats.Grade(shadyEntryInd)), :) = [];
-            curTaskData.grade = removecats(curTaskData.grade);
-            grades = cellstr(unique(curTaskData.grade));
+            curTaskMinorRowRemoved = ismember(curTaskMetaData.school, outDespStats.School(shadyEntryInd)) ...
+                & ismember(curTaskMetaData.grade, outDespStats.Grade(shadyEntryInd));
+            curTaskMetaData(curTaskMinorRowRemoved, :) = [];
+            curTaskMetaData.grade = removecats(curTaskMetaData.grade);
+            curTaskExpData(curTaskMinorRowRemoved, :) = [];
         end
     end
     %% Get metadata and expdata seperated again.
-    curTaskMetaData = curTaskData(:, ismember(curTaskVarsData, curTaskVarsOfMetaData));
-    curTaskExpData = curTaskData(:, ismember(curTaskVarsData, curTaskVarsOfExperimentData));
+    curTaskData = [curTaskMetaData, curTaskExpData];
+    curTaskVarsData = curTaskData.Properties.VariableNames;
+    grades = cellstr(unique(curTaskData.grade));
     %% Condition-wise plotting.
     curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
     if all(cellfun(@isempty, curTaskMrgConds))
@@ -257,12 +264,12 @@ for itask = 1:ntasks
         saveas(hbp, bpname, figfmt)
         delete(hbp)
         if slidegen
-            bpSlideTitle = [slidepre, emphasis(curTaskIDName, '**'), ' ', ...
-                emphasis(['box plot to show outliers based on ', strrep(chkVar, '_', ' ')], '__')];
+            bpSlideTitle = strjoin({[subsecpre, curTaskIDName], ...
+                [slidepre, 'Box plot to show outliers based on ', var2caption(curTaskIDName, chkVar)]}, ...
+                newline);
             figfullpath = [bpname, '.', figfmt];
-            caption = 'Box plot';
+            caption = ['Box plot of ' var2caption(curTaskIDName, chkVar)];
             bpSlideContent = putimage(figfullpath, caption);
-            
             SectionData{curSectionOrder} = [SectionData{curSectionOrder}, strjoin({bpSlideTitle, bpSlideContent}, newline)];
         end
         %Remove outliers and plot histograms.
@@ -320,7 +327,8 @@ for itask = 1:ntasks
     clearvars('-except', initialVars{:});
 end
 if slidegen
-    slidesMarkdown = strjoin({Title, Authors, Date, }, newline);
+    slidesdata = strjoin([SectionTitles, SectionData], newline);
+    slidesMarkdown = strjoin({metadata, slidesdata}, newline);
     fprintf(fid, slidesMarkdown);
     fclose(fid);
 end
@@ -331,7 +339,7 @@ function cfg = chkconfig(cfg)
 %CHKCONFIG converts cfg into the standard configuration.
 
 fields = {'minsubs' 'outliermode' 'figfmt' 'slidegen'};
-dflts  = {     20     'extreme'    'jpeg'     false  };
+dflts  = {     20     'extreme'    'jpg'     false  };
 for ifield = 1:length(fields)
     curfield = fields{ifield};
     if ~isfield(cfg, curfield) || isempty(cfg.(curfield))
@@ -346,8 +354,22 @@ function emstr = emphasis(str, flank)
 emstr = strcat(flank, str, flank);
 end
 
-function imstr = putimage(path, caption)
+function imstr = putimage(figpath, caption)
 %PUTIMAGE generates a string of pandoc code to put image onto slide.
 
-imstr = ['![' caption '](' path ')'];
+global newline
+figpath = translate(figpath);
+%two newlines are added posterior.
+imstr = ['![' caption '](' figpath ')' newline];
+end
+
+function translated = translate(origstr)
+%TRANSLATE removes wrongly placed escape characters.
+
+orig = {'\', '%'};
+trans = {'\\', '%%'};
+for itrans = 1:length(orig)
+    origstr = strrep(origstr, orig{itrans}, trans{itrans});
+end
+translated = origstr;
 end

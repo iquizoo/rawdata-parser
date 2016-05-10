@@ -1,5 +1,5 @@
-function [hs, hnames] = ebsngtasksingleton(tbl, TaskIDName, sngVars)
-%EBSNGTASKSINGLETON Errorbar plot batch job of one single task.
+function [hs, hnames] = sngplotebsingleton(tbl, TaskIDName, sngVars)
+%SNGPLOTEBSINGLETON Errorbar plot batch job of one single task.
 %   EBSNGTASKSINGLETON(TBL, TASKIDNAME, SNGVARS) plot error bar of all the
 %   variables indicated by sngVars in the table tbl. In this 'singleton'
 %   suffix mode, figures for each variable in sngVars will be generated.

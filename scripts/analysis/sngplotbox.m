@@ -1,5 +1,5 @@
-function bpsngtask(tbl, TaskIDName, chkVar, whisker)
-%BPSNGTASK Boxplot batch job of one single task.
+function sngplotbox(tbl, TaskIDName, chkVar, whisker)
+%SNGPLOTBOX Boxplot batch job of one single task.
 %   BPSNGTASK(TBL, TASKIDNAME, CHKVAR) boxplots the data in the tbl of
 %   variable composed by TaskIDName and chkVar according to the rule used
 %   when merging data.

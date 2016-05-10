@@ -1,5 +1,5 @@
-function [h, hname] = ebsngtaskcmb(tbl, TaskIDName, chkVarsCat, delimiter, chkVarsCond)
-%EBSNGTASKCMB errorbar plot batch job of one single task.
+function [h, hname] = sngplotebcmb(tbl, TaskIDName, chkVarsCat, delimiter, chkVarsCond)
+%SNGPLOTEBCMB errorbar plot batch job of one single task.
 %   EBSNGTASKCMB(TBL, TASKIDNAME, CHKVARSCAT, DELIMITER, CHKVARSCOND) plot
 %   error bar of the data in the tbl of variable composed by TaskIDName and
 %   chkVarsPref, chkVarsSuff, sngVars according to the rule used when
