@@ -67,7 +67,7 @@ for isht = 1:nsht4process
         if ~isa(curTaskData.(curVar), curClass)
             switch curClass
                 case 'cell'
-                    curTaskData.(curVar) = repmat({''}, height(curTaskData), 1);
+                    curTaskData.(curVar) = num2cell(curTaskData.(curVar));
                 case 'double'
                     curTaskData.(curVar) = str2double(curTaskData.(curVar));
             end
@@ -100,7 +100,9 @@ for isht = 1:nsht4process
     curTaskData.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
     curTaskData.splitRes = cursplit.splitRes; % Store the split results.
     curTaskData.status = cursplit.status; % Store the status,
-    dataExtract.Data{isht} = curTaskData;
+    outVarsOfInterest = ...
+        {'userId', 'gender', 'school', 'grade', 'birthDay', 'TaskIDName', 'splitRes', 'status'};
+    dataExtract.Data{isht} = curTaskData(:, ismember(curTaskData.Properties.VariableNames, outVarsOfInterest));
     clearvars('-except', initialVarsSht{:});
 end
 fclose(logfid);

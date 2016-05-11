@@ -25,9 +25,18 @@ end
 %Initialization jobs.
 nVarCats = length(chkVarsCat);
 nVarCond = length(chkVarsCond);
-%Determine y axes and labels.
-yRTloc = ~cellfun(@isempty, regexp(chkVarsCat, 'RT', 'once'));
-isDBYaxes = false;
+%Determine y axes, the first step. Read the second step at line 50.
+yRTloc = ~cellfun(@isempty, regexp(chkVarsCat, 'RT|Time', 'once'));
+if all(yRTloc) || all(~yRTloc)
+    isDBYaxes = false;
+else
+    isDBYaxes = true;
+    axisPos = {'left', 'right'};
+    varAxisPos = nan(1, nVarCats);
+    %For time related variables, use a different axis.
+    varAxisPos(yRTloc) = 2 - (yRTloc(1) == true);
+    varAxisPos(~yRTloc) = (yRTloc(1) == true) + 1;
+end
 %Get all the grades for XTickLabel.
 grades = cellstr(unique(tbl.grade));
 %Preallocation.
@@ -36,27 +45,30 @@ hnames = cell(nVarCond, 1);
 %Condition-wise error bar plot.
 for ivarcond = 1:nVarCond
     curVarCond = chkVarsCond{ivarcond};
-    switch nVarCats
-        case 1
-            ylabels = chkVarsCat;
-        case 2
-            if all(ismember(chkVarsCat, {'ML', 'MS'}))
-                ylabels = 'Length';
-            else
-                isDBYaxes = true;
-                axisPos = {'left', 'right'};
-                ylabels = strrep(chkVarsCat, '_', ' ');
-                ylabels = strrep(ylabels, 'prime', '''');
-                ylabels(yRTloc) = strcat(ylabels(yRTloc), '(ms)');
-                if strcmp(curVarCond, 'Overall')
-                    ylabels = strrep(ylabels, 'Rate', 'ACC');
-                end
-            end
-        otherwise
-            ylabels = curVarCond;
-    end
     curTblVars = strcat(TaskIDName, '_', chkVarsCat, delimiter, curVarCond);
-    %Open an invisible figure.
+    %Determine y axes, the second step.
+    if ~isDBYaxes
+        curCondCatsMean = nanmean(tbl{:, ismember(tbl.Properties.VariableNames, curTblVars)});
+        contrasts = nchoosek(1:nVarCats, 2);
+        contrastsMean = curCondCatsMean(contrasts);
+        contrastsResult = abs(bsxfun(@rdivide, contrastsMean(:, 1), contrastsMean(:, 2)));
+        if any(contrastsResult > 5) || any(contrastsResult < 0.2)
+            %This means the average of different variables are largely
+            %(arbitrarily set at level 5 (0.2) now) diffrent, which makes
+            %two axes necessary.
+            isDBYaxes = true;
+            axisPos = {'left', 'right'};
+            contrastsResult(contrastsResult <= 1) = 1 ./ contrastsResult(contrastsResult <= 1);
+            contrasts(contrastsResult <= 1, :) = contrasts(contrastsResult <= 1, end:-1:1);
+            [~, idx] = sort(contrastsResult);
+            varAxisPos = nan(1, nVarCats);
+            %Larger scale uses the right axes.
+            largerAxis = ismember(1:nVarCats, contrasts(idx(1), 1));
+            varAxisPos(largerAxis) = 2 - (largerAxis(1) == true);
+            varAxisPos(~largerAxis) = 1 + (largerAxis(1) == true);
+        end
+    end
+    %Open an invisible figure for each condition.
     hs(ivarcond) = figure;
     hs(ivarcond).Visible = 'off';
     %Set file name. Transform curVarCond to title-compatible condition name.
@@ -65,16 +77,38 @@ for ivarcond = 1:nVarCond
         curVarTitle = strjoin(chkVarsCat, '&');
     end
     hnames{ivarcond} = ['Error bar (SEM) plot of ', curVarTitle];
+    %Use showLegend to denote whether legend is needed.
+    showLegend = false;
+    if nVarCats > 2
+        showLegend = true;
+    end
     for ivarcat = 1:nVarCats
+        curTblVar = curTblVars{ivarcat};
+        %Set ylabel string.
+        yLabel = regexp(curTblVar, 'Rate|ACC|Count|RT|Time', 'match', 'once');
+        if isempty(yLabel)
+            yLabel = 'Arbitrary Unit';
+            showLegend = true; %Set it to true to separate different variables.
+        end
+        if ismember(ivarcat, find(yRTloc))
+            if any(tbl.(curTblVar) > 10 ^ 4) %Transform unit to secs.
+                tbl.(curTblVar) = tbl.(curTblVar) / 10 ^ 3;
+                yLabel = strcat(yLabel, '(s)');
+            else
+                yLabel = strcat(yLabel, '(ms)');
+            end
+        end
+        if strcmp(curVarCond, 'Overall')
+            yLabel = strrep(yLabel, 'Rate', 'ACC');
+        end
+        %Prepare the axis.
         if isDBYaxes % yyaxis will be used.
-            yyaxis(axisPos{ivarcat})
+            yyaxis(axisPos{varAxisPos(ivarcat)})
         end
         %Plot one instance of error bar, use 'sem' as the error.
-        errorbar(grpstats(tbl.(curTblVars{ivarcat}), tbl.grade), ...
-            grpstats(tbl.(curTblVars{ivarcat}), tbl.grade, 'sem'))
-        if isDBYaxes
-            ylabel(ylabels{ivarcat})
-        end
+        errorbar(grpstats(tbl.(curTblVar), tbl.grade), ...
+            grpstats(tbl.(curTblVar), tbl.grade, 'sem'))
+        ylabel(yLabel)
         hold on
     end
     %Set the font and background to make it look better.
@@ -89,10 +123,8 @@ for ivarcond = 1:nVarCond
     %clear all the set of current axis.
     xlabel('Grade')
     title(['Error bar (SEM) plot of ', curVarTitle, ' in task ', TaskIDName]);
-    if ~isDBYaxes % yyaxis not used.
-        ylabel(ylabels)
-        if nVarCats > 1 % nonsingleton variable category, then use legend to denote variable category.
-            legend(chkVarsCat, 'Location', 'best')
-        end
+    if showLegend
+        chkVarsCat = strrep(chkVarsCat, 'prime', '''');
+        legend(chkVarsCat, 'Location', 'best', 'FontSize', 9)
     end
 end

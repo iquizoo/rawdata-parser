@@ -71,16 +71,16 @@ if ~isempty(splitRes{:})
                    if ismember('TotalTime', outvars)
                        spres.TotalTime = sum(RECORD.RT);
                    end
-                   if ismember('NTotalTrl', outvars)
-                       spres.NTotalTrl = height(RECORD);
+                   if ismember('CountTotalTrl', outvars)
+                       spres.CountTotalTrl = height(RECORD);
                    end
                    %Cutoff RTs: for too fast trials and too slow trials. Do not remove
                    %trials without response, because some trials of GNG task is designed
                    %to suppress a response for subjects.
                    RECORD((RECORD.RT < 100 & RECORD.RT ~= 0) | RECORD.RT > 2500, :) = [];
                    %record the number of correct trials if required.
-                   if ismember('NAccTrl', outvars)
-                       spres.NAccTrl = sum(RECORD.ACC);
+                   if ismember('CountAccTrl', outvars)
+                       spres.CountAccTrl = sum(RECORD.ACC);
                    end
                case {'SRT', 'SRTWatch', 'SRTBread'} %SRT
                    %The original record of ACC of each trial is not always right.
@@ -103,11 +103,14 @@ if ~isempty(splitRes{:})
                    RECORD(isnan(RECORD.RT), :) = [];
                    %Cutoff RTs: for too fast trials.
                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
-                   %Find out the no-go stimulus. Note RT of 3000 is regarded
-                   %as no response.
+                   %Find out the no-go stimulus. Note RT of 3000 (for DRT)
+                   %or 1000 (for DivAtten) is regarded as no response.
                    criterion = 3000 * strcmp(task, 'DRT') + 1000 * ~strcmp(task, 'DRT');
                    NGSTIM = findNG(RECORD, criterion);
+                   %For SCat: Go -> 1, NoGo -> 0.
                    RECORD.SCat = ~ismember(RECORD.STIM, NGSTIM);
+                   %Set the ACC to 0 for go trials without response.
+                   RECORD.ACC(RECORD.SCat == 1 & RECORD.RT == criterion, :) = 0;
                case {'CRT', 'SpeedAdd', 'SpeedSubtract', 'DigitCmp', 'CountSense'} %CRT
                    %Cutoff RTs: eliminate RTs that are too fast (<100ms).
                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
@@ -130,17 +133,17 @@ if ~isempty(splitRes{:})
                    end
                case 'CPT2'
                    %Note only 'C' which is followed by 'B' is Go(target) trial
-                   CCdts = strcmp(RECORD.STIM, 'C');
+                   GoTrials = strcmp(RECORD.STIM, 'C');
                    %'C' appears at the first trial will not be a target.
-                   if ismember(find(CCdts), 1)
-                       CCdts(1) = false;
+                   if ismember(find(GoTrials), 1)
+                       GoTrials(1) = false;
                    end
-                   isFollowB = strcmp(RECORD.STIM(circshift(CCdts, -1)) , 'B');
+                   isFollowB = strcmp(RECORD.STIM(circshift(GoTrials, -1)) , 'B');
                    %'C' not followed by 'B' should be excluded.
-                   CCdts(~isFollowB) = false;
+                   GoTrials(~isFollowB) = false;
                    %Add a field 'SCat', 1 -> go, 0 -> nogo.
                    RECORD.SCat = zeros(height(RECORD), 1);
-                   RECORD.SCat(CCdts) = 1;
+                   RECORD.SCat(GoTrials) = 1;
                    %Cutoff RTs: for too fast trials.
                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
                case {'AssocMemory', 'SemanticMemory', ... %Memrep
@@ -197,7 +200,7 @@ if ~isempty(splitRes{:})
            MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
                regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost)', 'once')));
            for irtvar = 1:length(MRTvars)
-               if curTaskRes.(MRTvars{irtvar}) < 300
+               if curTaskRes.(MRTvars{irtvar}) < 300 || curTaskRes.(MRTvars{irtvar}) > 2500
                    curTaskRes{:, :} = nan;
                    break
                end
@@ -230,7 +233,17 @@ end
 function NGSTIM = findNG(RECORD, criterion)
 %For some of the tasks, no-go stimuli is not predifined.
 
+%Get all the stimuli.
 allSTIM = unique(RECORD.STIM);
+%For the newer version of DRT data, when response is required and the
+%subject responded with an incorrect key, remove that trial because these
+%trials might confuse the determination of nogo stimuli.
+if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
+    %DRT of newer version detected.
+    %Amend the ACC records.
+    RECORD.ACC(RECORD.Resp == 0) = 0;
+    RECORD(str2double(num2cell(RECORD.STIM)) == RECORD.Resp & RECORD.ACC == 0, :) = [];
+end
 if ~isempty(allSTIM)
     firstTrial = RECORD(1, :);
     firstIsGo = firstTrial.ACC == 1 && firstTrial.RT < criterion;

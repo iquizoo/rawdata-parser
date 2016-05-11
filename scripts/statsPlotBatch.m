@@ -186,33 +186,28 @@ for itask = 1:ntasks
     curTaskVarsOfMetaDataOfInterest = {'school', 'grade'};
     curTaskMetaDataOfInterest = curTaskMetaData(:, ismember(curTaskVarsOfMetaData, curTaskVarsOfMetaDataOfInterest));
     despStats = grpstats(curTaskMetaDataOfInterest, {'school', 'grade'}, 'numel');
-    outDespStats = despStats(:, 1:3);
-    outDespStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
-    writetable(outDespStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
+    despStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
+    writetable(despStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
     %Special issue: see if delete those data with too few subjects (less than 10).
-    minorLoc = outDespStats.Count < minsubs;
+    minorLoc = despStats.Count < minsubs;
     shadyEntryInd = find(minorLoc);
     if ~isempty(shadyEntryInd)
         lastExcept = true;
         fprintf('Entry with too few subjects encountered, will delete following entries in the displayed data table:\n')
-        disp(outDespStats(shadyEntryInd, :))
-        disp(outDespStats)
+        disp(despStats(shadyEntryInd, :))
+        disp(despStats)
         resp = input('Sure to delete?[Y]/N:', 's');
         if isempty(resp)
             resp = 'yes';
         end
         if strcmpi(resp, 'y') || strcmpi(resp, 'yes')
-            curTaskMinorRowRemoved = ismember(curTaskMetaData.school, outDespStats.School(shadyEntryInd)) ...
-                & ismember(curTaskMetaData.grade, outDespStats.Grade(shadyEntryInd));
+            curTaskMinorRowRemoved = ismember(curTaskMetaData.school, despStats.School(shadyEntryInd)) ...
+                & ismember(curTaskMetaData.grade, despStats.Grade(shadyEntryInd));
             curTaskMetaData(curTaskMinorRowRemoved, :) = [];
             curTaskMetaData.grade = removecats(curTaskMetaData.grade);
             curTaskExpData(curTaskMinorRowRemoved, :) = [];
         end
     end
-    %% Get metadata and expdata seperated again.
-    curTaskData = [curTaskMetaData, curTaskExpData];
-    curTaskVarsData = curTaskData.Properties.VariableNames;
-    grades = cellstr(unique(curTaskData.grade));
     %% Condition-wise plotting.
     curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
     if all(cellfun(@isempty, curTaskMrgConds))
@@ -258,7 +253,7 @@ for itask = 1:ntasks
         hbp = figure;
         hbp.Visible = 'off';
         whisker = 1.5 * strcmp(outliermode, 'mild') + 3 * strcmp(outliermode, 'extreme');
-        bpsngtask(curCondTaskData, curTaskIDName, chkVar, whisker)
+        sngplotbox(curCondTaskData, curTaskIDName, chkVar, whisker)
         bpname = fullfile(curCondTaskFigDir, ...
             ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
         saveas(hbp, bpname, figfmt)
@@ -273,13 +268,14 @@ for itask = 1:ntasks
             SectionData{curSectionOrder} = [SectionData{curSectionOrder}, strjoin({bpSlideTitle, bpSlideContent}, newline)];
         end
         %Remove outliers and plot histograms.
+        grades = cellstr(unique(curTaskMetaData.grade));
         for igrade = 1:length(grades)
             curgradeidx = curCondTaskData.grade == grades{igrade};
             [~, outlieridx] = coutlier(curCondTaskData.(chkTblVar)(curgradeidx), 'extreme');
             curgradeidx(curgradeidx == 1) = outlieridx;
             curCondTaskData(curgradeidx, :) = [];
         end
-        [hs, hnames] =  histsngtask(curCondTaskData, curTaskIDName);
+        [hs, hnames] =  sngplothist(curCondTaskData, curTaskIDName);
         cellfun(@(x, y) saveas(x, y, figfmt), ...
             num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
         delete(hs)
@@ -292,9 +288,9 @@ for itask = 1:ntasks
         %Errorbar plot CP.
         cmbTasks = {'AssocMemory', 'SemanticMemory'};
         if ismember(curTaskIDName, cmbTasks)
-            ebplotfun = @ebsngtaskcmb;
+            ebplotfun = @sngplotebcmb;
         else
-            ebplotfun = @ebsngtaskmult;
+            ebplotfun = @sngplotebmult;
         end
         curTaskChkVarsCat = strsplit(curTaskSettings.VarsCat{:});
         curTaskChkVarsCond = strsplit(curTaskSettings.VarsCond{:});
@@ -310,7 +306,7 @@ for itask = 1:ntasks
         %Error bar plot of singleton variables.
         curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
         if ~all(cellfun(@isempty, curTaskSngVars))
-            [hs, hnames] = ebsngtasksingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
+            [hs, hnames] = sngplotebsingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
             cellfun(@(x, y) saveas(x, y, figfmt), ...
                 num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
             delete(hs)
@@ -318,7 +314,15 @@ for itask = 1:ntasks
         %Error bar plot of singleton variables CP.
         curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
         if ~all(cellfun(@isempty, curTaskSngVarsCP))
-            [hs, hnames] = ebsngtaskmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
+            [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
+            cellfun(@(x, y) saveas(x, y, figfmt), ...
+                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
+            delete(hs)
+        end
+        %Error bar plot of special variables.
+        curTaskSpVars = strsplit(curTaskSettings.SpecialVars{:});
+        if ~all(cellfun(@isempty, curTaskSpVars))
+            [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSpVars);
             cellfun(@(x, y) saveas(x, y, figfmt), ...
                 num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
             delete(hs)

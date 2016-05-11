@@ -1,11 +1,10 @@
-function [splitRes, status] = sngproc(conditions, curTaskPara)
+function [splitRes, status] = sngproc(conditions, para)
 %SNGPROC Preprocessing the data of one single subject.
-%   [SPLITRES, STATUS] = SNGPROC(CONDITIONS, CURTASKPARA) does the
-%   splitting jobs to conditions according to the parameters specified in
-%   curtaskpara. The two input arguments are both cell type, containing a
-%   string in the former, and a table in the latter. Splitting result is
-%   stored in splitRes, and status is used to denote whether an exception
-%   happens or not.
+%   [SPLITRES, STATUS] = SNGPROC(CONDITIONS, PARA) does the splitting jobs
+%   to conditions according to the parameters specified in para. The two
+%   input arguments are both cell type, containing a string in the former,
+%   and a table in the latter. Splitting result is stored in splitRes, and
+%   status is used to denote whether an exception happens or not.
 
 %By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
 %Beta version, 05/01/2016.
@@ -29,13 +28,13 @@ function [splitRes, status] = sngproc(conditions, curTaskPara)
 
 status = 0;
 %Extract useful information form parameters.
-curTaskPara = curTaskPara{:};
-if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
+para = para{:};
+if ~isempty(para) && ~isempty(para.Delimiters{:})
     %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
-    delimiters = curTaskPara.Delimiters{:};
+    delimiters = para.Delimiters{:};
     %ConditionInformation contains information of condition splitting.
-    conditionInformation = curTaskPara.ConditionInformation{:};
+    conditionInformation = para.ConditionInformation{:};
     if ~isempty(conditionInformation) % Split conditions.
         condInfo = strsplit(conditionInformation, '|');
         %Names for all conditions.
@@ -59,7 +58,7 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
     %Rearrange parameters condition-wise.
     ncond = length(conditionsNames); %We have completed the condition splitting task.
     %Splitting variable names and extract information of conditions.
-    [VariablesNames, charVars] = varNamesSplit(curTaskPara, ncond);
+    [VariablesNames, charVars] = varNamesSplit(para, ncond);
     for icond = 1:ncond
         curRecon = recons(icond);
         curAltVariablesNames = VariablesNames{icond};
@@ -73,7 +72,7 @@ if ~isempty(curTaskPara) && ~isempty(curTaskPara.Delimiters{:})
         curTrialRec = cellfun(@strsplit, ...
             curRec{:}, repmat({delimiters(2)}, size(curRec{1})), ...
             'UniformOutput', false);
-        token = curTaskPara.TemplateToken{:};
+        token = para.TemplateToken{:};
         switch token
             %language task, , Go/No-Go, cpt, divided attention working memory.
             case {'LT', 'GNG', 'CPT1', 'DA', 'WM'}
