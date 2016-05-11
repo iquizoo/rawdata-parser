@@ -1,5 +1,5 @@
-function [hs, hnames] =  histsngtask(tbl, TaskIDName)
-%HISTSNGTASK plots histograms for all the vaiables of each grade.
+function [hs, hnames] =  sngplothist(tbl, TaskIDName)
+%SNGPLOTHIST plots histograms for all the vaiables of each grade.
 %   HISTSNGTASK(TBL, TASKIDNAME) plot all the histograms.
 %
 %   [H, HNAME] = EBSNGTASKCMB(TBL, TASKIDNAME) also returns the handle of

@@ -12,6 +12,8 @@ function res = sngstatsNSN(RECORD)
 %     CPT1
 %     GNGLure
 %     GNGFruit
+%     DivAtten1
+%     DivAtten2
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
