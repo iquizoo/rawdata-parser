@@ -4,7 +4,7 @@ function [titlevar, label] = var2caption(task, varname)
 varnamesplit = strsplit(varname, '_');
 varnamesplit = strrep(varnamesplit, 'prime', '''');
 if length(varnamesplit) > 1
-    lbswtchtasks = {'PicMemory', 'WordMemory'};
+    lbswtchtasks = {'PicMemory', 'WordMemory'}; %Label switch tasks.
     if ismember(task, lbswtchtasks)
         label = varnamesplit{2};
     else
