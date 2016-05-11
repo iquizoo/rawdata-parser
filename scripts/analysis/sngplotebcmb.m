@@ -13,7 +13,7 @@ function [h, hname] = sngplotebcmb(tbl, TaskIDName, chkVarsCat, delimiter, chkVa
 %   CHKVARSCOND) also returns the handle of the figure and the recommended
 %   name.
 %
-%   See also EBSNGTASKMULT, EBSNGTASKSINGLETON
+%   See also SNGPLOTEBMULT, SNGPLOTEBSINGLETON
 
 %By Zhang, Liang. E-Mail:psychelzh@gmail.com
 

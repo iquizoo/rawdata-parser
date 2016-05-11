@@ -7,7 +7,7 @@ function [hs, hnames] = sngplotebsingleton(tbl, TaskIDName, sngVars)
 %   [HS, HNAMES] = EBSNGTASKSINGLETON(TBL, TASKIDNAME, SNGVARS) also
 %   returns the handles of the figures and the recommended names.
 %
-%   See also EBSNGTASKMULT, EBSNGTASKCMB
+%   See also SNGPLOTEBMULT, SNGPLOTEBCMB
 
 %By Zhang, Liang. E-Mail:psychelzh@gmail.com
 

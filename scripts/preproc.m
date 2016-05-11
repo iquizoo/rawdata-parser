@@ -1,10 +1,10 @@
-function dataExtract = readsht(fname, shtname)
-%This script is used for processing raw data of CCDPro, stored originally
+function dataExtract = preproc(fname, shtname)
+%PREPROC is used for processing raw data of CCDPro, stored originally
 %in an Excel file.
 
 %Here is a method of question category based way to read in data.
 %By Zhang, Liang. 2015/11/27.
-%Modified to use in another problem. 
+%Modified to use in another problem.
 %Modification completed at 2016/04/13.
 
 %Folder contains all the analysis and plots functions.

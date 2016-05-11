@@ -1,6 +1,6 @@
-function resdata = basicCompute(dataExtract, tasks)
-%BASICCOMPUTE Does some basic computation on data.
-%   RESDATA = BASICCOMPUTETOMERGE(DATA) does some basic analysis to the
+function resdata = proc(dataExtract, tasks)
+%PROC Does some basic computation on data.
+%   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
 %
 %   See also readsht, sngproc.
@@ -56,14 +56,8 @@ for itask = 1:ntasks4process
     latestsprint = sprintf('Now process the %s task %s(%s).\n', ordStr, curTaskName, curTaskIDName);
     fprintf(latestsprint);
     lastexcept = false;
-    if isempty(curTaskSetting.AnalysisFun{:})
-        fprintf('No analysis function found for current task. Will delete this task. Aborting...\n');
-        dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
-        lastexcept = true;
-        continue
-    elseif all(cellfun(@isempty, curTaskData.splitRes))
-        fprintf('No correct recorded data is found. Will delete this task. Aborting...\n');
-        dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = [];
+    if all(cellfun(@isempty, curTaskData.splitRes))
+        fprintf('No correct recorded data is found. Will ignore this task. Aborting...\n');
         lastexcept = true;
         continue
     end
@@ -85,10 +79,16 @@ for itask = 1:ntasks4process
                 curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
     end
     %% Post-computation jobs.
+    if all(cellfun(@isempty, anares.res))
+        fprintf('No valid results found. Will ignore this task. Aborting...\n');
+        lastexcept = true;
+        continue
+    end
     curTaskData.res = anares.res;
     dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = curTaskData;
     clearvars('-except', initialVarsTask{:});
 end
 resdata = dataExtract(taskRange, :);
-resdata(cellfun(@isempty, resdata.Data), :) = []; %Remove rows without any data.
+%Remove rows without results data.
+resdata(cellfun(@(tbl) ~ismember('res', tbl.Properties.VariableNames), resdata.Data), :) = [];
 rmpath(anafunpath);

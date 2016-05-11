@@ -11,7 +11,7 @@ function [hs, hnames] = sngplotebmult(tbl, TaskIDName, chkVarsCat, delimiter, ch
 %   CHKVARSCOND) also returns the handles of the figures and the
 %   recommended names.
 %
-%   See also EBSNGTASKCMB, EBSNGTASKSINGLETON
+%   See also SNGPLOTEBCMB, SNGPLOTEBSINGLETON
 
 %By Zhang, Liang. E-Mail:psychelzh@gmail.com
 

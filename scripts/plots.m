@@ -1,9 +1,9 @@
-function statsPlotBatch(mrgdata, tasks, cfg)
-%STATSPLOTBATCH does a batch job of plot all the figures.
-%   STATSPLOTBATCH(MRGDATA) plots all the figures specified in mrgdata,
+function plots(mrgdata, tasks, cfg)
+%PLOTS does a batch job of plot all the figures.
+%   PLOTS(MRGDATA) plots all the figures specified in mrgdata,
 %   based on 'extreme' outlier mode, and output 'jpeg' formatted figures.
 %
-%   STATSPLOTBATCH(MRGDATA, TASKS) does job only on the specified tasks,
+%   PLOTS(MRGDATA, TASKS) does job only on the specified tasks,
 %   also based on 'extreme' outlier mode, and output 'jpeg' formatted
 %   figures.
 %
@@ -95,9 +95,9 @@ if slidegen
     subsecpre = '##';
     slidepre = '###';
     %Meta data.
-    Title = translate('% Beijing Brain Project');
-    Authors = translate('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
-    Date = translate(['% ', date]);
+    Title = strconv('% Beijing Brain Project');
+    Authors = strconv('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
+    Date = strconv(['% ', date]);
     metadata = strjoin({Title, Authors, Date}, newline);
     %Set section maps.
     [~, usedTaskLoc] = ismember(tasks, settings.TaskIDName);
@@ -362,18 +362,18 @@ function imstr = putimage(figpath, caption)
 %PUTIMAGE generates a string of pandoc code to put image onto slide.
 
 global newline
-figpath = translate(figpath);
+figpath = strconv(figpath);
 %two newlines are added posterior.
 imstr = ['![' caption '](' figpath ')' newline];
 end
 
-function translated = translate(origstr)
+function converted = strconv(origstr)
 %TRANSLATE removes wrongly placed escape characters.
 
 orig = {'\', '%'};
 trans = {'\\', '%%'};
+converted = origstr;
 for itrans = 1:length(orig)
-    origstr = strrep(origstr, orig{itrans}, trans{itrans});
+    converted = strrep(converted, orig{itrans}, trans{itrans});
 end
-translated = origstr;
 end
