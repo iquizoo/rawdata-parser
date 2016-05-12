@@ -1,5 +1,5 @@
-function res = sngstatsMemsep(RECORD, varPref, delimiter, varSuff)
-%SNGSTATSMEMSEP Does some basic data transformation to memory task.
+function res = sngprocMemsep(RECORD, varPref, delimiter, varSuff)
+%SNGPROCMEMSEP Does some basic data transformation to memory task.
 %
 %   Basically, the supported tasks are as follows:
 %     PicMemory

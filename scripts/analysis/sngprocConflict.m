@@ -1,5 +1,5 @@
-function res = sngstatsConflict(RECORD, varPref, delimiter, varSuff)
-%CONFLICT Does some basic data transformation to conflict-based tasks.
+function res = sngprocConflict(RECORD, varPref, delimiter, varSuff)
+%SNGPROCCONFLICT does some basic data transformation to conflict-based tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     Flanker,

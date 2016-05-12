@@ -1,5 +1,5 @@
-function res = sngstatsCRT(RECORD)
-%SNGSTATSCRT Does some basic data transformation to choice reaction time tasks.
+function res = sngprocCRT(RECORD)
+%SNGPROCCRT Does some basic data transformation to choice reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     CRT

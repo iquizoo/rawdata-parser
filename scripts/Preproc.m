@@ -1,6 +1,8 @@
-function dataExtract = preproc(fname, shtname)
+function dataExtract = Preproc(fname, shtname)
 %PREPROC is used for processing raw data of CCDPro, stored originally
 %in an Excel file.
+%
+%   See also SNGPREPROC.
 
 %Here is a method of question category based way to read in data.
 %By Zhang, Liang. 2015/11/27.
@@ -80,7 +82,7 @@ for isht = 1:nsht4process
     curTaskCfg = table;
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
-    cursplit = rowfun(@sngproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
+    cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
     %Generate some warning according to the status.
     if any(cursplit.status ~= 0)
         warning('UDF:READSHT:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
