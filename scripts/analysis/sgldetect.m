@@ -1,5 +1,5 @@
-function [dprime, c] = sngdetect(HR, FAR)
-%SNGDETECT Calculates parameters of signal detection theory.
+function [dprime, c] = sgldetect(HR, FAR)
+%SGLDETECT Calculates parameters of signal detection theory.
 %   [DPRIME, C] = SNGDETECT(HR, FAR) calculates dprime and bias c in signal
 %   detection theory. HR and FAR are respectively the hit rate and false
 %   alarm rate.

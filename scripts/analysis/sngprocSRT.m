@@ -1,5 +1,5 @@
-function res = sngstatsSRT(RECORD)
-%SNGSTATSSRT Does some basic data transformation to simple reaction time tasks.
+function res = sngprocSRT(RECORD)
+%SNGPROCSRT Does some basic data transformation to simple reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     SRT

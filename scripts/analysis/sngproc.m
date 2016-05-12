@@ -1,223 +1,256 @@
-function [splitRes, status] = sngproc(conditions, para)
-%SNGPROC Preprocessing the data of one single subject.
-%   [SPLITRES, STATUS] = SNGPROC(CONDITIONS, PARA) does the splitting jobs
-%   to conditions according to the parameters specified in para. The two
-%   input arguments are both cell type, containing a string in the former,
-%   and a table in the latter. Splitting result is stored in splitRes, and
-%   status is used to denote whether an exception happens or not.
+function res = sngproc(splitRes, tasksettings, taskSTIMMap)
+%SNGPROC forms a wrapper function to compute those single task statistics.
+%   RES = SNGPROC(SPLITRES, TASKSETTING) does basic computation job for
+%   most of the tasks when no SCat(have a look at the data to see what SCat
+%   is) modification is needed. Locally, RT cutoffs, NaN cleaning and other
+%   miscellaneous tasks to prepare data for processing.
+%   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP) adds a map container
+%   for modification of SCat in RECORD.
+%
+%   See also sngstatsBART, sngstatsCRT, sngstatsConflict, sngstatsMemrep,
+%   sngstatsMemsep, sngstatsMentcompare, sngstatsMentcompute, sngstatsNSN,
+%   sngstatsNback, sngstatsSRT, sngstatsSpan
 
-%By Zhang, Liang. 04/07/2016, E-mail:psychelzh@gmail.com
-%Beta version, 05/01/2016.
+%By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
-%Basic logic:
-%          ##############################
-%          #     Original string        #
-%          #             |              #
-%          #             V              #
-%          #     Split conditions       #
-%          #             |              #
-%          #             V              #
-%          #  Parameters determination  #
-%          #             |              #
-%          #             V              #
-%          #       Splitting string     #
-%          #             |              #
-%          #             V              #
-%          #       Forming a table      #
-%          ##############################
-
-status = 0;
-%Extract useful information form parameters.
-para = para{:};
-if ~isempty(para) && ~isempty(para.Delimiters{:})
-    %Split the conditions into recons, get the settings of each condition.
-    %Delimiters.
-    delimiters = para.Delimiters{:};
-    %ConditionInformation contains information of condition splitting.
-    conditionInformation = para.ConditionInformation{:};
-    if ~isempty(conditionInformation) % Split conditions.
-        condInfo = strsplit(conditionInformation, '|');
-        %Names for all conditions.
-        conditionsNames = strsplit(condInfo{1});
-        %Condition precedences for all conditions.
-        conditionsPre = strsplit(condInfo{2});
-        ncond = length(conditionsNames);
-        % recons contains the strings of all conditions extracted from
-        %conditions
-        recons = cell(1, ncond);
-        for icond = 1:ncond
-            curRecon = regexp(conditions{:}, ...
-                ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
-            recons{icond} = curRecon;
-        end
-    else
-        conditionsNames = {'RECORD'};
-        %By default, use the original conditions string.
-        recons = conditions;
-    end
-    %Rearrange parameters condition-wise.
-    ncond = length(conditionsNames); %We have completed the condition splitting task.
-    %Splitting variable names and extract information of conditions.
-    [VariablesNames, charVars] = varNamesSplit(para, ncond);
-    for icond = 1:ncond
-        curRecon = recons(icond);
-        curAltVariablesNames = VariablesNames{icond};
-        curAltCharVars = charVars{icond};
-        curAltVariablesNamesSplit = cellfun(@strsplit, curAltVariablesNames, 'UniformOutput', false);
-        nCurAltVars = cellfun(@length, curAltVariablesNamesSplit);
-        %Get the appropriate variable names of the different template.
-        curRec = cellfun(@strsplit, ...
-            curRecon, repmat({delimiters(1)}, size(curRecon)), ...
-            'UniformOutput', false);
-        curTrialRec = cellfun(@strsplit, ...
-            curRec{:}, repmat({delimiters(2)}, size(curRec{1})), ...
-            'UniformOutput', false);
-        token = para.TemplateToken{:};
-        switch token
-            %language task, , Go/No-Go, cpt, divided attention working memory.
-            case {'LT', 'GNG', 'CPT1', 'DA', 'WM'}
-                lenTrial = cellfun(@length, curTrialRec);
-                % Trial length of 1 denotes artificial data, esp. one ',' at the end.
-                lenTrial(lenTrial == 1) = [];
-                lenTrial = unique(lenTrial);
-                [~, altChoice] = ismember(lenTrial, nCurAltVars);
-                if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
-                    altChoice = length(nCurAltVars);
-                    recons(icond) = recon(curTrialRec, token, nCurAltVars(altChoice), delimiters);
-                elseif isempty(lenTrial)
-                    altChoice = 1; %Use the first by default.
-                end
-            case 'F' %Flanker.
-                curTrialRec = str2double(cat(1, curTrialRec{:}));
-                chkcol = curTrialRec(:, 1);
-                chkcol(isnan(chkcol)) = [];
-                if all(ismember(chkcol, 1:4)) %The first column is Stimuli category.
-                    altChoice = 1;
-                else
-                    altChoice = 2;
-                end
-            case 'RTB' %Bread toasting (SRT)
-                curTrialRec = str2double(cat(1, curTrialRec{:}));
-                chkcol = curTrialRec(:, 2);
-                chkcol(isnan(chkcol)) = [];
-                if all(ismember(chkcol, 0:1)) %The second column is ACC.
-                    altChoice = 2;
-                else
-                    altChoice = 1;
-                end
-            otherwise
-                altChoice = 1; %In common conditions, there is only one condition.
-        end
-        VariablesNames(icond) = curAltVariablesNames(altChoice);
-        charVars(icond) = curAltCharVars(altChoice);
-    end
-    VariablesNames = cellfun(@strsplit, VariablesNames, 'UniformOutput', false);
-    nVars = cellfun(@length, VariablesNames, 'UniformOutput', false);
-    allLocs = cellfun(@colon, num2cell(ones(size(nVars))), nVars, 'UniformOutput', false);
-    trans = cellfun(@not, ...
-        cellfun(@ismember, allLocs, charVars, 'UniformOutput', false), ...
-        'UniformOutput', false);
-    %Routine split.
-    reconsTrialApart = cellfun(@strsplit, ...
-        recons, repmat({delimiters(1)}, size(recons)),...
-        'UniformOutput', false);
-    reconsTrialApart = cell2table(reconsTrialApart, 'VariableNames', conditionsNames);
-    for icond = 1:ncond
-        curCondTrials = reconsTrialApart.(conditionsNames{icond});
-        if ~all(cellfun(@isempty, curCondTrials))
-            curCondTrialsSplit = cellfun(@(x) strsplit(x, delimiters(2)), ...
-                curCondTrials, 'UniformOutput', false);
-            curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
-            %If the length of the split-out string is not equal to the number
-            %of output variable names.
-            curCondNVars = nVars{icond};
-            curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
-            if all(curCondTrialsSplitLen ~= curCondNVars)
-                warning('UDF:SNGPROC:NOFORMATDATA', ...
-                    'Recorded data not correctly formatted. Please check!\n');
-                status = -1;
-            end
-            curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
-            curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
-            %Here cell type is used, because the RECORD have multiple rows.
-            reconsTrialApart.(conditionsNames{icond}) = ...
-                {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
-        else
-            warning('UDF:SNGPROC:MODE1ABNORMAL', ...
-                'No data for condition of %s.\n', conditionsNames{icond});
-            status = -1;
-            reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
-                'VariableNames', VariablesNames{icond})};
-        end
-    end
+%Initialization jobs.
+%Get all the output variable names.
+%coupleVars are formatted out variables.
+varscat = strsplit(tasksettings.VarsCat{:});
+varscond = strsplit(tasksettings.VarsCond{:});
+if all(cellfun(@isempty, varscond))
+    delimiterVC = '';
 else
-    warning('UDF:SNGPROC:NOPARASETTINGS', ...
-        'No parameters specification found.\n')
-    status = -2;
-    reconsTrialApart = table;
+    delimiterVC = '_';
 end
-splitRes = {reconsTrialApart};
+cpvars = strcat(repmat(varscat, 1, length(varscond)), delimiterVC, ...
+    repelem(varscond, 1, length(varscat)));
+%further required variables.
+sngvars = [strsplit(tasksettings.SingletonVars{:}), strsplit(tasksettings.SingletonVarsCP{:})];
+spvars = strsplit(tasksettings.SpecialVars{:});
+%Out variables names are composed by three part.
+outvars = [cpvars, sngvars, spvars];
+%Merge conditions. Useful when merging data.
+mrgcond = strsplit(tasksettings.MergeCond{:});
+if all(cellfun(@isempty, mrgcond))
+    delimiterMC = '';
+else
+    delimiterMC = '_';
 end
-
-function [VariablesNames, charVars] = varNamesSplit(curTaskPara, ncond)
-%Get the settings of each condition, n denotes number of conditions.
-
-% Variable names of conditions.
-VariablesNames = strsplit(curTaskPara.VariablesNames{:}, '|');
-if length(VariablesNames) < ncond
-    VariablesNames = repmat(VariablesNames, 1, ncond);
-end
-% Variable char locs of conditions.
-VariablesChar = strsplit(curTaskPara.VariablesChar{:}, '|');
-if length(VariablesChar) < ncond
-    VariablesChar = repmat(VariablesChar, 1, ncond);
-end
-%Condition names
-VariablesNames = cellfun(@(x) strsplit(x, '\'), ...
-    VariablesNames, 'UniformOutput', false);
-%Variable char locs.
-VariablesChar = cellfun(@(x) strsplit(x, '\'), ...
-    VariablesChar, 'UniformOutput', false);
-charVars = cell(size(VariablesChar));
-for icond = 1:ncond
-    curCondVariablesChar = VariablesChar{icond};
-    tpCurVariablesChar = cellfun(@transpose, curCondVariablesChar, 'UniformOutput', false);
-    ctpCurVariablesChar = cellfun(@num2cell, tpCurVariablesChar, 'UniformOutput', false);
-    charVars{icond} = cellfun(@str2double, ctpCurVariablesChar, 'UniformOutput', false);
-end
-%In case the lazy mode, in which one instance is presented for multiple
-%conditions or variable candidates.
-lenVarNames = cellfun(@length, VariablesNames);
-lenCharVars = cellfun(@length, charVars);
-nCandsCond = max(lenVarNames, lenCharVars);
-VariablesNames(lenVarNames == 1) = cellfun(@repmat, ...
-    VariablesNames(lenVarNames == 1), num2cell(ones(size(VariablesNames(lenVarNames == 1)))), ...
-    num2cell(nCandsCond(lenVarNames == 1)), 'UniformOutput', false);
-charVars(lenCharVars == 1) = cellfun(@repmat, ...
-    charVars(lenCharVars == 1), num2cell(ones(size(charVars(lenCharVars == 1)))), ...
-    num2cell(nCandsCond(lenCharVars == 1)), 'UniformOutput', false);
-end
-
-function recons = recon(trialRec, token, nvars, delimiters)
-%Reconstruction the string in conditions to extract important information
-%and accommodate for the formatting.
-
-switch token
-    case 'WM' %Some of the fields need converting to hex numbers.
-        trialRecons = cell(size(trialRec));
-        for itrl = 1:length(trialRec)
-            curTrialRec = trialRec{itrl};
-            curTrialRecRecons = cell(1, nvars);
-            curTrialRecRecons([1:2, end]) = curTrialRec([1:2, end]);
-            SSeries = str2double(curTrialRec(3:end - 1));
-            SSeries = dec2hex(SSeries)';
-            curTrialRecRecons{3} = SSeries;
-            trialRecons{itrl} = strjoin(curTrialRecRecons, delimiters(2));
+%Remove empty strings.
+outvars(cellfun(@isempty, outvars)) = [];
+%Preallocation.
+res = table; %Table type is used temporarily. Read the lines in the end of this function.
+comres = table; %Short of common results. Results calculated from analysis function, if existed.
+spres = table; %Short of special results. Results calculated in current function.
+if ~isempty(splitRes{:})
+    recRes = splitRes{:};
+    recVars = recRes.Properties.VariableNames;
+    nvar = length(recVars);
+    if length(mrgcond) == 1 && length(mrgcond) < nvar
+        mrgcond = repmat(mrgcond, 1, nvar);
+    end
+    for ivar = 1:nvar
+        curRecVar = recVars{ivar};
+        if ~isempty(strfind(curRecVar, 'RECORD')) || ~isempty(strfind(curRecVar, 'TEST'))
+            RECORD = recRes.(curRecVar){:};
+            %Remove NaN (not a number) or empty (char of ASCII 0) trials.
+            cellRec = table2cell(RECORD);
+            chkStatus = cellfun(@all, cellfun(@(x) isnan(x) | double(x) == 0, cellRec, ...
+                'UniformOutput', false));
+            rmRows = all(chkStatus, 2); %Remove rows of only nan or 0 char.
+            RECORD(rmRows, :) = [];
+            %Minor modification to some of the variables in RECORD.
+            task = tasksettings.TaskIDName{:};
+            switch task
+                case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', 'Reading', ...%langTasks
+                        'GNGLure', 'GNGFruit', 'CPT1', ...%otherTasks in NSN. %NSN
+                        }
+                    if exist('taskSTIMMap', 'var')
+                        RECORD = mapSCat(RECORD, taskSTIMMap, 'STIM');
+                    end
+                    %Before removing RTs, record the time used if required.
+                    if ismember('TotalTime', outvars)
+                        spres.TotalTime = sum(RECORD.RT);
+                    end
+                    if ismember('CountTotalTrl', outvars)
+                        spres.CountTotalTrl = height(RECORD);
+                    end
+                    %Take into consideration of no RT record task 'Reading'.
+                    if ismember('RT', RECORD.Properties.VariableNames)
+                        %Cutoff RTs: for too fast trials and too slow
+                        %trials. Do not remove trials without response,
+                        %because some trials of GNG task is designed to
+                        %suppress a response for subjects.
+                        RECORD((RECORD.RT < 100 & RECORD.RT ~= 0) | RECORD.RT > 2500, :) = [];
+                    end
+                    %record the number of correct trials if required.
+                    if ismember('CountAccTrl', outvars)
+                        spres.CountAccTrl = sum(RECORD.ACC);
+                    end
+                case {'SRT', 'SRTWatch', 'SRTBread'} %SRT
+                    %The original record of ACC of each trial is not always right.
+                    if ismember('STIM', RECORD.Properties.VariableNames)
+                        %transform: 'l'/'1' -> 1 , 'r'/'2' -> 2.
+                        RECORD.STIM = (RECORD.STIM ==  'r' | RECORD.STIM ==  '2') + 1;
+                        RECORD.ACC = RECORD.STIM == RECORD.Resp;
+                    end
+                    %Cutoff RTs: for too fast and too slow RTs. After discussion, only trials
+                    %that are too fast are removed. Note RT == 0 mostly means no response.
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                    %Do not remove trials without response, because some trials of stopwatch
+                    %and fruit task is designed to suppress a response for subjects.
+                case {'DRT', ...%DRT
+                        'DivAtten1', 'DivAtten2', ...%DA
+                        }
+                    %Cutoff RTs: for too fast trials.
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                    %Find out the no-go stimulus. Note RT of 3000 (for DRT)
+                    %or 1000 (for DivAtten) is regarded as no response.
+                    criterion = 3000 * strcmp(task, 'DRT') + 1000 * ~strcmp(task, 'DRT');
+                    NGSTIM = findNG(RECORD, criterion);
+                    %For SCat: Go -> 1, NoGo -> 0.
+                    RECORD.SCat = ~ismember(RECORD.STIM, NGSTIM);
+                    %Set the ACC to 0 for go trials without response.
+                    RECORD.ACC(RECORD.SCat == 1 & RECORD.RT == criterion, :) = 0;
+                case {'CRT', 'SpeedAdd', 'SpeedSubtract', 'DigitCmp', 'CountSense'} %CRT
+                    %Cutoff RTs: eliminate RTs that are too fast (<100ms).
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                    %Removed trials without response.
+                    RECORD(RECORD.Resp == 0, :) = [];
+                case {'SusAtten', 'ForSpan', 'BackSpan', 'SpatialSpan'} %Span
+                    %Some of the recording does not include SLen (Stimuli
+                    %Length) as one of their variable, get it here.
+                    if ~ismember('SLen', RECORD.Properties.VariableNames)
+                        RECORD.SLen = cellfun(@length, RECORD.SSeries);
+                    end
+                    %Some of the recording does not include Next as one
+                    %variable, get it here.
+                    if ~ismember('Next', RECORD.Properties.VariableNames)
+                        RECORD.Next = [diff(RECORD.SLen); 0];
+                    end
+                case 'CPT2'
+                    %Note only 'C' which is followed by 'B' is Go(target) trial
+                    GoTrials = strcmp(RECORD.STIM, 'C');
+                    %'C' appears at the first trial will not be a target.
+                    if ismember(find(GoTrials), 1)
+                        GoTrials(1) = false;
+                    end
+                    isFollowB = strcmp(RECORD.STIM(circshift(GoTrials, -1)) , 'B');
+                    %'C' not followed by 'B' should be excluded.
+                    GoTrials(~isFollowB) = false;
+                    %Add a field 'SCat', 1 -> go, 0 -> nogo.
+                    RECORD.SCat = zeros(height(RECORD), 1);
+                    RECORD.SCat(GoTrials) = 1;
+                    %Cutoff RTs: for too fast trials.
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                case {'AssocMemory', 'SemanticMemory', ... %Memrep
+                        'PicMemory', 'WordMemory', ... %Memsep
+                        }
+                    %Cutoff RTs: for too fast trials.
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                    %Remove trials of no response, which denoted by -1 in Resp.
+                    RECORD(RECORD.Resp == -1, :) = [];
+                case {'Flanker', 'Stroop1', 'Stroop2', 'NumStroop', 'TaskSwitching'} %Conflict
+                    if exist('taskSTIMMap', 'var')
+                        RECORD = mapSCat(RECORD, taskSTIMMap, 'SCat');
+                    end
+                    %Cutoff RTs: eliminate trials that are too fast (<100ms)
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+                    %Remove trials of no response.
+                    if ~ismember(RECORD.Properties.VariableNames, 'Resp')
+                        RECORD.Resp = RECORD.ACC;
+                    end
+                    switch task
+                        case {'Flanker', 'Stroop1', 'Stroop2'}
+                            missResp = 0;
+                        case 'NumStroop'
+                            missResp = 2;
+                        case 'TaskSwitching'
+                            missResp = -1;
+                    end
+                    RECORD(RECORD.Resp == missResp, :) = [];
+                case {'Nback1', 'Nback2'} %Nback
+                    %Remove trials that no response is needed.
+                    RECORD(RECORD.CResp == -1, :) = [];
+                    %Cutoff RTs: for too fast trials.
+                    RECORD(RECORD.RT < 100 & RECORD.RT ~= 0, :) = [];
+            end
+            %Compute now.
+            if ~isempty(RECORD)
+                anafunsuff = tasksettings.AnalysisFun{:};
+                if ~isempty(anafunsuff)
+                    %Note: sngstats means 'single task processing'.
+                    anafunstr = ['sngproc', anafunsuff];
+                    anafun = str2func(anafunstr);
+                    switch nargin(anafunstr)
+                        case 1
+                            comres = anafun(RECORD);
+                        case 4
+                            comres = anafun(RECORD, varscat, delimiterVC, varscond);
+                    end
+                end
+                curTaskRes = [comres, spres];
+                curTaskRes(:, ~ismember(curTaskRes.Properties.VariableNames, outvars)) = [];
+            else
+                curTaskRes = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
+            end
+            %Treat mean RT of any condition is less than 300ms as missing.
+            curTaskResVarNames = curTaskRes.Properties.VariableNames;
+            MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
+                regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost)', 'once')));
+            for irtvar = 1:length(MRTvars)
+                if curTaskRes.(MRTvars{irtvar}) < 300 || curTaskRes.(MRTvars{irtvar}) > 2500
+                    curTaskRes{:, :} = nan;
+                    break
+                end
+            end
+            curTaskRes.Properties.VariableNames = strcat(curTaskResVarNames, ...
+                delimiterMC, mrgcond{ivar});
+            res = [res, curTaskRes]; %#ok<*AGROW>
         end
-    case 'CPT1' %Some of the fields need discarding.
-        trialRecons = cellfun(@(x) x([1:4, end]), trialRec, 'UniformOutput', false);
-        trialRecons = cellfun(@(x) strjoin(x, delimiters(2)), ...
-            trialRecons, 'UniformOutput', false);
+    end
 end
-recons = {strjoin(trialRecons, delimiters(1))};
+%Table is wrapped into a cell. The table type of MATLAB has something
+%tricky when nesting table type in a table; it treats the rows of the
+%nested table as integrated when using rowfun or concatenating.
+res = {res};
+end
+
+function RECORD = mapSCat(RECORD, taskSTIMMap, var)
+%Modify variable SCat of RECORD and return it.
+
+if ~iscell(RECORD.(var))
+    RECORD.(var) = num2cell(RECORD.(var));
+end
+if all(isKey(taskSTIMMap, RECORD.(var)))
+    RECORD.SCat = cell2mat(values(taskSTIMMap, RECORD.(var)));
+else %In this case, some of stimuli are not right, and delete all the instances.
+    RECORD(:, :) = [];
+end
+end
+
+function NGSTIM = findNG(RECORD, criterion)
+%For some of the tasks, no-go stimuli is not predifined.
+
+%Get all the stimuli.
+allSTIM = unique(RECORD.STIM);
+%For the newer version of DRT data, when response is required and the
+%subject responded with an incorrect key, remove that trial because these
+%trials might confuse the determination of nogo stimuli.
+if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
+    %DRT of newer version detected.
+    %Amend the ACC records.
+    RECORD.ACC(RECORD.Resp == 0) = 0;
+    RECORD(str2double(num2cell(RECORD.STIM)) == RECORD.Resp & RECORD.ACC == 0, :) = [];
+end
+if ~isempty(allSTIM)
+    firstTrial = RECORD(1, :);
+    firstIsGo = firstTrial.ACC == 1 && firstTrial.RT < criterion;
+    firstTrialInfo = allSTIM == firstTrial.STIM;
+    %Here is an interesting way to find out no-go stimulus.
+    NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));
+else
+    NGSTIM = [];
+end
 end

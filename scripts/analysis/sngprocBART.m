@@ -1,5 +1,5 @@
-function res = sngstatsBART(RECORD)
-%SNGSTATSBART Does some basic data transformation to BART task.
+function res = sngprocBART(RECORD)
+%SNGPROCBART Does some basic data transformation to BART task.
 %
 %   Basically, the supported tasks are as follows:
 %     BART

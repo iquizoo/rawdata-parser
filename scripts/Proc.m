@@ -1,9 +1,9 @@
-function resdata = proc(dataExtract, tasks)
+function resdata = Proc(dataExtract, tasks)
 %PROC Does some basic computation on data.
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
 %
-%   See also readsht, sngproc.
+%   See also PREPRO, SNGPROC.
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
@@ -72,10 +72,10 @@ for itask = 1:ntasks4process
             curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
             %TaskIDName as one input argument because RT cutoffs are
             %different for different tasks.
-            anares = rowfun(@(x) sngstats(x, curTaskSetting, curTaskSTIMMap), ...
+            anares = rowfun(@(x) sngproc(x, curTaskSetting, curTaskSTIMMap), ...
                 curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
         otherwise
-            anares = rowfun(@(x) sngstats(x, curTaskSetting), ...
+            anares = rowfun(@(x) sngproc(x, curTaskSetting), ...
                 curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
     end
     %% Post-computation jobs.
