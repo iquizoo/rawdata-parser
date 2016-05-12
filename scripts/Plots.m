@@ -299,10 +299,12 @@ for itask = 1:ntasks
         else
             curTaskDelimiter = '_';
         end
-        [hs, hnames] = ebplotfun(curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
-        cellfun(@(x, y) saveas(x, y, figfmt), ...
-            num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-        delete(hs)
+        if ~all(cellfun(@isempty, curTaskChkVarsCat)) || ~all(cellfun(@isempty, curTaskChkVarsCond))
+            [hs, hnames] = ebplotfun(curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
+            cellfun(@(x, y) saveas(x, y, figfmt), ...
+                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
+            delete(hs)
+        end
         %Error bar plot of singleton variables.
         curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
         if ~all(cellfun(@isempty, curTaskSngVars))
@@ -352,11 +354,11 @@ for ifield = 1:length(fields)
 end
 end
 
-function emstr = emphasis(str, flank)
-%EMPHASIS generates pandoc bold string.
-
-emstr = strcat(flank, str, flank);
-end
+% function emstr = emphasis(str, flank)
+% %EMPHASIS generates pandoc bold string.
+% 
+% emstr = strcat(flank, str, flank);
+% end
 
 function imstr = putimage(figpath, caption)
 %PUTIMAGE generates a string of pandoc code to put image onto slide.
