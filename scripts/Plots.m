@@ -1,4 +1,4 @@
-function plots(mrgdata, tasks, cfg)
+function Plots(mrgdata, tasks, cfg)
 %PLOTS does a batch job of plot all the figures.
 %   PLOTS(MRGDATA) plots all the figures specified in mrgdata,
 %   based on 'extreme' outlier mode, and output 'jpeg' formatted figures.

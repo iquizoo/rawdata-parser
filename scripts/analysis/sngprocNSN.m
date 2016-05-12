@@ -1,5 +1,5 @@
-function res = sngstatsNSN(RECORD)
-%SNGSTATSNSN Does some basic data transformation to all noise/signal-noise tasks.
+function res = sngprocNSN(RECORD)
+%SNGPROCNSN Does some basic data transformation to all noise/signal-noise tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     Symbol
@@ -31,7 +31,7 @@ Rate_FA = mean(~RECORD.ACC(RECORD.SCat == 0));
 RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
 RT_FA = mean(RECORD.RT(RECORD.SCat == 0 & RECORD.ACC == 0));
 %d' and c.
-[dprime, c] = sngdetect(Rate_hit, Rate_FA);
+[dprime, c] = sgldetect(Rate_hit, Rate_FA);
 %Efficiency.
 efficiency = asin(sqrt(Count_hit / RT_hit));
 %Get these metrics into a table.

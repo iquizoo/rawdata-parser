@@ -1,6 +1,6 @@
-function mrgdata = datamrg(resdata)
-%DATAMRG merges all the results obtained data.
-%   MRGDATA = DATAMRG(RESDATA) merges the resdata according to userId, and
+function mrgdata = Merges(resdata)
+%MERGES merges all the results obtained data.
+%   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
 %   to some arbitrary principle.
 %
