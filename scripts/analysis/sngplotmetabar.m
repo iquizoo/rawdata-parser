@@ -1,4 +1,4 @@
-function [h, hname] = sngplotmetabar(metadata)
+function sngplotmetabar(metadata)
 %SNGPLOTMETABAR bar plot for metadata.
 
 %Get all the grades and school names.
@@ -11,12 +11,12 @@ plotdata = nan(ngrades, nschools);
 for ischool = 1:nschools
     plotdata(:, ischool) = countcats(metadata.grade(metadata.school == schools{ischool}));
 end
-h = bar3(plotdata);
+bar(plotdata);
 hax = gca;
 hax.FontName = 'Microsoft YaHei UI Light';
 hax.FontSize = 12;
-hax.XTickLabel = schools;
-hax.YTickLabel = grades;
-hax.XLabel.String = 'School';
-hax.YLabel.String = 'Grade';
-hax.ZLabel.String = 'Count';
+hax.XTickLabel = grades;
+hax.XLabel.String = 'Grade';
+hax.YLabel.String = 'Count';
+hax.YGrid = 'on';
+legend(schools, 'FontSize', 9, 'Location', 'best')
