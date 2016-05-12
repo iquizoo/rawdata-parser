@@ -1,5 +1,5 @@
-function res = sngstatsMemrep(RECORD, varPref, delimiter, varSuff)
-%SNGSTATSMEMREP Does some basic data transformation to semantic memory task.
+function res = sngprocMemrep(RECORD, varPref, delimiter, varSuff)
+%SNGPROCSMEMREP Does some basic data transformation to semantic memory task.
 %
 %   Basically, the supported tasks are as follows:
 %     AssocMemory

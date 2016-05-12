@@ -47,7 +47,7 @@ for ivarcond = 1:nVarCond
     curVarCond = chkVarsCond{ivarcond};
     curTblVars = strcat(TaskIDName, '_', chkVarsCat, delimiter, curVarCond);
     %Determine y axes, the second step.
-    if ~isDBYaxes
+    if ~isDBYaxes && nVarCats > 1
         curCondCatsMean = nanmean(tbl{:, ismember(tbl.Properties.VariableNames, curTblVars)});
         contrasts = nchoosek(1:nVarCats, 2);
         contrastsMean = curCondCatsMean(contrasts);
@@ -79,7 +79,7 @@ for ivarcond = 1:nVarCond
     hnames{ivarcond} = ['Error bar (SEM) plot of ', curVarTitle];
     %Use showLegend to denote whether legend is needed.
     showLegend = false;
-    if nVarCats > 2
+    if nVarCats > 2 || (nVarCats == 2 && ~isDBYaxes)
         showLegend = true;
     end
     for ivarcat = 1:nVarCats

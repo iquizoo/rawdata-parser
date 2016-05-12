@@ -1,5 +1,5 @@
-function res = sngstatsNback(RECORD)
-%SNGSTATSNBACK Does some basic data transformation to n-back tasks.
+function res = sngprocNback(RECORD)
+%SNGPROCNBACK Does some basic data transformation to n-back tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     Nback1-2

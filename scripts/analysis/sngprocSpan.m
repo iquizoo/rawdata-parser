@@ -1,5 +1,5 @@
-function res = sngstatsSpan(RECORD)
-%SNGSTATSSPAN Does some basic data transformation to working memory span tasks.
+function res = sngprocSpan(RECORD)
+%SNGPROCSPAN Does some basic data transformation to working memory span tasks.
 %
 %   Basically, the supported tasks are as follows:
 %     MOT
