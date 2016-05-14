@@ -1,6 +1,6 @@
 function dataExtract = Preproc(fname, shtname)
-%PREPROC is used for processing raw data of CCDPro, stored originally
-%in an Excel file.
+%PREPROC is used for processing raw data of CCDPro.
+%   Raw data are originally stored in an Excel file.
 %
 %   See also SNGPREPROC.
 
@@ -46,12 +46,16 @@ dataExtract = table(Taskname, Data);
 %Load parameters.
 para = readtable('taskSettings.xlsx', 'Sheet', 'para');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+%Display the information of processing.
+fprintf('Here it goes! This time, the total jobs are composed of %d tasks, though some may fail...\n', ...
+    nsht4process);
 %Sheet-wise processing.
 for isht = 1:nsht4process
     initialVarsSht = who;
     %Find out the setting of current task.
     curTaskName = Taskname{isht};
-    fprintf('Now processing sheet %s\n', curTaskName);
+    ordstr = num2ord(isht);
+    fprintf('Now processing the %s task %s\n', ordstr, curTaskName);
     locset = ismember(settings.TaskName, curTaskName);
     if ~any(locset)
         fprintf('No settings specified for current task.\n');
@@ -60,12 +64,11 @@ for isht = 1:nsht4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Get the information of interest, and check the format.
-    varsOfInterest = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
-    varsOfInterestClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
-    curTaskData(:, ~ismember(curTaskData.Properties.VariableNames, varsOfInterest)) = [];
-    for ivar = 1:length(varsOfInterest)
-        curVar = varsOfInterest{ivar};
-        curClass = varsOfInterestClass{ivar};
+    varsOfChk = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
+    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    for ivar = 1:length(varsOfChk)
+        curVar = varsOfChk{ivar};
+        curClass = varsOfChkClass{ivar};
         if ~isa(curTaskData.(curVar), curClass)
             switch curClass
                 case 'cell'
@@ -83,6 +86,8 @@ for isht = 1:nsht4process
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
+    curTaskRes = cat(1, cursplit.splitRes{:});
+    curTaskRes.status = cursplit.status;
     %Generate some warning according to the status.
     if any(cursplit.status ~= 0)
         warning('UDF:READSHT:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
@@ -97,14 +102,21 @@ for isht = 1:nsht4process
                 curTaskName);
         end
     end
-    %Store the TaskIDName from settings, which is usually used in the
-    %following analysis.
-    curTaskData.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
-    curTaskData.splitRes = cursplit.splitRes; % Store the split results.
-    curTaskData.status = cursplit.status; % Store the status,
-    outVarsOfInterest = ...
-        {'userId', 'gender', 'school', 'grade', 'birthDay', 'TaskIDName', 'splitRes', 'status'};
-    dataExtract.Data{isht} = curTaskData(:, ismember(curTaskData.Properties.VariableNames, outVarsOfInterest));
+    %Use curTaskRes as the results variable store. And store the TaskIDName
+    %from settings, which is usually used in the following analysis.
+    curTaskOutVarsOIMetadata = ...
+        {'userId', 'gender', 'school', 'grade', 'birthDay'};
+    curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
+    curTaskRes.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
+    %Store the spitting results.
+    curTaskSpitRes = cat(1, cursplit.splitRes{:});
+    curTaskSplitResVars = curTaskSpitRes.Properties.VariableNames;
+    nvars = length(curTaskSplitResVars);
+    for ivar = 1:nvars
+        curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSpitRes.(curTaskSplitResVars{ivar});
+    end
+    curTaskRes.status = cursplit.status;
+    dataExtract.Data{isht} = curTaskRes;
     clearvars('-except', initialVarsSht{:});
 end
 fclose(logfid);
