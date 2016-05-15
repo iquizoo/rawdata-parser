@@ -133,7 +133,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:})
             curCondNVars = nVars{icond};
             curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
             if all(curCondTrialsSplitLen ~= curCondNVars)
-                warning('UDF:SNGPROC:NOFORMATDATA', ...
+                warning('UDF:SNGPREPROC:NOFORMATDATA', ...
                     'Recorded data not correctly formatted. Please check!\n');
                 status = -1;
             end
@@ -143,7 +143,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:})
             reconsTrialApart.(conditionsNames{icond}) = ...
                 {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
         else
-            warning('UDF:SNGPROC:MODE1ABNORMAL', ...
+            warning('UDF:SNGPREPROC:MODE1ABNORMAL', ...
                 'No data for condition of %s.\n', conditionsNames{icond});
             status = -1;
             reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
@@ -151,7 +151,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:})
         end
     end
 else
-    warning('UDF:SNGPROC:NOPARASETTINGS', ...
+    warning('UDF:SNGPREPROC:NOPARASETTINGS', ...
         'No parameters specification found.\n')
     status = -2;
     reconsTrialApart = table;
