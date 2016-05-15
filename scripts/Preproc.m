@@ -36,7 +36,7 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
         userin = 'yes';
     end
     if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
-        fprintf('User canceled...\n');
+        fprintf('No preprocessing task completed this time. User canceled...\n');
         dataExtract = [];
         return
     end
@@ -76,6 +76,7 @@ for itask = 1:ntasks4process
     initialVarsSht = who;
     % Check for Cancel button press
     if getappdata(hwb, 'canceling')
+        fprintf('%d preprocessing task(s) completed this time. User canceled...\n', nprocessed);
         break
     end
     %Find out the setting of current task.
