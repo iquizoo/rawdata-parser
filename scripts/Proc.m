@@ -3,38 +3,47 @@ function resdata = Proc(dataExtract, tasks)
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
 %
-%   See also PREPRO, SNGPROC.
+%   See also PREPROC, SNGPROC.
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
 %% Initialization jobs.
 % Checking input arguments.
 if nargin < 2
-    tasks = dataExtract.Taskname;
+    tasks = dataExtract.TaskName;
 end
 %Folder contains all the analysis functions.
 anafunpath = 'analysis';
 addpath(anafunpath);
 %Load basic parameters.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-% Basic computation.
-dataExtract(cellfun(@isempty, dataExtract.Data), :) = []; %Remove rows without any data.
-%When constructing table, character array is not allowed, but cell string
-%is allowed.
-if ~iscell(tasks)
-    tasks = {tasks};
+%Remove rows without any data.
+rmRows = cellfun(@isempty, dataExtract.Data);
+if any(rmRows)
+    fprintf('No data found in these tasks, will remove them,..\n');
+    rmTasks = dataExtract.TaskName(rmRows);
+    taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
+    disp(strcat(rmTasks, '(', values(taskIDNameMap, rmTasks, ')')));
+    dataExtract(rmRows, :) = [];
 end
-if isrow(tasks)
-    tasks = tasks';
-end
-ntasks = length(dataExtract.Taskname);
-taskRange = find(ismember(dataExtract.Taskname, tasks));
-ntasks4process = length(taskRange);
-%Display some message.
+%Display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
+%When constructing table, only cell string is allowed.
+tasks = cellstr(tasks);
+%Check the status of existence for the to-be-processed tasks.
+dataExistence = ismember(tasks, dataExtract.TaskName);
+if ~all(dataExistence)
+    fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n');
+    disp(tasks(~dataExistence))
+    tasks(~dataExistence) = []; %Remove not found tasks.
+end
+%If all the tasks in the data will be processed, display this information.
+ntasks = length(dataExtract.TaskName);
+taskRange = find(ismember(dataExtract.TaskName, tasks));
 if isequal(taskRange, (1:ntasks)')
     fprintf('Will process all the tasks!\n');
 end
+ntasks4process = length(taskRange);
 %% Task-wise computation.
 %Use lastexcept as an indicator of exception in last task.
 lastexcept = false;
@@ -44,7 +53,7 @@ for itask = 1:ntasks4process
     initialVarsTask = who;
     %% Find out the setting of current task.
     curTaskData = dataExtract.Data{taskRange(itask)};
-    curTaskName = dataExtract.Taskname{taskRange(itask)};
+    curTaskName = dataExtract.TaskName{taskRange(itask)};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
     curTaskIDName = curTaskSetting.TaskIDName{:};
     %Delete last line without exception.
@@ -56,36 +65,56 @@ for itask = 1:ntasks4process
     latestsprint = sprintf('Now process the %s task %s(%s).\n', ordStr, curTaskName, curTaskIDName);
     fprintf(latestsprint);
     lastexcept = false;
-    if all(cellfun(@isempty, curTaskData.splitRes))
-        fprintf('No correct recorded data is found. Will ignore this task. Aborting...\n');
-        lastexcept = true;
-        continue
-    end
-    anavars = 'splitRes';
-    %% Get curTaskSTIMMap for some tasks (esp. for NSN), and analysis for every subject.
-    switch curTaskIDName
-        case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
-                'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
-                'Flanker', 'TaskSwitching', ...%Conflict
-                }
-            curTaskEncode = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
-            curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
-            %TaskIDName as one input argument because RT cutoffs are
-            %different for different tasks.
-            anares = rowfun(@(x) sngproc(x, curTaskSetting, curTaskSTIMMap), ...
-                curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
-        otherwise
-            anares = rowfun(@(x) sngproc(x, curTaskSetting), ...
-                curTaskData, 'InputVariables', anavars, 'OutputVariableNames', 'res');
+    %Get all the analysis variables.
+    anaVars = strsplit(curTaskSetting.AnalysisVars{:});
+    %Merge conditions. Useful when merging data.
+    mrgCond = strsplit(curTaskSetting.MergeCond{:});
+    %% Analysis for every subject.
+    %Initialization tasks. Preallocation.
+    nvar = length(anaVars);
+    nsubj = height(curTaskData);
+    anares = cell(nsubj, nvar); %To know why cell type is used, see the following.
+    for ivar = 1:nvar
+        %In loop initialization.
+        curAnaVar = anaVars{ivar};
+        curMrgCond = mrgCond{ivar};
+        %Check whether the data are recorded legally or not.
+        if isempty(curAnaVar) || all(cellfun(@isempty, curTaskData.(curAnaVar)))
+            fprintf('No correct recorded data is found. Will ignore this task. Aborting...\n');
+            lastexcept = true;
+            continue
+        end
+        switch curTaskIDName
+            case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
+                    'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
+                    'Flanker', 'TaskSwitching', ...%Conflict
+                    }
+                %Get curTaskSTIMMap (STIM->SCat) for these tasks.
+                curTaskEncode = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
+                curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
+            otherwise
+                %Construct an empty curTaskSTIMMap.
+                curTaskSTIMMap = containers.Map;
+        end
+        %Table is wrapped into a cell. The table type of MATLAB has
+        %something tricky when nesting table type in a table; it treats the
+        %rows of the nested table as integrated when using rowfun or
+        %concatenating.
+        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap), ...
+            curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
-    if all(cellfun(@isempty, anares.res))
+    anaresmrg = cell(nsubj, 1);
+    for isubj = 1:nsubj
+        anaresmrg{isubj} = horzcat(anares{isubj, :});
+    end
+    if all(cellfun(@isempty, anaresmrg))
         fprintf('No valid results found. Will ignore this task. Aborting...\n');
         lastexcept = true;
         continue
     end
-    curTaskData.res = anares.res;
-    dataExtract.Data{ismember(dataExtract.Taskname, curTaskName)} = curTaskData;
+    curTaskData.res = anaresmrg;
+    dataExtract.Data{ismember(dataExtract.TaskName, curTaskName)} = curTaskData;
     clearvars('-except', initialVarsTask{:});
 end
 resdata = dataExtract(taskRange, :);

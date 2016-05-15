@@ -49,10 +49,10 @@ dataMergeMetadata = unique(dataMergeMetadata);
 %Merge undefined. Basic logic, of each checking variable, one of the
 %following circumstances indicated an auto merge.
 %   1. if all the instances are undefined, just make it undefined.
-%     Then the unique categories of defined instances count 0.
+%     Then there is no unique categories of defined instances.
 %   2. other than undefined, only one defined category found, use this
 %   found category.
-%     Then the unique categories of defined instances count 1.
+%     Then there is only one unique categories of defined instances.
 usrID = resdata.userId;
 uniUsrID = unique(usrID);
 nusr = length(uniUsrID);
@@ -86,22 +86,20 @@ for iusr = 1:nusr
     end
 end
 dataMergeMetadata(isnan(dataMergeMetadata.userId), :) = [];
-mrgdata = dataMergeMetadata;
-%Merge data task by task.
-%Load basic parameters.
-settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+mrgdata = dataMergeMetadata; %Metadata done!
+%Get the experimental data.
 resdata.TaskIDName = categorical(resdata.TaskIDName);
 tasks = unique(resdata.TaskIDName, 'stable');
 nTasks = length(tasks);
+%Merge data task by task.
 for imrgtask = 1:nTasks
     initialVars = who;
     curTaskIDName = tasks(imrgtask);
-    curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
+    %Get the data of current task.
     curTaskData = resdata(resdata.TaskIDName == curTaskIDName, :);
     curTaskData.res = cat(1, curTaskData.res{:});
-    % Note: there might be multiple entries of task settings for some
-    % tasks, e.g., 'SRT', and then just choose the first entry.
-    curTaskOutVars = strcat(curTaskSetting.TaskIDName{1}, '_', curTaskData.res.Properties.VariableNames);
+    %Use the taskIDName as the variable name precedence.
+    curTaskOutVars = strcat(curTaskIDName, '_', curTaskData.res.Properties.VariableNames);
     curTaskData.res.Properties.VariableNames = curTaskOutVars;
     %Transformation for 'res'.
     curTaskData = [curTaskData, curTaskData.res]; %#ok<AGROW>
