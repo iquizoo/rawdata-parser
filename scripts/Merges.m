@@ -12,13 +12,14 @@ schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
 %Set the grade information.
 grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
-%Vertcat data.
-resdata = cat(1, resdata.Data{:});
 %Get the metadata. Not all of the variables in meta data block is
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
 varsOfMetadata = {'userId', 'gender', 'school', 'grade'};
-dataMergeMetadata = resdata(:, ismember(resdata.Properties.VariableNames, varsOfMetadata));
+%Vertcat metadata.
+resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
+    resdata.Data, 'UniformOutput', false);
+dataMergeMetadata = cat(1, resMetadata{:});
 %Check the following variables.
 chkVarsOfMetadata = {'gender', 'school', 'grade'};
 for ivomd = 1:length(chkVarsOfMetadata)
@@ -53,7 +54,7 @@ dataMergeMetadata = unique(dataMergeMetadata);
 %   2. other than undefined, only one defined category found, use this
 %   found category.
 %     Then there is only one unique categories of defined instances.
-usrID = resdata.userId;
+usrID = dataMergeMetadata.userId;
 uniUsrID = unique(usrID);
 nusr = length(uniUsrID);
 for iusr = 1:nusr
@@ -96,10 +97,11 @@ for imrgtask = 1:nTasks
     initialVars = who;
     curTaskIDName = tasks(imrgtask);
     %Get the data of current task.
-    curTaskData = resdata(resdata.TaskIDName == curTaskIDName, :);
+    curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
+    curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
     %Use the taskIDName as the variable name precedence.
-    curTaskOutVars = strcat(curTaskIDName, '_', curTaskData.res.Properties.VariableNames);
+    curTaskOutVars = strcat(cellstr(curTaskIDName), '_', curTaskData.res.Properties.VariableNames);
     curTaskData.res.Properties.VariableNames = curTaskOutVars;
     %Transformation for 'res'.
     curTaskData = [curTaskData, curTaskData.res]; %#ok<AGROW>

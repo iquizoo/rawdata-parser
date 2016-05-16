@@ -60,23 +60,27 @@ end
 %Use the task order formed in the settings.
 TaskName = settings.TaskName(ismember(settings.TaskName, shtname));
 ntasks4process = length(TaskName);
+TaskIDName = cell(ntasks4process, 1);
 Data = cell(ntasks4process, 1);
+Time2Preproc = cellstr(repmat('TBE', ntasks4process, 1));
 %Preallocating.
-dataExtract = table(TaskName, Data);
+dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.
 fprintf('Here it goes! This time, the total jobs are composed of %d tasks, though some may fail...\n', ...
     ntasks4process);
+%Use a waitbar to tell the processing information.
 hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
     'Name', 'Preprocess raw data of CCDPro',...
     'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
 setappdata(hwb, 'canceling', 0)
 nprocessed = 0;
+nignored = 0;
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
     % Check for Cancel button press
     if getappdata(hwb, 'canceling')
-        fprintf('%d preprocessing task(s) completed this time. User canceled...\n', nprocessed);
+        fprintf('User canceled...\n');
         break
     end
     %Find out the setting of current task.
@@ -84,14 +88,18 @@ for itask = 1:ntasks4process
     %Get the setting of current task.
     locset = ismember(settings.TaskName, curTaskName);
     if ~any(locset)
-        fprintf('No settings specified for current task.\n');
+        fprintf(logfid, ...
+            'No settings specified for task %s. Continue to the next task.\n', curTaskName);
+        %Increment of ignored number of tasks.
+        nignored = nignored + 1;
         continue
     end
     %Get the proportion of completion and the estimated time of arrival.
-    completePercent = nprocessed / ntasks4process;
+    completePercent = nprocessed / (ntasks4process - nignored);
     if itask == 1
         tic
         msgSuff = 'Please wait...';
+        elapsedTime = 0;
     else
         elapsedTime = toc;
         eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
@@ -148,7 +156,8 @@ for itask = 1:ntasks4process
     curTaskOutVarsOIMetadata = ...
         {'userId', 'gender', 'school', 'grade', 'birthDay'};
     curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
-    curTaskRes.TaskIDName = repmat(curTaskSetting.TaskIDName, height(curTaskData), 1);
+    %Store the taskIDName.
+    dataExtract.TaskIDName{itask} = curTaskSetting.TaskIDName;
     %Store the spitting results.
     curTaskSpitRes = cat(1, cursplit.splitRes{:});
     curTaskSplitResVars = curTaskSpitRes.Properties.VariableNames;
@@ -158,8 +167,16 @@ for itask = 1:ntasks4process
     end
     curTaskRes.status = cursplit.status;
     dataExtract.Data{itask} = curTaskRes;
+    %Record the time used for each task.
+    curTaskTimeUsed = toc - elapsedTime;
+    dataExtract.Time2Preproc{itask} = seconds2human(curTaskTimeUsed, 'full');
     clearvars('-except', initialVarsSht{:});
 end
+%Display information of completion.
+usedTimeSecs = toc;
+usedTimeHuman = seconds2human(usedTimeSecs, 'full');
+fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
+fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
 delete(hwb);
 rmpath(anafunpath);
