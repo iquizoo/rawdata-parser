@@ -8,5 +8,5 @@ function res = sngprocNback(RECORD)
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 res = table;
-res.ACC = mean(RECORD.ACC);
+res.ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
 res.RT = mean(RECORD.RT);
