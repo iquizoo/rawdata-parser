@@ -157,7 +157,7 @@ for itask = 1:ntasks4process
         {'userId', 'gender', 'school', 'grade', 'birthDay'};
     curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
     %Store the taskIDName.
-    dataExtract.TaskIDName{itask} = curTaskSetting.TaskIDName;
+    dataExtract.TaskIDName(itask) = curTaskSetting.TaskIDName;
     %Store the spitting results.
     curTaskSpitRes = cat(1, cursplit.splitRes{:});
     curTaskSplitResVars = curTaskSpitRes.Properties.VariableNames;
