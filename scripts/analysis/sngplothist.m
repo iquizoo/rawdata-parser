@@ -13,14 +13,15 @@ nPlotVars = length(plotVars);
 %Get all the grades.
 grades = cellstr(unique(tbl.grade));
 nGrades = length(grades);
-hs = gobjects(nPlotVars, nGrades);
-hnames = cell(nPlotVars, nGrades);
+hs = cell(nGrades, nPlotVars);
+hnames = cell(nGrades, nPlotVars);
 for igrade = 1:nGrades
     curGrade = grades{igrade};
     for iplotvar = 1:nPlotVars
         %Open an invisible figure.
-        hs(iplotvar, igrade) = figure;
-        hs(iplotvar, igrade).Visible = 'off';
+        hcurPlot = figure;
+        hcurPlot.Visible = 'off';
+        hs{igrade, iplotvar} = hcurPlot;
         %Get data and plot.
         curPlotVar = plotVars{iplotvar};
         curGradeData = tbl.(curPlotVar)(tbl.grade == curGrade);
@@ -52,11 +53,11 @@ for igrade = 1:nGrades
         ylabel('Frequency')
         %Set the font and background to make it look better.
         hax = gca;
-        hax.YGrid = 'on';
+        hax.YGrid         = 'on';
         hax.GridLineStyle = '-';
-        hax.FontName = 'Gill Sans MT';
-        hax.FontSize = 12;
-        hnames{iplotvar, igrade} = ...
+        hax.FontName      = 'Gill Sans MT';
+        hax.FontSize      = 12;
+        hnames{igrade, iplotvar} = ...
             ['Histogram of ', titleVarName, ' in Grade ', curGrade];
     end
 end

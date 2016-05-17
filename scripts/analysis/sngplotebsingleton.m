@@ -25,7 +25,12 @@ for isngvar = 1:nsngVars
     %%Get data and plot.
     curSngVar = sngVars{isngvar};
     curTblVar = strcat(TaskIDName, '_', curSngVar);
-    errorbar(grpstats(tbl.(curTblVar), tbl.grade), grpstats(tbl.(curTblVar), tbl.grade, 'sem'))
+    %Plot one instance of error bar, use 'sem' as the error.
+    mns  = grpstats(tbl.(curTblVar), tbl.grade);
+    errs = grpstats(tbl.(curTblVar), tbl.grade, 'sem');
+    errorbar(mns, errs)
+    %Put text on the error bar to denote the means.
+    text(1:length(mns), mns, arrayfun(@(x) sprintf('%.3f', x), mns, 'UniformOutput', false));
     %Set label, title and file name.
     xlabel('Grade')
     [titlevar, label] = var2caption(TaskIDName, curSngVar);

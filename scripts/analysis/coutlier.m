@@ -1,5 +1,8 @@
 function [n, idx] = coutlier(x, outliermode)
-% function idx = coutlier(x, mode)
+%COUTLIER counts the number and gets the index of outliers.
+%
+%   Reference:
+%   http://www.itl.nist.gov/div898/handbook/prc/section1/prc16.htm
 
 %Get the first quartile and the third quartile.
 Q = quantile(x, [0.25, 0.75]);

@@ -40,7 +40,7 @@ end
 %Get all the grades for XTickLabel.
 grades = cellstr(unique(tbl.grade));
 %Preallocation.
-hs = gobjects(nVarCond, 1);
+hs = cell(nVarCond, 1);
 hnames = cell(nVarCond, 1);
 %Condition-wise error bar plot.
 for ivarcond = 1:nVarCond
@@ -69,8 +69,9 @@ for ivarcond = 1:nVarCond
         end
     end
     %Open an invisible figure for each condition.
-    hs(ivarcond) = figure;
-    hs(ivarcond).Visible = 'off';
+    hcurPlot = figure;
+    hcurPlot.Visible = 'off';
+    hs{ivarcond} = hcurPlot;
     %Set file name. Transform curVarCond to title-compatible condition name.
     curVarTitle = curVarCond;
     if isempty(curVarCond)
@@ -106,19 +107,22 @@ for ivarcond = 1:nVarCond
             yyaxis(axisPos{varAxisPos(ivarcat)})
         end
         %Plot one instance of error bar, use 'sem' as the error.
-        errorbar(grpstats(tbl.(curTblVar), tbl.grade), ...
-            grpstats(tbl.(curTblVar), tbl.grade, 'sem'))
+        mns  = grpstats(tbl.(curTblVar), tbl.grade);
+        errs = grpstats(tbl.(curTblVar), tbl.grade, 'sem');
+        errorbar(mns, errs)
+        %Put text on the error bar to denote the means.
+        text(1:length(mns), mns, arrayfun(@(x) sprintf('%.3f', x), mns, 'UniformOutput', false));
         ylabel(yLabel)
         hold on
     end
     %Set the font and background to make it look better.
     hax = gca;
-    hax.YGrid = 'on';
+    hax.YGrid         = 'on';
     hax.GridLineStyle = '-';
-    hax.XTick = 1:length(grades);
-    hax.XTickLabel = grades;
-    hax.FontName = 'Gill Sans MT';
-    hax.FontSize = 12;
+    hax.XTick         = 1:length(grades);
+    hax.XTickLabel    = grades;
+    hax.FontName      = 'Gill Sans MT';
+    hax.FontSize      = 12;
     %Add label to x axis, and set title to it. Note errorbar plot will
     %clear all the set of current axis.
     xlabel('Grade')

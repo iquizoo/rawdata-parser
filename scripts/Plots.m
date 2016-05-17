@@ -20,7 +20,7 @@ function Plots(mrgdata, tasks, cfg)
 %By Zhang, Liang. Email:psychelzh@gmail.com
 
 %Basic signs used in markdown.
-global newline secpre subsecpre slidepre
+global newline slidepre
 %% Directory setting works.
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
@@ -32,6 +32,8 @@ resFolder = fullfile(fileparts(curDir), 'DATA_RES');
 %% Settings processing in total.
 %Read in the settings table.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+figfmtext = readtable('taskSettings.xlsx', 'Sheet', 'fmtext');
+figfmtextmap = containers.Map(figfmtext.fmt, figfmtext.ext);
 % Some transformation of meta information, e.g. school and grade.
 allMrgDataVars = mrgdata.Properties.VariableNames;
 taskVarsOfMetaData = {'userId', 'gender', 'school', 'grade'};
@@ -46,11 +48,9 @@ if nargin <= 2
     cfg = [];
 end
 %Check configuration.
-cfg = chkconfig(cfg);
-minsubs = cfg.minsubs;
+cfg         = chkconfig(cfg);
+cfg.ext     = figfmtextmap(cfg.figfmt);
 outliermode = cfg.outliermode;
-figfmt = cfg.figfmt;
-slidegen = cfg.slidegen;
 if isempty(tasks) %No task specified, then plots all the tasks specified in mrgdata.
     tasks = unique(regexp(taskVarsOfExperimentData, '^.*?(?=_)', 'match', 'once'));
 end
@@ -84,289 +84,376 @@ allTaskIDName(~loc4process) = [];
 origtasks = origtasks(newOrder);
 tasks = tasks(newOrder);
 %% Initialization works before plotting.
+%Set section maps.
+[~, usedTaskLoc]  = ismember(tasks, settings.TaskIDName);
+sectionNumers     = settings.SlideSection(usedTaskLoc);
+sectionNames      = settings.SectionSummary(usedTaskLoc);
+uniSectionNumbers = unique(sectionNumers, 'stable');
+uniSectionNames   = unique(sectionNames, 'stable');
+nsections         = length(uniSectionNumbers);
+%Display information of begin processing.
 ntasks = length(tasks);
 fprintf('Will plot figures of %d tasks...\n', ntasks);
-if slidegen
-    %The pandoc slides markdown string generator and output file setting.
-    fid = fopen('Beijing Brain Project.md', 'w', 'n', 'UTF-8');
-    %Basic signs used in markdown.
-    newline = '\r\n';
-    secpre = '#';
-    subsecpre = '##';
-    slidepre = '###';
-    %Meta data.
-    Title = strconv('% Beijing Brain Project');
-    Authors = strconv('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
-    Date = strconv(['% ', date]);
-    metadata = strjoin({Title, Authors, Date}, newline);
-    %Set section maps.
-    [~, usedTaskLoc] = ismember(tasks, settings.TaskIDName);
-    sectionNumers = settings.SlideSection(usedTaskLoc);
-    sectionNumerMap = containers.Map(tasks, sectionNumers);
-    sectionNames = settings.SectionSummary(usedTaskLoc);
-    sectionNameMap = containers.Map(tasks, sectionNames);
-    nsections = length(unique(sectionNumers));
-    SectionTitles = cell(1, nsections);
-    SectionData = cell(1, nsections);
-    %Use lastsection as the last section number.
-    lastSection = 0;
-    partOrder = 0;
-end
-%Use lastexcept as an indicator of exception in last task.
-lastExcept = false;
-latestPrint = '';
-%Task-wise checking.
-for itask = 1:ntasks
-    initialVars = who;
-    close all
-    curTaskIDName = tasks{itask};
-    origTaskName = origtasks{itask};
-    %Delete last line without exception.
-    if ~lastExcept
-        fprintf(repmat('\b', 1, length(latestPrint)))
-    end
-    %Get the ordinal string.
-    ordStr = num2ord(itask);
-    latestPrint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
-    fprintf(latestPrint);
+%The pandoc slides markdown string generator and output file setting.
+fid = fopen('Beijing Brain Project.pmd', 'w', 'n', 'UTF-8');
+%Basic signs used in markdown.
+newline   = '\r\n';
+secpre    = '#';
+subsecpre = '##';
+slidepre  = '###';
+%Meta data.
+Title    = strconv('% Beijing Brain Project');
+Authors  = strconv('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
+Date     = strconv(['% ', date]);
+metadata = strjoin({Title, Authors, Date}, newline);
+%Initiate section data.
+SectionTitles    = cell(1, nsections);
+SectionSlideData = cell(1, nsections);
+%% Plotting.
+%Section-wise checking.
+for isec = 1:nsections
+    initialVarsSec = who;
+    %Set section titles.
+    curSecNum = uniSectionNumbers(isec);
+    curSecName = uniSectionNames{isec};
+    SectionTitles{isec} = sprintf('%s Part %d %s', secpre, curSecNum, curSecName);
+    %Task-wise checking.
+    curSecTasks = tasks(sectionNumers == curSecNum);
+    curSecOrigTasks = origtasks(sectionNumers == curSecNum);
+    ncursectasks = length(curSecTasks);
+    curSectionSlideData = cell(1, ncursectasks);
+    %Use lastexcept as an indicator of exception in last task.
     lastExcept = false;
-    curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
-    if isempty(curTaskSettings)
-        fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
-        lastExcept = true;
-        continue
-    elseif height(curTaskSettings) > 1
-        curTaskSettings = curTaskSettings(1, :);
-    end
-    %% Get the data of current task.
-    % Experiment data.
-    curTaskLoc = ~cellfun(@isempty, ...
-        regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
-    if ~any(curTaskLoc)
-        fprintf('No experiment data result found for current task. Aborting...\n')
-        lastExcept = true;
-        continue
-    end
-    curTaskMetaData = taskMetaData;
-    curTaskVarsOfMetaData = curTaskMetaData.Properties.VariableNames;
-    curTaskExpData = mrgdata(:, curTaskLoc);
-    curTaskVarsOfExperimentData = curTaskExpData.Properties.VariableNames;
-    %Pre-plot data clean job.
-    curTaskMissingMetadataRow = isundefined(curTaskMetaData.school) | isundefined(curTaskMetaData.grade);
-    curTaskMissingExpDataRows = all(isnan(curTaskExpData{:, :}), 2);
-    curTaskMetaData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
-    curTaskExpData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
-    curTaskMetaData.grade = removecats(curTaskMetaData.grade);
-    %% Set the store directories and file names of figures and excels.
-    % Remove the existing items.
-    curTaskResDir = fullfile(resFolder, curTaskIDName);
-    if exist(curTaskResDir, 'dir')
-        rmdir(curTaskResDir, 's')
-    end
-    % Excel file.
-    xlsDir = 'Docs';
-    curTaskXlsDir = fullfile(curTaskResDir, xlsDir);
-    mkdir(curTaskXlsDir)
-    % Figures.
-    figDir = 'Figs';
-    curTaskFigDir = fullfile(curTaskResDir, figDir);
-    mkdir(curTaskFigDir)
-    %% Create section titles.
-    if slidegen
-        curSectionNum = sectionNumerMap(curTaskIDName);
-        curSectionName = sectionNameMap(curTaskIDName);
-        curSectionOrder = find(sectionNumers, curSectionNum);
-        if curSectionNum ~= lastSection
-            partOrder = partOrder + 1;
-            SectionTitles{curSectionOrder} = [secpre, ' Part ', num2str(partOrder), ' ', curSectionName];
-            lastSection = curSectionNum;
+    latestPrint = '';
+    for itask = 1:ncursectasks
+        initialVarsTask = who;
+        close all
+        curTaskIDName = curSecTasks{itask};
+        cfg.task = curTaskIDName;
+        origTaskName = curSecOrigTasks{itask};
+        %For each task, there are following part.
+        %   metadata bar3, outliers boxplot of each condition, development
+        %   errorbar of each condition (main), histo
+        curTaskSlideData = sprintf('%s %s', subsecpre, curTaskIDName);
+        %% Display information of plotting.
+        %Delete last line without exception.
+        if ~lastExcept
+            fprintf(repmat('\b', 1, length(latestPrint)))
         end
-    end
-    %% Write a table of meta data.
-    curTaskVarsOfMetaDataOfInterest = {'school', 'grade'};
-    curTaskMetaDataOfInterest = curTaskMetaData(:, ismember(curTaskVarsOfMetaData, curTaskVarsOfMetaDataOfInterest));
-    despStats = grpstats(curTaskMetaDataOfInterest, {'school', 'grade'}, 'numel');
-    despStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
-    writetable(despStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
-    %Special issue: see if delete those data with too few subjects (less than 10).
-    minorLoc = despStats.Count < minsubs;
-    shadyEntryInd = find(minorLoc);
-    if ~isempty(shadyEntryInd)
-        lastExcept = true;
-        fprintf('Entry with too few subjects encountered, will delete following entries in the displayed data table:\n')
-        disp(despStats(shadyEntryInd, :))
-        disp(despStats)
-        resp = input('Sure to delete?[Y]/N:', 's');
-        if isempty(resp)
-            resp = 'yes';
+        %Get the ordinal string.
+        ordStr = num2ord(itask);
+        latestPrint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
+        fprintf(latestPrint);
+        lastExcept = false;
+        %% Get the settings of current task.
+        curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
+        if isempty(curTaskSettings)
+            fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
+            lastExcept = true;
+            continue
+        elseif height(curTaskSettings) > 1
+            curTaskSettings = curTaskSettings(1, :);
         end
-        if strcmpi(resp, 'y') || strcmpi(resp, 'yes')
+        %% Get the data of current task.
+        % Experiment data.
+        curTaskLoc = ~cellfun(@isempty, ...
+            regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
+        if ~any(curTaskLoc)
+            fprintf('No experiment data result found for current task. Aborting...\n')
+            lastExcept = true;
+            continue
+        end
+        curTaskMetaData = taskMetaData;
+        curTaskVarsOfMetaData = curTaskMetaData.Properties.VariableNames;
+        curTaskExpData = mrgdata(:, curTaskLoc);
+        curTaskVarsOfExperimentData = curTaskExpData.Properties.VariableNames;
+        %Pre-plot data clean job.
+        curTaskMissingMetadataRow = isundefined(curTaskMetaData.school) | isundefined(curTaskMetaData.grade);
+        curTaskMissingExpDataRows = all(isnan(curTaskExpData{:, :}), 2);
+        curTaskMetaData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
+        curTaskMetaData.grade = removecats(curTaskMetaData.grade);
+        curTaskExpData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
+        %% Set the store directories and file names of figures and excels.
+        % Remove the existing items.
+        curTaskResDir = fullfile(resFolder, curTaskIDName);
+        if exist(curTaskResDir, 'dir')
+            rmdir(curTaskResDir, 's')
+        end
+        % Excel file.
+        xlsDir = 'Docs';
+        curTaskXlsDir = fullfile(curTaskResDir, xlsDir);
+        cfg.xlsdir = curTaskXlsDir;
+        mkdir(curTaskXlsDir)
+        % Figures.
+        figDir = 'Figs';
+        curTaskFigDir = fullfile(curTaskResDir, figDir);
+        cfg.figdir = curTaskFigDir;
+        mkdir(curTaskFigDir)
+        %% Write a table of meta data. Summary report.
+        curTaskVarsOfMetaDataOfInterest = {'school', 'grade'};
+        curTaskMetaDataOfInterest = curTaskMetaData(:, ismember(curTaskVarsOfMetaData, curTaskVarsOfMetaDataOfInterest));
+        despStats = grpstats(curTaskMetaDataOfInterest, {'school', 'grade'}, 'numel');
+        despStats.Properties.VariableNames = {'School', 'Grade', 'Count'};
+        writetable(despStats, fullfile(curTaskXlsDir, 'Counting of each school and grade.xlsx'));
+        %Special issue: see if delete those data with too few subjects
+        %(less than minsubs-modified in cfg).
+        minorLoc = despStats.Count < cfg.minsubs;
+        shadyEntryInd = find(minorLoc);
+        if ~isempty(shadyEntryInd)
+            lastExcept = true;
             curTaskMinorRowRemoved = ismember(curTaskMetaData.school, despStats.School(shadyEntryInd)) ...
                 & ismember(curTaskMetaData.grade, despStats.Grade(shadyEntryInd));
             curTaskMetaData(curTaskMinorRowRemoved, :) = [];
             curTaskMetaData.grade = removecats(curTaskMetaData.grade);
             curTaskExpData(curTaskMinorRowRemoved, :) = [];
         end
-    end
-    %% Condition-wise plotting.
-    curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
-    if all(cellfun(@isempty, curTaskMrgConds))
-        curTaskDelimiterMC = '';
-    else
-        curTaskDelimiterMC = '_';
-    end
-    ncond = length(curTaskMrgConds);
-    for icond = 1:ncond
-        %% Outlier checking.
-        curMrgCond = curTaskMrgConds{icond};
-        %Update file storage directory.
-        curCondTaskXlsDir = fullfile(curTaskXlsDir, curMrgCond);
-        if ~exist(curCondTaskXlsDir, 'dir')
-            mkdir(curCondTaskXlsDir)
-        end
-        curCondTaskFigDir = fullfile(curTaskFigDir, curMrgCond);
-        if ~exist(curCondTaskFigDir, 'dir')
-            mkdir(curCondTaskFigDir)
-        end
-        %Get the data of current condition.
-        if isempty(curMrgCond)
-            curCondTaskExpData = curTaskExpData;
+        % Output bar figure (report the summary of data collection).
+        hbar = figure;
+        hbar.Visible = 'off';
+        % Set the print parameters.
+        hbar = setpaper(hbar);
+        % Plotting.
+        sngplotmetabar(curTaskMetaDataOfInterest)
+        barname = fullfile(curTaskFigDir, 'Bar plot to show metadata');
+        saveas(hbar, barname, figfmt)
+        delete(hbar)
+        % Generate the markdown of current slide.
+        barfigpath       = strcat(barname, ext);
+        barcaption       = 'Data collection summary';
+        metadataSlide    = genplotslides(curTaskIDName, barfigpath, barcaption);
+        curTaskSlideData = strcat(curTaskSlideData, newline, metadataSlide);
+        %% Condition-wise plotting.
+        curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
+        if all(cellfun(@isempty, curTaskMrgConds))
+            curTaskDelimiterMC = '';
         else
-            curCondTaskExpData = curTaskExpData(:, ~cellfun(@isempty, ...
-                cellfun(@(x) regexp(x, [curTaskDelimiterMC, curMrgCond, '$'], 'once'), ...
-                curTaskVarsOfExperimentData, 'UniformOutput', false)));
-            curCondTaskExpData.Properties.VariableNames = ...
-                regexprep(curCondTaskExpData.Properties.VariableNames, [curTaskDelimiterMC, curMrgCond, '$'], '');
+            curTaskDelimiterMC = '_';
         end
-        curCondTaskData = [curTaskMetaData, curCondTaskExpData];
-        curCondTaskVarsOfExperimentData = curCondTaskExpData.Properties.VariableNames;
-        chkVar = strcat(curTaskSettings.chkVar{:});
-        % Output Excel.
-        chkTblVar = strcat(curTaskIDName, '_', chkVar);
-        chkOutlierOutVars = 'Outliers';
-        curTaskOutlier = grpstats(curCondTaskData, 'grade', @(x)coutlier(x, outliermode), ...
-            'DataVars', chkTblVar, ...
-            'VarNames', {'Grade', 'Total', chkOutlierOutVars});
-        writetable(curTaskOutlier, ...
-            fullfile(curCondTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
-        % Output boxplot figure.
-        hbp = figure;
-        hbp.Visible = 'off';
-        whisker = 1.5 * strcmp(outliermode, 'mild') + 3 * strcmp(outliermode, 'extreme');
-        sngplotbox(curCondTaskData, curTaskIDName, chkVar, whisker)
-        bpname = fullfile(curCondTaskFigDir, ...
-            ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
-        saveas(hbp, bpname, figfmt)
-        delete(hbp)
-        if slidegen
-            bpSlideTitle = strjoin({[subsecpre, curTaskIDName], ...
-                [slidepre, 'Box plot to show outliers based on ', var2caption(curTaskIDName, chkVar)]}, ...
-                newline);
-            figfullpath = [bpname, '.', figfmt];
-            caption = ['Box plot of ' var2caption(curTaskIDName, chkVar)];
-            bpSlideContent = putimage(figfullpath, caption);
-            SectionData{curSectionOrder} = [SectionData{curSectionOrder}, strjoin({bpSlideTitle, bpSlideContent}, newline)];
-        end
-        %Remove outliers and plot histograms.
-        grades = cellstr(unique(curTaskMetaData.grade));
-        for igrade = 1:length(grades)
-            curgradeidx = curCondTaskData.grade == grades{igrade};
-            [~, outlieridx] = coutlier(curCondTaskData.(chkTblVar)(curgradeidx), 'extreme');
-            curgradeidx(curgradeidx == 1) = outlieridx;
-            curCondTaskData(curgradeidx, :) = [];
-        end
-        [hs, hnames] =  sngplothist(curCondTaskData, curTaskIDName);
-        cellfun(@(x, y) saveas(x, y, figfmt), ...
-            num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-        delete(hs)
-        %% Write a table about descriptive statistics of different ages.
-        agingDespStats = grpstats(curCondTaskData, 'grade', {'mean', 'std'}, ...
-            'DataVars', curCondTaskVarsOfExperimentData);
-        writetable(agingDespStats, ...
-            fullfile(curCondTaskXlsDir, 'Descriptive statistics of each grade.xlsx'));
-        %% Errorbar plots.
-        %Errorbar plot CP.
-        cmbTasks = {'AssocMemory', 'SemanticMemory'};
-        if ismember(curTaskIDName, cmbTasks)
-            ebplotfun = @sngplotebcmb;
-        else
-            ebplotfun = @sngplotebmult;
-        end
-        curTaskChkVarsCat = strsplit(curTaskSettings.VarsCat{:});
-        curTaskChkVarsCond = strsplit(curTaskSettings.VarsCond{:});
-        if all(cellfun(@isempty, curTaskChkVarsCond))
-            curTaskDelimiter = '';
-        else
-            curTaskDelimiter = '_';
-        end
-        if ~all(cellfun(@isempty, curTaskChkVarsCat)) || ~all(cellfun(@isempty, curTaskChkVarsCond))
-            [hs, hnames] = ebplotfun(curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond);
-            cellfun(@(x, y) saveas(x, y, figfmt), ...
-                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-            delete(hs)
-        end
-        %Error bar plot of singleton variables.
-        curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
-        if ~all(cellfun(@isempty, curTaskSngVars))
-            [hs, hnames] = sngplotebsingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
-            cellfun(@(x, y) saveas(x, y, figfmt), ...
-                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-            delete(hs)
-        end
-        %Error bar plot of singleton variables CP.
-        curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
-        if ~all(cellfun(@isempty, curTaskSngVarsCP))
-            [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
-            cellfun(@(x, y) saveas(x, y, figfmt), ...
-                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-            delete(hs)
-        end
-        %Error bar plot of special variables.
-        curTaskSpVars = strsplit(curTaskSettings.SpecialVars{:});
-        if ~all(cellfun(@isempty, curTaskSpVars))
-            [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSpVars);
-            cellfun(@(x, y) saveas(x, y, figfmt), ...
-                num2cell(hs), cellstr(fullfile(curCondTaskFigDir, hnames)))
-            delete(hs)
-        end
-    end
-    clearvars('-except', initialVars{:});
-end
-if slidegen
-    slidesdata = strjoin([SectionTitles, SectionData], newline);
-    slidesMarkdown = strjoin({metadata, slidesdata}, newline);
+        ncond = length(curTaskMrgConds);
+        curTaskCondSlidesData = repmat(cellstr(''), 1, ncond);
+        for icond = 1:ncond
+            curMrgCond = curTaskMrgConds{icond};
+            cfg.cond = curMrgCond;
+            %Update file storage directory.
+            curCondTaskXlsDir = fullfile(curTaskXlsDir, curMrgCond);
+            if ~exist(curCondTaskXlsDir, 'dir')
+                mkdir(curCondTaskXlsDir)
+                cfg.xlsdir = curCondTaskXlsDir;
+            end
+            curCondTaskFigDir = fullfile(curTaskFigDir, curMrgCond);
+            if ~exist(curCondTaskFigDir, 'dir')
+                mkdir(curCondTaskFigDir)
+                cfg.figdir = curCondTaskFigDir;
+            end
+            %Get the data of current condition.
+            if isempty(curMrgCond)
+                curCondTaskExpData = curTaskExpData;
+            else
+                curCondTaskExpData = curTaskExpData(:, ~cellfun(@isempty, ...
+                    cellfun(@(x) regexp(x, [curTaskDelimiterMC, curMrgCond, '$'], 'once'), ...
+                    curTaskVarsOfExperimentData, 'UniformOutput', false)));
+                curCondTaskExpData.Properties.VariableNames = ...
+                    regexprep(curCondTaskExpData.Properties.VariableNames, [curTaskDelimiterMC, curMrgCond, '$'], '');
+                curMrgCond = strcat('-', curMrgCond, {' condition'});
+            end
+            curCondTaskData                 = [curTaskMetaData, curCondTaskExpData];
+            curCondTaskVarsOfExperimentData = curCondTaskExpData.Properties.VariableNames;
+            %% Outlier checking.
+            chkVar = curTaskSettings.chkVar{:};
+            % Output Excel.
+            chkTblVar = strcat(curTaskIDName, '_', chkVar);
+            chkOutlierOutVars = 'Outliers';
+            curTaskOutlier = grpstats(curCondTaskData, 'grade', @(x)coutlier(x, outliermode), ...
+                'DataVars', chkTblVar, ...
+                'VarNames', {'Grade', 'Total', chkOutlierOutVars});
+            writetable(curTaskOutlier, ...
+                fullfile(curCondTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
+            % Output boxplot figure.
+            bpcaption = 'Outliers information';
+            plotargin = {curCondTaskData, curTaskIDName, chkVar, outliermode};
+            plotfun   = @sngplotbox;
+            bpSlide   = genplotslides(plotfun, plotargin, cfg, bpcaption);
+%             hbp = figure;
+%             hbp.Visible = 'off';
+%             % Set the print parameters.
+%             hbp = setpaper(hbp);
+%             sngplotbox(curCondTaskData, curTaskIDName, chkVar, outliermode)
+%             bpname = fullfile(curCondTaskFigDir, ...
+%                 ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
+%             saveas(hbp, bpname, figfmt)
+%             delete(hbp)
+%             % Generate the markdown of current slide.
+%             bpfigpath = strcat(bpname, ext);
+%             bpcaption = 'Outliers information';
+%             bpSlide   = genplotslides(curTaskIDName, bpfigpath, bpcaption, curMrgCond);
+            %% Distribution of all variables and grades.
+            %Remove outliers and plot histograms.
+            grades = cellstr(unique(curTaskMetaData.grade));
+            for igrade = 1:length(grades)
+                curgradeidx = curCondTaskData.grade == grades{igrade};
+                [~, outlieridx] = coutlier(curCondTaskData.(chkTblVar)(curgradeidx), 'extreme');
+                curgradeidx(curgradeidx == 1) = outlieridx;
+                curCondTaskData(curgradeidx, :) = [];
+            end
+            % Output boxplot figure.
+            caption    = 'Histogram to show distribution';
+            plotargin  = {curCondTaskData, curTaskIDName};
+            plotfun    = @sngplothist;
+            histSlides = genplotslides(plotfun, plotargin, cfg, caption);
+%             %Note use cell type to wrap all the figures for consistency.
+%             [hs, hnames] =  sngplothist(curCondTaskData, curTaskIDName);
+%             %Use cell type for further process.
+%             if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
+%             % Set the print parameters.
+%             hs = cellfun(@setpaper, hs, 'UniformOutput', false);
+%             cellfun(@(x, y) saveas(x, y, figfmt), ...
+%                 hs, fullfile(curCondTaskFigDir, hnames))
+%             cellfun(@delete, hs)
+%             % Generate the markdown of current slide.
+%             figpaths   = strcat(fullfile(curCondTaskFigDir, hnames), ext);
+%             
+%             histSlides = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+            %% Write a table about descriptive statistics of different ages.
+            agingDespStats = grpstats(curCondTaskData, 'grade', {'mean', 'std'}, ...
+                'DataVars', curCondTaskVarsOfExperimentData);
+            writetable(agingDespStats, ...
+                fullfile(curCondTaskXlsDir, 'Descriptive statistics of each grade.xlsx'));
+            %% Errorbar plots.
+            %The caption of figures.
+            caption = 'Development through ages';
+            %Errorbar plot CP.
+            cmbTasks = {'AssocMemory', 'SemanticMemory'};
+            if ismember(curTaskIDName, cmbTasks)
+                ebplotfun = @sngplotebcmb;
+            else
+                ebplotfun = @sngplotebmult;
+            end
+            curTaskChkVarsCat = strsplit(curTaskSettings.VarsCat{:});
+            curTaskChkVarsCond = strsplit(curTaskSettings.VarsCond{:});
+            if all(cellfun(@isempty, curTaskChkVarsCond))
+                curTaskDelimiter = '';
+            else
+                curTaskDelimiter = '_';
+            end
+            if ~all(cellfun(@isempty, curTaskChkVarsCat)) || ~all(cellfun(@isempty, curTaskChkVarsCond))
+                plotargin = {curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond};
+                ebcpSlides = genplotslides(ebplotfun, plotargin, cfg, caption);
+            end
+            %Error bar plot of singleton variables.
+            curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
+            if ~all(cellfun(@isempty, curTaskSngVars))
+                [hs, hnames] = sngplotebsingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
+                %Use cell type for further process.
+                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
+                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
+                cellfun(@(x, y) saveas(x, y, figfmt), ...
+                    hs, fullfile(curCondTaskFigDir, hnames))
+                cellfun(@delete, hs)
+                % Generate the markdown of current slide.
+                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
+                caption      = 'Development through ages';
+                ebsngSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+            end
+            %Error bar plot of singleton variables CP.
+            curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
+            if ~all(cellfun(@isempty, curTaskSngVarsCP))
+                [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
+                %Use cell type for further process.
+                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
+                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
+                cellfun(@(x, y) saveas(x, y, figfmt), ...
+                    hs, fullfile(curCondTaskFigDir, hnames))
+                cellfun(@delete, hs)
+                % Generate the markdown of current slide.
+                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
+                caption      = 'Development through ages';
+                ebsngcpSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+            end
+            %Error bar plot of special variables.
+            curTaskSpVars = strsplit(curTaskSettings.SpecialVars{:});
+            if ~all(cellfun(@isempty, curTaskSpVars))
+                [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSpVars);
+                %Use cell type for further process.
+                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
+                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
+                cellfun(@(x, y) saveas(x, y, figfmt), ...
+                    hs, fullfile(curCondTaskFigDir, hnames))
+                cellfun(@delete, hs)
+                % Generate the markdown of current slide.
+                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
+                caption      = 'Development through ages';
+                ebspSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+            end
+            curTaskCondSlidesData{icond} = strcat(bpSlide, newline, histSlides);
+        end %for icond
+        curTaskCondSlidesData = strjoin(curTaskCondSlidesData, newline);
+        curTaskSlideData = strcat(curTaskSlideData, newline, curTaskCondSlidesData);
+        curSectionSlideData{itask} = curTaskSlideData;
+        clearvars('-except', initialVarsTask{:});
+    end %for itask
+    SectionSlideData{isec} = strjoin(curSectionSlideData, newline);
+    clearvars('-except', initialVarsSec{:});
+end %for isec
+if cfg.slidegen
+    slidesdata = strjoin(cat(1, SectionTitles, SectionSlideData), newline);
+    slidesMarkdown = [metadata, newline, slidesdata];
     fprintf(fid, slidesMarkdown);
     fclose(fid);
 end
 rmpath(anafunpath);
-end
+end %Plots
 
 function cfg = chkconfig(cfg)
 %CHKCONFIG converts cfg into the standard configuration.
 
-fields = {'minsubs' 'outliermode' 'figfmt' 'slidegen'};
-dflts  = {     20     'extreme'    'jpg'     false  };
+fields = {'minsubs' 'outliermode' 'figfmt' 'slidegen' 'ext' 'task' 'cond' 'xlsdir' 'figdir'};
+dflts  = {     20     'extreme'    'jpeg'     true     ''     ''     ''      ''       ''   };
 for ifield = 1:length(fields)
     curfield = fields{ifield};
     if ~isfield(cfg, curfield) || isempty(cfg.(curfield))
         cfg.(curfield) = dflts{ifield};
     end
 end
-end
+end %chkconfig
 
-% function emstr = emphasis(str, flank)
-% %EMPHASIS generates pandoc bold string.
-% 
-% emstr = strcat(flank, str, flank);
-% end
+function h = setpaper(h)
+%SETPAPER sets paper properties for figure printing and saving.
 
-function imstr = putimage(figpath, caption)
+% Set the print parameters.
+h.PaperUnits    = 'centimeters';
+h.PaperSize     = [30, 25];
+normalpappos       = [0.1, 0.1, 0.8, 0.8];
+h.PaperPosition = repmat(h.PaperSize, 1, 2) .* normalpappos;
+end %setpaper
+
+function imstr = putimage(figfullname, caption)
 %PUTIMAGE generates a string of pandoc code to put image onto slide.
 
 global newline
-figpath = strconv(figpath);
+figfullname = strconv(figfullname);
 %two newlines are added posterior.
-imstr = ['![' caption '](' figpath ')' newline];
+imstr = sprintf('![%s](%s)%s', caption, figfullname, newline);
+end %putimage
+
+function slidesmd = genplotslides(plotfun, plotargin, cfg, caption)
+%GENPLOTSLIDES generates pandoc code for one single type of plots.
+
+global newline slidepre
+%Note use cell type to wrap all the figures for consistency.
+[hs, hnames] =  plotfun(plotargin{:});
+%Use cell type for further process.
+if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
+%Set the print parameters.
+hs = cellfun(@setpaper, hs, 'UniformOutput', false);
+%Save figures.
+figfullnames   = strcat(fullfile(cfg.figdir, hnames), cfg.ext);
+cellfun(@saveas, hs, figfullnames)
+cellfun(@delete, hs)
+% Generate the markdown of current slide.
+slidetitle   = sprintf('%s %s%s', slidepre, cfg.task, cfg.cond);
+slidecontent = cellfun(@(fp) putimage(fp, caption), cellstr(figfullnames), 'UniformOutput', false);
+slides       = strcat(slidetitle, newline, slidecontent);
+slidesmd     = strjoin(slides, newline);
 end
 
 function converted = strconv(origstr)
@@ -378,4 +465,4 @@ converted = origstr;
 for itrans = 1:length(orig)
     converted = strrep(converted, orig{itrans}, trans{itrans});
 end
-end
+end %strconv

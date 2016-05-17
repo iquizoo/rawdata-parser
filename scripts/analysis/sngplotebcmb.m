@@ -38,9 +38,13 @@ for ivarcat = 1:nVarCats
     curVarCat = chkVarsCat{ivarcat};
     curTblVars = strcat(TaskIDName, '_', curVarCat, delimiter, chkVarsCond);
     for ivarcond = 1:nVarCond
+        curCondTblVar = curTblVars{ivarcond};
         %Plot one instance of error bar, use 'sem' as the error.
-        errorbar(grpstats(tbl.(curTblVars{ivarcond}), tbl.grade), ...
-            grpstats(tbl.(curTblVars{ivarcond}), tbl.grade, 'sem'))
+        mns  = grpstats(tbl.(curCondTblVar), tbl.grade);
+        errs = grpstats(tbl.(curCondTblVar), tbl.grade, 'sem');
+        errorbar(mns, errs)
+        %Put text on the error bar to denote the means.
+        text(1:length(mns), mns, arrayfun(@(x) sprintf('%.3f', x), mns, 'UniformOutput', false));
         ylabel(ylabels{ivarcat})
         hold on
     end
