@@ -358,7 +358,7 @@ for isec = 1:nsections
         curSectionSlideData{itask} = curTaskSlideData;
         %Record the time used for each task.
         curTaskTimeUsed = toc - elapsedTime;
-        timeinfo.Time2Proc{ismember(tasks, curTaskIDName)} = seconds2human(curTaskTimeUsed, 'full');
+        timeinfo.Time2Plot{ismember(tasks, curTaskIDName)} = seconds2human(curTaskTimeUsed, 'full');
         clearvars('-except', initialVarsTask{:});
     end %for itask
     SectionSlideData{isec} = strjoin(curSectionSlideData, newline);
