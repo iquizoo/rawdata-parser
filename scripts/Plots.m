@@ -1,4 +1,4 @@
-function Plots(mrgdata, tasks, cfg)
+function timeinfo = Plots(mrgdata, tasks, cfg)
 %PLOTS does a batch job of plot all the figures.
 %   PLOTS(MRGDATA) plots all the figures specified in mrgdata,
 %   based on 'extreme' outlier mode, and output 'jpeg' formatted figures.
@@ -55,9 +55,8 @@ if isempty(tasks) %No task specified, then plots all the tasks specified in mrgd
     tasks = unique(regexp(taskVarsOfExperimentData, '^.*?(?=_)', 'match', 'once'));
 end
 %Use cellstr data type.
-if ischar(tasks)
-    tasks = {tasks};
-end
+tasks = cellstr(tasks);
+if isrow(tasks), tasks = tasks'; end
 locNotFound = ~ismember(tasks, settings.TaskName) & ~ismember(tasks, settings.TaskIDName);
 %Remove tasks that do not exist.
 if any(locNotFound)
@@ -94,6 +93,17 @@ nsections         = length(uniSectionNumbers);
 %Display information of begin processing.
 ntasks = length(tasks);
 fprintf('Will plot figures of %d tasks...\n', ntasks);
+%Use a waitbar to tell the processing information.
+hwb = waitbar(0, 'Begin plotting figures of the tasks specified by users...Please wait...', ...
+    'Name', 'Plotting merged data of CCDPro',...
+    'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+setappdata(hwb, 'canceling', 0)
+nprocessed = 0;
+nignored = 0;
+plottime = cellstr(repmat('TBE', ntasks, 1));
+timeinfo =  table;
+timeinfo.TaskIDName = tasks;
+timeinfo.Time2Plot  = plottime;
 %The pandoc slides markdown string generator and output file setting.
 fid = fopen('Beijing Brain Project.pmd', 'w', 'n', 'UTF-8');
 %Basic signs used in markdown.
@@ -107,12 +117,13 @@ Authors  = strconv('% Zhang Liang; Peng Maomiao; Wu Xiaomeng');
 Date     = strconv(['% ', date]);
 metadata = strjoin({Title, Authors, Date}, newline);
 %Initiate section data.
-SectionTitles    = cell(1, nsections);
-SectionSlideData = cell(1, nsections);
+SectionTitles    = repmat(cellstr(''), 1, nsections);
+SectionSlideData = repmat(cellstr(''), 1, nsections);
 %% Plotting.
 %Section-wise checking.
 for isec = 1:nsections
     initialVarsSec = who;
+    tic
     %Set section titles.
     curSecNum = uniSectionNumbers(isec);
     curSecName = uniSectionNames{isec};
@@ -121,35 +132,42 @@ for isec = 1:nsections
     curSecTasks = tasks(sectionNumers == curSecNum);
     curSecOrigTasks = origtasks(sectionNumers == curSecNum);
     ncursectasks = length(curSecTasks);
-    curSectionSlideData = cell(1, ncursectasks);
-    %Use lastexcept as an indicator of exception in last task.
-    lastExcept = false;
-    latestPrint = '';
+    curSectionSlideData = repmat(cellstr(''), 1, ncursectasks);
     for itask = 1:ncursectasks
         initialVarsTask = who;
-        close all
+        % Check for Cancel button press
+        if getappdata(hwb, 'canceling')
+            fprintf('%d plotting task(s) completed this time. User canceled...\n', nprocessed);
+            break
+        end
         curTaskIDName = curSecTasks{itask};
         cfg.task = curTaskIDName;
         origTaskName = curSecOrigTasks{itask};
         %For each task, there are following part.
         %   metadata bar3, outliers boxplot of each condition, development
-        %   errorbar of each condition (main), histo
+        %   errorbar of each condition (main), histograms.
         curTaskSlideData = sprintf('%s %s', subsecpre, curTaskIDName);
-        %% Display information of plotting.
-        %Delete last line without exception.
-        if ~lastExcept
-            fprintf(repmat('\b', 1, length(latestPrint)))
+        %% Update waitbar.
+        %Get the proportion of completion and the estimated time of arrival.
+        completePercent = nprocessed / (ntasks - nignored);
+        if itask == 1 && isec == 1
+            msgSuff = 'Please wait...';
+            elapsedTime = 0;
+        else
+            elapsedTime = toc;
+            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+            msgSuff = strcat('TimeRem:', eta);
         end
-        %Get the ordinal string.
-        ordStr = num2ord(itask);
-        latestPrint = sprintf('Now plot figures of the %s task %s(%s).\n', ordStr, origTaskName, curTaskIDName);
-        fprintf(latestPrint);
-        lastExcept = false;
+        %Update message in the waitbar.
+        msg = sprintf('Task: %s. %s', curTaskIDName, msgSuff);
+        waitbar(completePercent, hwb, msg);
+        %Unpdate processed tasks number.
+        nprocessed = nprocessed + 1;
         %% Get the settings of current task.
         curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
         if isempty(curTaskSettings)
             fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
-            lastExcept = true;
+            nignored = nignored + 1;
             continue
         elseif height(curTaskSettings) > 1
             curTaskSettings = curTaskSettings(1, :);
@@ -160,7 +178,7 @@ for isec = 1:nsections
             regexp(allMrgDataVars, ['^', curTaskSettings.TaskIDName{:}, '(?=_)'], 'start', 'once'));
         if ~any(curTaskLoc)
             fprintf('No experiment data result found for current task. Aborting...\n')
-            lastExcept = true;
+            nignored = nignored + 1;
             continue
         end
         curTaskMetaData = taskMetaData;
@@ -200,7 +218,6 @@ for isec = 1:nsections
         minorLoc = despStats.Count < cfg.minsubs;
         shadyEntryInd = find(minorLoc);
         if ~isempty(shadyEntryInd)
-            lastExcept = true;
             curTaskMinorRowRemoved = ismember(curTaskMetaData.school, despStats.School(shadyEntryInd)) ...
                 & ismember(curTaskMetaData.grade, despStats.Grade(shadyEntryInd));
             curTaskMetaData(curTaskMinorRowRemoved, :) = [];
@@ -208,19 +225,10 @@ for isec = 1:nsections
             curTaskExpData(curTaskMinorRowRemoved, :) = [];
         end
         % Output bar figure (report the summary of data collection).
-        hbar = figure;
-        hbar.Visible = 'off';
-        % Set the print parameters.
-        hbar = setpaper(hbar);
-        % Plotting.
-        sngplotmetabar(curTaskMetaDataOfInterest)
-        barname = fullfile(curTaskFigDir, 'Bar plot to show metadata');
-        saveas(hbar, barname, figfmt)
-        delete(hbar)
-        % Generate the markdown of current slide.
-        barfigpath       = strcat(barname, ext);
         barcaption       = 'Data collection summary';
-        metadataSlide    = genplotslides(curTaskIDName, barfigpath, barcaption);
+        plotargin  = {curTaskMetaDataOfInterest};
+        plotfun    = @sngplotmetabar;
+        metadataSlide = genplotslides(plotfun, plotargin, barcaption, cfg);
         curTaskSlideData = strcat(curTaskSlideData, newline, metadataSlide);
         %% Condition-wise plotting.
         curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
@@ -254,7 +262,6 @@ for isec = 1:nsections
                     curTaskVarsOfExperimentData, 'UniformOutput', false)));
                 curCondTaskExpData.Properties.VariableNames = ...
                     regexprep(curCondTaskExpData.Properties.VariableNames, [curTaskDelimiterMC, curMrgCond, '$'], '');
-                curMrgCond = strcat('-', curMrgCond, {' condition'});
             end
             curCondTaskData                 = [curTaskMetaData, curCondTaskExpData];
             curCondTaskVarsOfExperimentData = curCondTaskExpData.Properties.VariableNames;
@@ -272,20 +279,7 @@ for isec = 1:nsections
             bpcaption = 'Outliers information';
             plotargin = {curCondTaskData, curTaskIDName, chkVar, outliermode};
             plotfun   = @sngplotbox;
-            bpSlide   = genplotslides(plotfun, plotargin, cfg, bpcaption);
-%             hbp = figure;
-%             hbp.Visible = 'off';
-%             % Set the print parameters.
-%             hbp = setpaper(hbp);
-%             sngplotbox(curCondTaskData, curTaskIDName, chkVar, outliermode)
-%             bpname = fullfile(curCondTaskFigDir, ...
-%                 ['Box plot of ', strrep(chkVar, '_', ' '), ' through all grades']);
-%             saveas(hbp, bpname, figfmt)
-%             delete(hbp)
-%             % Generate the markdown of current slide.
-%             bpfigpath = strcat(bpname, ext);
-%             bpcaption = 'Outliers information';
-%             bpSlide   = genplotslides(curTaskIDName, bpfigpath, bpcaption, curMrgCond);
+            bpSlide   = genplotslides(plotfun, plotargin, bpcaption, cfg);
             %% Distribution of all variables and grades.
             %Remove outliers and plot histograms.
             grades = cellstr(unique(curTaskMetaData.grade));
@@ -299,20 +293,7 @@ for isec = 1:nsections
             caption    = 'Histogram to show distribution';
             plotargin  = {curCondTaskData, curTaskIDName};
             plotfun    = @sngplothist;
-            histSlides = genplotslides(plotfun, plotargin, cfg, caption);
-%             %Note use cell type to wrap all the figures for consistency.
-%             [hs, hnames] =  sngplothist(curCondTaskData, curTaskIDName);
-%             %Use cell type for further process.
-%             if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
-%             % Set the print parameters.
-%             hs = cellfun(@setpaper, hs, 'UniformOutput', false);
-%             cellfun(@(x, y) saveas(x, y, figfmt), ...
-%                 hs, fullfile(curCondTaskFigDir, hnames))
-%             cellfun(@delete, hs)
-%             % Generate the markdown of current slide.
-%             figpaths   = strcat(fullfile(curCondTaskFigDir, hnames), ext);
-%             
-%             histSlides = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+            histSlides = genplotslides(plotfun, plotargin, caption, cfg);
             %% Write a table about descriptive statistics of different ages.
             agingDespStats = grpstats(curCondTaskData, 'grade', {'mean', 'std'}, ...
                 'DataVars', curCondTaskVarsOfExperimentData);
@@ -324,9 +305,9 @@ for isec = 1:nsections
             %Errorbar plot CP.
             cmbTasks = {'AssocMemory', 'SemanticMemory'};
             if ismember(curTaskIDName, cmbTasks)
-                ebplotfun = @sngplotebcmb;
+                plotfun = @sngplotebcmb;
             else
-                ebplotfun = @sngplotebmult;
+                plotfun = @sngplotebmult;
             end
             curTaskChkVarsCat = strsplit(curTaskSettings.VarsCat{:});
             curTaskChkVarsCond = strsplit(curTaskSettings.VarsCond{:});
@@ -335,60 +316,49 @@ for isec = 1:nsections
             else
                 curTaskDelimiter = '_';
             end
+            ebcpSlides = '';
             if ~all(cellfun(@isempty, curTaskChkVarsCat)) || ~all(cellfun(@isempty, curTaskChkVarsCond))
-                plotargin = {curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond};
-                ebcpSlides = genplotslides(ebplotfun, plotargin, cfg, caption);
+                plotargin    = {curCondTaskData, curTaskIDName, curTaskChkVarsCat, curTaskDelimiter, curTaskChkVarsCond};
+                ebcpSlides   = genplotslides(plotfun, plotargin, caption, cfg);
             end
             %Error bar plot of singleton variables.
             curTaskSngVars = strsplit(curTaskSettings.SingletonVars{:});
+            ebsngSlides    = '';
             if ~all(cellfun(@isempty, curTaskSngVars))
-                [hs, hnames] = sngplotebsingleton(curCondTaskData, curTaskIDName, curTaskSngVars);
-                %Use cell type for further process.
-                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
-                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
-                cellfun(@(x, y) saveas(x, y, figfmt), ...
-                    hs, fullfile(curCondTaskFigDir, hnames))
-                cellfun(@delete, hs)
-                % Generate the markdown of current slide.
-                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
-                caption      = 'Development through ages';
-                ebsngSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+                plotfun      = @sngplotebsingleton;
+                plotargin    = {curCondTaskData, curTaskIDName, curTaskSngVars};
+                ebsngSlides  = genplotslides(plotfun, plotargin, caption, cfg);
             end
             %Error bar plot of singleton variables CP.
             curTaskSngVarsCP = strsplit(curTaskSettings.SingletonVarsCP{:});
+            ebsngcpSlides    = '';
             if ~all(cellfun(@isempty, curTaskSngVarsCP))
-                [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSngVarsCP);
-                %Use cell type for further process.
-                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
-                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
-                cellfun(@(x, y) saveas(x, y, figfmt), ...
-                    hs, fullfile(curCondTaskFigDir, hnames))
-                cellfun(@delete, hs)
-                % Generate the markdown of current slide.
-                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
-                caption      = 'Development through ages';
-                ebsngcpSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+                plotfun       = @sngplotebmult;
+                plotargin     = {curCondTaskData, curTaskIDName, curTaskSngVarsCP};
+                ebsngcpSlides = genplotslides(plotfun, plotargin, caption, cfg);
             end
             %Error bar plot of special variables.
             curTaskSpVars = strsplit(curTaskSettings.SpecialVars{:});
+            ebspSlides    = '';
             if ~all(cellfun(@isempty, curTaskSpVars))
-                [hs, hnames] = sngplotebmult(curCondTaskData, curTaskIDName, curTaskSpVars);
-                %Use cell type for further process.
-                if ~iscell(hs), hs = num2cell(hs); hnames = cellstr(hnames); end
-                hs = cellfun(@setpaper, hs, 'UniformOutput', false);
-                cellfun(@(x, y) saveas(x, y, figfmt), ...
-                    hs, fullfile(curCondTaskFigDir, hnames))
-                cellfun(@delete, hs)
-                % Generate the markdown of current slide.
-                figpaths     = strcat(fullfile(curCondTaskFigDir, hnames), ext);
-                caption      = 'Development through ages';
-                ebspSlides   = genplotslides(curTaskIDName, figpaths, caption, curMrgCond);
+                plotfun       = @sngplotebmult;
+                plotargin     = {curCondTaskData, curTaskIDName, curTaskSpVars};
+                ebspSlides    = genplotslides(plotfun, plotargin, caption, cfg);
             end
-            curTaskCondSlidesData{icond} = strcat(bpSlide, newline, histSlides);
+            curTaskCondSlidesData{icond} = strcat(...
+                bpSlide, newline, ...
+                ebcpSlides, newline, ...
+                ebsngSlides, newline, ...
+                ebsngcpSlides, newline, ...
+                ebspSlides, newline, ...
+                histSlides);
         end %for icond
         curTaskCondSlidesData = strjoin(curTaskCondSlidesData, newline);
         curTaskSlideData = strcat(curTaskSlideData, newline, curTaskCondSlidesData);
         curSectionSlideData{itask} = curTaskSlideData;
+        %Record the time used for each task.
+        curTaskTimeUsed = toc - elapsedTime;
+        timeinfo.Time2Proc{ismember(tasks, curTaskIDName)} = seconds2human(curTaskTimeUsed, 'full');
         clearvars('-except', initialVarsTask{:});
     end %for itask
     SectionSlideData{isec} = strjoin(curSectionSlideData, newline);
@@ -400,6 +370,12 @@ if cfg.slidegen
     fprintf(fid, slidesMarkdown);
     fclose(fid);
 end
+%Display information of completion.
+usedTimeSecs = toc;
+usedTimeHuman = seconds2human(usedTimeSecs, 'full');
+fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
+fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
+delete(hwb);
 rmpath(anafunpath);
 end %Plots
 
@@ -435,7 +411,7 @@ figfullname = strconv(figfullname);
 imstr = sprintf('![%s](%s)%s', caption, figfullname, newline);
 end %putimage
 
-function slidesmd = genplotslides(plotfun, plotargin, cfg, caption)
+function slidesmd = genplotslides(plotfun, plotargin, caption, cfg)
 %GENPLOTSLIDES generates pandoc code for one single type of plots.
 
 global newline slidepre
@@ -450,6 +426,9 @@ figfullnames   = strcat(fullfile(cfg.figdir, hnames), cfg.ext);
 cellfun(@saveas, hs, figfullnames)
 cellfun(@delete, hs)
 % Generate the markdown of current slide.
+if ~isempty(cfg.cond)
+    cfg.cond = ['-', cfg.cond];
+end
 slidetitle   = sprintf('%s %s%s', slidepre, cfg.task, cfg.cond);
 slidecontent = cellfun(@(fp) putimage(fp, caption), cellstr(figfullnames), 'UniformOutput', false);
 slides       = strcat(slidetitle, newline, slidecontent);

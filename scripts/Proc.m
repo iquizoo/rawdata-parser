@@ -61,7 +61,7 @@ for itask = 1:ntasks4process
     initialVarsTask = who;
     % Check for Cancel button press
     if getappdata(hwb, 'canceling')
-        fprintf('%d preprocessing task(s) completed this time. User canceled...\n', nprocessed);
+        fprintf('%d processing task(s) completed this time. User canceled...\n', nprocessed);
         break
     end
     %% In loop initialzation tasks.

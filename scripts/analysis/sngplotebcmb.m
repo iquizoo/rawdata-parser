@@ -44,7 +44,7 @@ for ivarcat = 1:nVarCats
         errs = grpstats(tbl.(curCondTblVar), tbl.grade, 'sem');
         errorbar(mns, errs)
         %Put text on the error bar to denote the means.
-        text(1:length(mns), mns, arrayfun(@(x) sprintf('%.3f', x), mns, 'UniformOutput', false));
+        text(1:length(mns), mns, arrayfun(@(x) sprintf('%.2f', x), mns, 'UniformOutput', false));
         ylabel(ylabels{ivarcat})
         hold on
     end
