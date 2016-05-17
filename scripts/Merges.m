@@ -9,6 +9,7 @@ function mrgdata = Merges(resdata)
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
+schIDMap = containers.Map(schInfo.SchoolIDName, schInfo.SID);
 %Set the grade information.
 grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
@@ -88,6 +89,12 @@ for iusr = 1:nusr
 end
 dataMergeMetadata(isnan(dataMergeMetadata.userId), :) = [];
 mrgdata = dataMergeMetadata; %Metadata done!
+%Change the subjects order according the order of school in schInfo.
+mrgdata.ID = nan(height(mrgdata), 1);
+definedSchRowsIdx = ~isundefined(mrgdata.school);
+mrgdata.ID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
+mrgdata = sortrows(mrgdata, 'ID');
+mrgdata.ID = [];
 %Get the experimental data.
 resdata.TaskIDName = categorical(resdata.TaskIDName);
 tasks = unique(resdata.TaskIDName, 'stable');
