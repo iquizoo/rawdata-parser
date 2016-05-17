@@ -21,13 +21,7 @@ logfid = fopen('readlog(AutoGen).log', 'w');
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Remove rows without any data.
-rmRows = cellfun(@isempty, dataExtract.Data);
-if any(rmRows)
-    fprintf('No data found in these tasks, will remove them,..\n');
-    rmTasks = dataExtract.TaskName(rmRows);
-    disp(strcat(rmTasks, '(', values(taskIDNameMap, rmTasks, ')')));
-    dataExtract(rmRows, :) = [];
-end
+dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 %Display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
 %When constructing table, only cell string is allowed.
@@ -47,7 +41,7 @@ if isequal(taskRange, (1:ntasks)')
 end
 ntasks4process = length(taskRange);
 %Add a field to record time used to process in each task.
-dataExtract.Time2Proc = cellstr(repmat('TBE', ntasks4process, 1));
+dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
 %% Task-wise computation.
 %Use a waitbar to tell the processing information.
 hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
@@ -61,7 +55,7 @@ for itask = 1:ntasks4process
     initialVarsTask = who;
     % Check for Cancel button press
     if getappdata(hwb, 'canceling')
-        fprintf('%d processing task(s) completed this time. User canceled...\n', nprocessed);
+        fprintf('%d basic analysis task(s) completed this time. User canceled...\n', nprocessed);
         break
     end
     %% In loop initialzation tasks.
@@ -151,7 +145,7 @@ resdata(cellfun(@(tbl) ~ismember('res', tbl.Properties.VariableNames), resdata.D
 %Display information of completion.
 usedTimeSecs = toc;
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
-fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
+fprintf('Congratulations! %d basic analysis task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
 delete(hwb);

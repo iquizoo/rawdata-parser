@@ -62,7 +62,7 @@ TaskName = settings.TaskName(ismember(settings.TaskName, shtname));
 ntasks4process = length(TaskName);
 TaskIDName = cell(ntasks4process, 1);
 Data = cell(ntasks4process, 1);
-Time2Preproc = cellstr(repmat('TBE', ntasks4process, 1));
+Time2Preproc = repmat(cellstr('TBE'), ntasks4process, 1);
 %Preallocating.
 dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.

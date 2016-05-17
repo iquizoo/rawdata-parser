@@ -100,7 +100,7 @@ hwb = waitbar(0, 'Begin plotting figures of the tasks specified by users...Pleas
 setappdata(hwb, 'canceling', 0)
 nprocessed = 0;
 nignored = 0;
-plottime = cellstr(repmat('TBE', ntasks, 1));
+plottime = repmat(cellstr('TBE'), ntasks, 1);
 timeinfo =  table;
 timeinfo.TaskIDName = tasks;
 timeinfo.Time2Plot  = plottime;
@@ -342,8 +342,22 @@ for isec = 1:nsections
             ebspSlides    = '';
             if ~all(cellfun(@isempty, curTaskSpVars))
                 plotfun       = @sngplotebmult;
-                plotargin     = {curCondTaskData, curTaskIDName, curTaskSpVars};
-                ebspSlides    = genplotslides(plotfun, plotargin, caption, cfg);
+                nspvar = length(curTaskSpVars);
+                if nspvar <= 3
+                    plotargin     = {curCondTaskData, curTaskIDName, curTaskSpVars};
+                    ebspSlides    = genplotslides(plotfun, plotargin, caption, cfg);
+                else
+                    startidx = 1:3:nspvar;
+                    endidx   = arrayfun(@(x) min(x, nspvar), startidx + 2);
+                    nplot    = length(startidx);
+                    ebspSlides = repmat(cellstr(''), 1, nplot);
+                    for iplot = 1:nplot
+                        curPlotSpVars     = curTaskSpVars(startidx(iplot):endidx(iplot));
+                        curplotargin      = {curCondTaskData, curTaskIDName, curPlotSpVars};
+                        ebspSlides{iplot} = genplotslides(plotfun, curplotargin, caption, cfg);
+                    end
+                    ebspSlides = strjoin(ebspSlides, newline);
+                end
             end
             curTaskCondSlidesData{icond} = strcat(...
                 bpSlide, newline, ...
@@ -373,7 +387,7 @@ end
 %Display information of completion.
 usedTimeSecs = toc;
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
-fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
+fprintf('Congratulations! %d plotting task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 delete(hwb);
 rmpath(anafunpath);

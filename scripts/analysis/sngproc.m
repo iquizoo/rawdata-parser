@@ -82,13 +82,13 @@ else
             %left -> 1, right -> 2.
             RECORD = mapSCat(RECORD, taskSTIMMap);
             %Get the total used time (unit: min).
-            TotalTime = sum(RECORD.RT) / (1000 * 60);
+            TotalTime = sum(RECORD.RT);
         case {'SpeedAdd', 'SpeedSubtract', ...%Math tasks
                 }
             %All the trials require response.
             RECORD.SCat = ones(height(RECORD), 1);
             %Get the total used time (unit: min).
-            TotalTime = sum(RECORD.RT) / (1000 * 60);
+            TotalTime = sum(RECORD.RT);
         case {'SRT', 'CRT'}
             %All the trials require response.
             RECORD.SCat = ones(height(RECORD), 1);
@@ -163,7 +163,7 @@ if ismember('ACC', RECORD.Properties.VariableNames)
         if ~exist('TotalTime', 'var') %TotalTime is unknown!
             spres.MeanScore = nan;
         else
-            spres.MeanScore = TotalScore / TotalTime;
+            spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
         end
     end
 end
