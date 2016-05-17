@@ -123,7 +123,6 @@ SectionSlideData = repmat(cellstr(''), 1, nsections);
 %Section-wise checking.
 for isec = 1:nsections
     initialVarsSec = who;
-    tic
     %Set section titles.
     curSecNum = uniSectionNumbers(isec);
     curSecName = uniSectionNames{isec};
@@ -150,7 +149,8 @@ for isec = 1:nsections
         %% Update waitbar.
         %Get the proportion of completion and the estimated time of arrival.
         completePercent = nprocessed / (ntasks - nignored);
-        if itask == 1 && isec == 1
+        if nprocessed == 0
+            tic
             msgSuff = 'Please wait...';
             elapsedTime = 0;
         else

@@ -96,7 +96,7 @@ for itask = 1:ntasks4process
     end
     %Get the proportion of completion and the estimated time of arrival.
     completePercent = nprocessed / (ntasks4process - nignored);
-    if itask == 1
+    if nprocessed == 0
         tic
         msgSuff = 'Please wait...';
         elapsedTime = 0;
