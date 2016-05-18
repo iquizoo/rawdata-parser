@@ -1,4 +1,4 @@
-function timeinfo = Plots(mrgdata, tasks, cfg)
+function timeinfo = Plots(mrgdata, tasks, cfg, db)
 %PLOTS does a batch job of plot all the figures.
 %   PLOTS(MRGDATA) plots all the figures specified in mrgdata,
 %   based on 'extreme' outlier mode, and output 'jpeg' formatted figures.
@@ -41,16 +41,18 @@ taskVarsOfExperimentData = allMrgDataVars(~ismember(allMrgDataVars, taskVarsOfMe
 taskMetaData = mrgdata(:, ismember(allMrgDataVars, taskVarsOfMetaData));
 %% Checking inputs and parameters.
 %Check input arguments.
-if nargin <= 1
+if nargin < 2
     tasks = [];
 end
-if nargin <= 2
+if nargin < 3
     cfg = [];
+end
+if nargin < 4
+    db = false; %Debug mode.
 end
 %Check configuration.
 cfg         = chkconfig(cfg);
 cfg.ext     = figfmtextmap(cfg.figfmt);
-outliermode = cfg.outliermode;
 if isempty(tasks) %No task specified, then plots all the tasks specified in mrgdata.
     tasks = unique(regexp(taskVarsOfExperimentData, '^.*?(?=_)', 'match', 'once'));
 end
@@ -101,10 +103,12 @@ nsections         = length(uniSectionNumbers);
 ntasks = length(tasks);
 fprintf('Will plot figures of %d tasks...\n', ntasks);
 %Use a waitbar to tell the processing information.
-hwb = waitbar(0, 'Begin plotting figures of the tasks specified by users...Please wait...', ...
-    'Name', 'Plotting merged data of CCDPro',...
-    'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
-setappdata(hwb, 'canceling', 0)
+if ~db
+    hwb = waitbar(0, 'Begin plotting figures of the tasks specified by users...Please wait...', ...
+        'Name', 'Plotting merged data of CCDPro',...
+        'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+    setappdata(hwb, 'canceling', 0)
+end
 nprocessed = 0;
 nignored = 0;
 plottime = repmat(cellstr('TBE'), size(tasks));
@@ -143,18 +147,30 @@ for isec = 1:nsections
     curSectionSlideData = repmat(cellstr(''), 1, ncursectasks);
     for itask = 1:ncursectasks
         initialVarsTask = who;
-        % Check for Cancel button press
-        if getappdata(hwb, 'canceling')
-            fprintf('%d plotting task(s) completed this time. User canceled...\n', nprocessed);
-            break
-        end
         curTaskIDName = curSecTasks{itask};
         cfg.task = curTaskIDName;
         origTaskName = curSecOrigTasks{itask};
-        %For each task, there are following part.
-        %   metadata bar3, outliers boxplot of each condition, development
-        %   errorbar of each condition (main), histograms.
-        curTaskSlideData = sprintf('%s %s', subsecpre, curTaskIDName);
+        %% Update waitbar.
+        if ~db
+            % Check for Cancel button press
+            if getappdata(hwb, 'canceling')
+                fprintf('%d plotting task(s) completed this time. User canceled...\n', nprocessed);
+                break
+            end
+            %Get the proportion of completion and the estimated time of arrival.
+            completePercent = nprocessed / (ntasks - nignored);
+            if nprocessed == 0
+                msgSuff = 'Please wait...';
+                elapsedTime = 0;
+            else
+                elapsedTime = toc;
+                eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+                msgSuff = strcat('TimeRem:', eta);
+            end
+            %Update message in the waitbar.
+            msg = sprintf('Task: %s. %s', curTaskIDName, msgSuff);
+            waitbar(completePercent, hwb, msg);
+        end
         %% Get the settings of current task.
         curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
         if isempty(curTaskSettings)
@@ -164,20 +180,6 @@ for isec = 1:nsections
         elseif height(curTaskSettings) > 1
             curTaskSettings = curTaskSettings(1, :);
         end
-        %% Update waitbar.
-        %Get the proportion of completion and the estimated time of arrival.
-        completePercent = nprocessed / (ntasks - nignored);
-        if nprocessed == 0
-            msgSuff = 'Please wait...';
-            elapsedTime = 0;
-        else
-            elapsedTime = toc;
-            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
-            msgSuff = strcat('TimeRem:', eta);
-        end
-        %Update message in the waitbar.
-        msg = sprintf('Task: %s. %s', curTaskIDName, msgSuff);
-        waitbar(completePercent, hwb, msg);
         %Unpdate processed tasks number.
         nprocessed = nprocessed + 1;
         %% Get the data of current task.
@@ -237,7 +239,6 @@ for isec = 1:nsections
         plotargin  = {curTaskMetaDataOfInterest};
         plotfun    = @sngplotmetabar;
         metadataSlide = genplotslides(plotfun, plotargin, barcaption, cfg);
-        curTaskSlideData = strcat(curTaskSlideData, newline, metadataSlide);
         %% Condition-wise plotting.
         curTaskMrgConds = strsplit(curTaskSettings.MergeCond{:});
         if all(cellfun(@isempty, curTaskMrgConds))
@@ -278,14 +279,14 @@ for isec = 1:nsections
             % Output Excel.
             chkTblVar = strcat(curTaskIDName, '_', chkVar);
             chkOutlierOutVars = 'Outliers';
-            curTaskOutlier = grpstats(curCondTaskData, 'grade', @(x)coutlier(x, outliermode), ...
+            curTaskOutlier = grpstats(curCondTaskData, 'grade', @(x)coutlier(x, cfg.outliermode), ...
                 'DataVars', chkTblVar, ...
                 'VarNames', {'Grade', 'Total', chkOutlierOutVars});
             writetable(curTaskOutlier, ...
                 fullfile(curCondTaskXlsDir, 'Counting of outliers of each grade.xlsx'));
             % Output boxplot figure.
             bpcaption = 'Outliers information';
-            plotargin = {curCondTaskData, curTaskIDName, chkVar, outliermode};
+            plotargin = {curCondTaskData, curTaskIDName, chkVar, cfg.outliermode};
             plotfun   = @sngplotbox;
             bpSlide   = genplotslides(plotfun, plotargin, bpcaption, cfg);
             %% Distribution of all variables and grades.
@@ -375,8 +376,13 @@ for isec = 1:nsections
                 ebspSlides, newline, ...
                 histSlides);
         end %for icond
+        %For each task, there are following part.
+        %   metadata bar3, outliers boxplot of each condition, development
+        %   errorbar of each condition (main), histograms.
         curTaskCondSlidesData = strjoin(curTaskCondSlidesData, newline);
-        curTaskSlideData = strcat(curTaskSlideData, newline, curTaskCondSlidesData);
+        curTaskSlideData = strcat(sprintf('%s %s', subsecpre, curTaskIDName), newline, ... %Task Title
+            metadataSlide, newline, ... %Data collection.
+            curTaskCondSlidesData);
         curSectionSlideData{itask} = curTaskSlideData;
         %Record the time used for each task.
         curTaskTimeUsed = toc - elapsedTime;

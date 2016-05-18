@@ -1,4 +1,4 @@
-function resdata = Proc(dataExtract, tasks)
+function resdata = Proc(dataExtract, tasks, db)
 %PROC Does some basic computation on data.
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
@@ -11,6 +11,9 @@ function resdata = Proc(dataExtract, tasks)
 % Checking input arguments.
 if nargin < 2
     tasks = dataExtract.TaskName;
+end
+if nargin < 3
+    db = false; %Debug mode.
 end
 %Folder contains all the analysis functions.
 anafunpath = 'analysis';
@@ -46,10 +49,12 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
 dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
 %% Task-wise computation.
 %Use a waitbar to tell the processing information.
-hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
-    'Name', 'Process the data extracted of CCDPro',...
-    'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
-setappdata(hwb, 'canceling', 0)
+if ~db
+    hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
+        'Name', 'Process the data extracted of CCDPro',...
+        'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+    setappdata(hwb, 'canceling', 0)
+end
 nprocessed = 0;
 nignored = 0;
 %Start stopwatch.
@@ -57,11 +62,6 @@ tic
 %Begin computing.
 for itask = 1:ntasks4process
     initialVarsTask = who;
-    % Check for Cancel button press
-    if getappdata(hwb, 'canceling')
-        fprintf('%d basic analysis task(s) completed this time. User canceled...\n', nprocessed);
-        break
-    end
     %% In loop initialzation tasks.
     curTaskData = dataExtract.Data{taskRange(itask)};
     curTaskName = dataExtract.TaskName{taskRange(itask)};
@@ -72,19 +72,26 @@ for itask = 1:ntasks4process
     %Merge conditions. Useful when merging data.
     mrgCond = strsplit(curTaskSetting.MergeCond{:});
     %% Update waitbar.
-    %Get the proportion of completion and the estimated time of arrival.
-    completePercent = nprocessed / (ntasks4process - nignored);
-    if nprocessed == 0
-        msgSuff = 'Please wait...';
-        elapsedTime = 0;
-    else
-        elapsedTime = toc;
-        eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
-        msgSuff = strcat('TimeRem:', eta);
+    if ~db
+        % Check for Cancel button press
+        if getappdata(hwb, 'canceling')
+            fprintf('%d basic analysis task(s) completed this time. User canceled...\n', nprocessed);
+            break
+        end
+        %Get the proportion of completion and the estimated time of arrival.
+        completePercent = nprocessed / (ntasks4process - nignored);
+        if nprocessed == 0
+            msgSuff = 'Please wait...';
+            elapsedTime = 0;
+        else
+            elapsedTime = toc;
+            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+            msgSuff = strcat('TimeRem:', eta);
+        end
+        %Update message in the waitbar.
+        msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
+        waitbar(completePercent, hwb, msg);
     end
-    %Update message in the waitbar.
-    msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
-    waitbar(completePercent, hwb, msg);
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
     %% Analysis for every subject.
@@ -151,5 +158,5 @@ usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 fprintf('Congratulations! %d basic analysis task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
-delete(hwb);
+if ~db, delete(hwb); end
 rmpath(anafunpath);

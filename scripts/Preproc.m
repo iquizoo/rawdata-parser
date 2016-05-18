@@ -1,4 +1,4 @@
-function dataExtract = Preproc(fname, shtname)
+function dataExtract = Preproc(fname, shtname, db)
 %PREPROC is used for processing raw data of CCDPro.
 %   Raw data are originally stored in an Excel file. Input argument named
 %   SHTNAME is short of sheet name.
@@ -9,6 +9,7 @@ function dataExtract = Preproc(fname, shtname)
 %By Zhang, Liang. 2015/11/27.
 %Modified to use in another problem.
 %Modification completed at 2016/04/13.
+
 
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
@@ -22,6 +23,9 @@ taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
 %Check input variables. Some basic checking for shtname variable.
+if nargin < 3
+    db = false; %Debug mode.
+end
 if nargin < 2
     shtname = sheets';
 end
@@ -69,10 +73,12 @@ dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
     ntasks4process);
 %Use a waitbar to tell the processing information.
-hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
-    'Name', 'Preprocess raw data of CCDPro',...
-    'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
-setappdata(hwb, 'canceling', 0)
+if ~db
+    hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
+        'Name', 'Preprocess raw data of CCDPro',...
+        'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+    setappdata(hwb, 'canceling', 0)
+end
 nprocessed = 0;
 nignored = 0;
 %Start stopwatch.
@@ -80,14 +86,28 @@ tic
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
-    % Check for Cancel button press
-    if getappdata(hwb, 'canceling')
-        fprintf('User canceled...\n');
-        break
+    curTaskName = TaskName{itask};
+    if ~db
+        % Check for Cancel button press.
+        if getappdata(hwb, 'canceling')
+            fprintf('User canceled...\n');
+            break
+        end
+        %Get the proportion of completion and the estimated time of arrival.
+        completePercent = nprocessed / (ntasks4process - nignored);
+        if nprocessed == 0
+            msgSuff = 'Please wait...';
+            elapsedTime = 0;
+        else
+            elapsedTime = toc;
+            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+            msgSuff = strcat('TimeRem:', eta);
+        end
+        %Update message in the waitbar.
+        msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
+        waitbar(completePercent, hwb, msg);
     end
     %Find out the setting of current task.
-    curTaskName = TaskName{itask};
-    %Get the setting of current task.
     locset = ismember(settings.TaskName, curTaskName);
     if ~any(locset)
         fprintf(logfid, ...
@@ -96,19 +116,6 @@ for itask = 1:ntasks4process
         nignored = nignored + 1;
         continue
     end
-    %Get the proportion of completion and the estimated time of arrival.
-    completePercent = nprocessed / (ntasks4process - nignored);
-    if nprocessed == 0
-        msgSuff = 'Please wait...';
-        elapsedTime = 0;
-    else
-        elapsedTime = toc;
-        eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
-        msgSuff = strcat('TimeRem:', eta);
-    end
-    %Update message in the waitbar.
-    msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
-    waitbar(completePercent, hwb, msg);
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
     %Read in all the information from the specified file.
