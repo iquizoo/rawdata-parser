@@ -66,7 +66,7 @@ Time2Preproc = repmat(cellstr('TBE'), ntasks4process, 1);
 %Preallocating.
 dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.
-fprintf('Here it goes! This time, the total jobs are composed of %d tasks, though some may fail...\n', ...
+fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
     ntasks4process);
 %Use a waitbar to tell the processing information.
 hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
@@ -75,6 +75,8 @@ hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...
 setappdata(hwb, 'canceling', 0)
 nprocessed = 0;
 nignored = 0;
+%Start stopwatch.
+tic
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
@@ -97,7 +99,6 @@ for itask = 1:ntasks4process
     %Get the proportion of completion and the estimated time of arrival.
     completePercent = nprocessed / (ntasks4process - nignored);
     if nprocessed == 0
-        tic
         msgSuff = 'Please wait...';
         elapsedTime = 0;
     else

@@ -66,9 +66,7 @@ if any(locNotFound)
 end
 %Check if the input task names are TaskIDName.
 encodeSetNum = cellfun(@double, tasks, 'UniformOutput', false);
-encodeSetLoc = cellfun(@gt, ...
-    encodeSetNum, num2cell(repmat(double('z'), size(encodeSetNum))), ...
-    'UniformOutput', false);
+encodeSetLoc = cellfun(@(x) gt(x, double('z')), encodeSetNum, 'UniformOutput', false);
 isTaskIDName = cellfun(@all, cellfun(@not, encodeSetLoc, 'UniformOutput', false));
 %Change TaskNames to TaskIDNames.
 origtasks = tasks;
@@ -87,6 +85,15 @@ tasks = tasks(newOrder);
 [~, usedTaskLoc]  = ismember(tasks, settings.TaskIDName);
 sectionNumers     = settings.SlideSection(usedTaskLoc);
 sectionNames      = settings.SectionSummary(usedTaskLoc);
+rmrows = isnan(sectionNumers);
+if any(rmrows)
+    fprintf('The following tasks have not been assigned to a section yet, will remove them.\n');
+    disp(origtasks(rmrows))
+    origtasks(rmrows) = [];
+    tasks(rmrows) = [];
+    sectionNumers(rmrows) = [];
+    sectionNames(rmrows) = [];
+end
 uniSectionNumbers = unique(sectionNumers, 'stable');
 uniSectionNames   = unique(sectionNames, 'stable');
 nsections         = length(uniSectionNumbers);
@@ -100,7 +107,7 @@ hwb = waitbar(0, 'Begin plotting figures of the tasks specified by users...Pleas
 setappdata(hwb, 'canceling', 0)
 nprocessed = 0;
 nignored = 0;
-plottime = repmat(cellstr('TBE'), ntasks, 1);
+plottime = repmat(cellstr('TBE'), size(tasks));
 timeinfo =  table;
 timeinfo.TaskIDName = tasks;
 timeinfo.Time2Plot  = plottime;
@@ -120,6 +127,8 @@ metadata = strjoin({Title, Authors, Date}, newline);
 SectionTitles    = repmat(cellstr(''), 1, nsections);
 SectionSlideData = repmat(cellstr(''), 1, nsections);
 %% Plotting.
+%Start stopwatch.
+tic
 %Section-wise checking.
 for isec = 1:nsections
     initialVarsSec = who;
@@ -146,11 +155,19 @@ for isec = 1:nsections
         %   metadata bar3, outliers boxplot of each condition, development
         %   errorbar of each condition (main), histograms.
         curTaskSlideData = sprintf('%s %s', subsecpre, curTaskIDName);
+        %% Get the settings of current task.
+        curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
+        if isempty(curTaskSettings)
+            fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
+            nignored = nignored + 1;
+            continue
+        elseif height(curTaskSettings) > 1
+            curTaskSettings = curTaskSettings(1, :);
+        end
         %% Update waitbar.
         %Get the proportion of completion and the estimated time of arrival.
         completePercent = nprocessed / (ntasks - nignored);
         if nprocessed == 0
-            tic
             msgSuff = 'Please wait...';
             elapsedTime = 0;
         else
@@ -163,15 +180,6 @@ for isec = 1:nsections
         waitbar(completePercent, hwb, msg);
         %Unpdate processed tasks number.
         nprocessed = nprocessed + 1;
-        %% Get the settings of current task.
-        curTaskSettings = settings(strcmp(settings.TaskIDName, curTaskIDName), :);
-        if isempty(curTaskSettings)
-            fprintf('No tasksetting found when processing task %s, aborting!\n', origTaskName);
-            nignored = nignored + 1;
-            continue
-        elseif height(curTaskSettings) > 1
-            curTaskSettings = curTaskSettings(1, :);
-        end
         %% Get the data of current task.
         % Experiment data.
         curTaskLoc = ~cellfun(@isempty, ...
@@ -412,7 +420,7 @@ function h = setpaper(h)
 % Set the print parameters.
 h.PaperUnits    = 'centimeters';
 h.PaperSize     = [30, 25];
-normalpappos       = [0.1, 0.1, 0.8, 0.8];
+normalpappos    = [0.1, 0.1, 0.8, 0.8];
 h.PaperPosition = repmat(h.PaperSize, 1, 2) .* normalpappos;
 end %setpaper
 
