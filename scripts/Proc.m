@@ -59,6 +59,7 @@ nprocessed = 0;
 nignored = 0;
 %Start stopwatch.
 tic
+elapsedTime = 0;
 %Begin computing.
 for itask = 1:ntasks4process
     initialVarsTask = who;
@@ -82,7 +83,6 @@ for itask = 1:ntasks4process
         completePercent = nprocessed / (ntasks4process - nignored);
         if nprocessed == 0
             msgSuff = 'Please wait...';
-            elapsedTime = 0;
         else
             elapsedTime = toc;
             eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
@@ -143,10 +143,10 @@ for itask = 1:ntasks4process
         continue
     end
     curTaskData.res = anaresmrg;
-    dataExtract.Data{itask} = curTaskData;
+    dataExtract.Data{taskRange(itask)} = curTaskData;
     %Record the time used for each task.
     curTaskTimeUsed = toc - elapsedTime;
-    dataExtract.Time2Proc{itask} = seconds2human(curTaskTimeUsed, 'full');
+    dataExtract.Time2Proc{taskRange(itask)} = seconds2human(curTaskTimeUsed, 'full');
     clearvars('-except', initialVarsTask{:});
 end
 resdata = dataExtract(taskRange, :);

@@ -84,9 +84,11 @@ else
             %Get the total used time (unit: min).
             TotalTime = sum(RECORD.RT);
         case {'SpeedAdd', 'SpeedSubtract', ...%Math tasks
+                'DigitCmp', 'Subitizing', ...%Another two math tasks.
                 }
             %All the trials require response.
-            RECORD.SCat = ones(height(RECORD), 1);
+            stimvars = {'S1', 'S2'};
+            RECORD.SCat = rowfun(@(x, y) abs(x - y), RECORD, 'InputVariables', stimvars, 'OutputFormat', 'uniform');
             %Get the total used time (unit: min).
             TotalTime = sum(RECORD.RT);
         case {'SRT', 'CRT'}
@@ -97,7 +99,6 @@ else
             RECORD.ACC = RECORD.STIM == RECORD.Resp;
         case {'SRTWatch', 'SRTBread', ... %Two alternative SRT task.
                 'AssocMemory', 'SemanticMemory', ...%Memory task.
-                'DigitCmp', 'Subitizing', ...%Another two math tasks.
                 }
             %All the trials require response.
             RECORD.SCat = ones(height(RECORD), 1);

@@ -10,7 +10,6 @@ function dataExtract = Preproc(fname, shtname, db)
 %Modified to use in another problem.
 %Modification completed at 2016/04/13.
 
-
 %Folder contains all the analysis and plots functions.
 anafunpath = 'analysis';
 addpath(anafunpath);
@@ -186,5 +185,5 @@ usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
-delete(hwb);
+if ~db, delete(hwb); end
 rmpath(anafunpath);
