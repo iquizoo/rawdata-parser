@@ -82,6 +82,7 @@ nprocessed = 0;
 nignored = 0;
 %Start stopwatch.
 tic
+elapsedTime = 0;
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
@@ -96,7 +97,6 @@ for itask = 1:ntasks4process
         completePercent = nprocessed / (ntasks4process - nignored);
         if nprocessed == 0
             msgSuff = 'Please wait...';
-            elapsedTime = 0;
         else
             elapsedTime = toc;
             eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');

@@ -133,6 +133,7 @@ SectionSlideData = repmat(cellstr(''), 1, nsections);
 %% Plotting.
 %Start stopwatch.
 tic
+elapsedTime = 0;
 %Section-wise checking.
 for isec = 1:nsections
     initialVarsSec = who;
@@ -161,7 +162,6 @@ for isec = 1:nsections
             completePercent = nprocessed / (ntasks - nignored);
             if nprocessed == 0
                 msgSuff = 'Please wait...';
-                elapsedTime = 0;
             else
                 elapsedTime = toc;
                 eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
@@ -201,6 +201,11 @@ for isec = 1:nsections
         curTaskMetaData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
         curTaskMetaData.grade = removecats(curTaskMetaData.grade);
         curTaskExpData(curTaskMissingMetadataRow | curTaskMissingExpDataRows, :) = [];
+        if isempty(curTaskExpData)
+            fprintf('No experiment data result found for current task. Aborting...\n')
+            nignored = nignored + 1;
+            continue
+        end
         %% Set the store directories and file names of figures and excels.
         % Remove the existing items.
         curTaskResDir = fullfile(resFolder, curTaskIDName);
@@ -403,7 +408,7 @@ usedTimeSecs = toc;
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 fprintf('Congratulations! %d plotting task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
-delete(hwb);
+if ~db, delete(hwb); end
 rmpath(anafunpath);
 end %Plots
 

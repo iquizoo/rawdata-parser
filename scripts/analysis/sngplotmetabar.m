@@ -21,6 +21,8 @@ title('Summary of data collection from each school and each grade');
 hax = gca;
 hax.FontName = 'Microsoft YaHei UI Light';
 hax.FontSize = 12;
+hax.XTick = 1:length(schools);
+hax.YTick = 1:length(grades);
 hax.XTickLabel = schools;
 hax.YTickLabel = grades;
 hax.XLabel.String = 'School';

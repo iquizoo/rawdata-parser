@@ -89,7 +89,7 @@ for itask = 1:ntasks4process
             msgSuff = strcat('TimeRem:', eta);
         end
         %Update message in the waitbar.
-        msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
+        msg = sprintf('Task(%d/%d): %s. %s', itask, ntasks4process, taskIDNameMap(curTaskName), msgSuff);
         waitbar(completePercent, hwb, msg);
     end
     %Unpdate processed tasks number.
