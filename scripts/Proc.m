@@ -19,7 +19,7 @@ if nargin < 4
     method = 'full';
 end
 %Folder contains all the analysis functions.
-anafunpath = 'analysis';
+anafunpath = 'utilis';
 addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');

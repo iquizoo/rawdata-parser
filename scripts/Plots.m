@@ -23,7 +23,7 @@ function timeinfo = Plots(mrgdata, tasks, cfg, db)
 global newline slidepre
 %% Directory setting works.
 %Folder contains all the analysis and plots functions.
-anafunpath = 'analysis';
+anafunpath = 'utilis';
 addpath(anafunpath);
 %Add a folder to store all the results.
 curCallFullname = mfilename('fullpath');

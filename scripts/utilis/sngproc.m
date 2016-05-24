@@ -216,7 +216,10 @@ for irtvar = 1:length(MRTvars)
     end
 end
 %Caculate the scores of each task.
-
+% switch task
+%     case {'Flanker', 'Stroop1', 'Stroop2', 'NumStroop'}
+%     case
+% end
 %Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
     res.Properties.VariableNames = strcat(curTaskResVarNames, ...
