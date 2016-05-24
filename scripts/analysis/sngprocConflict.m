@@ -13,15 +13,15 @@ incongcode = 2;
 %Overall RT and ACC.
 res.RT_Overall = mean(RECORD.RT(RECORD.ACC == 1));
 res.ACC_Overall = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
-%Condition-wise analysis.
+%Condition-wise analysis. Here the abnormal trials are included.
 %Condition of congruent/repeat.
 res.([varPref{1}, delimiter, varSuff{2}]) = mean(RECORD.RT(RECORD.SCat == congcode & RECORD.ACC == 1));
 res.([varPref{2}, delimiter, varSuff{2}]) = ...
-    length(RECORD.ACC(RECORD.ACC == 1 & RECORD.SCat == congcode)) / length(RECORD.ACC & RECORD.SCat == congcode);
+    length(RECORD.ACC(RECORD.ACC == 1 & RECORD.SCat == congcode)) / length(RECORD.ACC(RECORD.SCat == congcode));
 %Condition of incongruent/switch.
 res.([varPref{1}, delimiter, varSuff{3}]) = nanmean(RECORD.RT(RECORD.SCat == incongcode & RECORD.ACC == 1));
 res.([varPref{2}, delimiter, varSuff{3}]) = ...
-    length(RECORD.ACC(RECORD.ACC == 1 & RECORD.SCat == incongcode)) / length(RECORD.ACC & RECORD.SCat == incongcode);
+    length(RECORD.ACC(RECORD.ACC == 1 & RECORD.SCat == incongcode)) / length(RECORD.ACC(RECORD.SCat == incongcode));
 %The last two output variables.
 res.([varPref{1}, delimiter, varSuff{4}]) = ...
     res.([varPref{1}, delimiter, varSuff{3}]) - res.([varPref{1}, delimiter, varSuff{2}]);

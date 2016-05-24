@@ -1,4 +1,4 @@
-function resdata = Proc(dataExtract, tasks, db)
+function resdata = Proc(dataExtract, tasks, db, method)
 %PROC Does some basic computation on data.
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
@@ -14,6 +14,9 @@ if nargin < 2
 end
 if nargin < 3
     db = false; %Debug mode.
+end
+if nargin < 4
+    method = 'full';
 end
 %Folder contains all the analysis functions.
 anafunpath = 'analysis';
@@ -127,7 +130,7 @@ for itask = 1:ntasks4process
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
-        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap), ...
+        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap, method), ...
             curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.

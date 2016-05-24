@@ -1,4 +1,4 @@
-function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap)
+function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
 %SNGPROC forms a wrapper function to compute those single task statistics.
 %   RES = SNGPROC(SPLITRES, TASKSETTING) does basic computation job for
 %   most of the tasks when no SCat(have a look at the data to see what SCat
@@ -6,6 +6,8 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap)
 %   miscellaneous tasks to prepare data for processing.
 %   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP) adds a map container
 %   for modification of SCat in RECORD.
+%   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP, METHOD) adds a method
+%   to calculate odd trials or even trials only.
 %
 %   See also sngstatsBART, sngstatsCRT, sngstatsConflict, sngstatsMemrep,
 %   sngstatsMemsep, sngstatsMentcompare, sngstatsMentcompute, sngstatsNSN,
@@ -14,6 +16,9 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap)
 %By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
 %Initialization jobs.
+if nargin < 5
+    method = 'full';
+end
 %Get all the output variable names.
 %coupleVars are formatted out variables.
 varscat = strsplit(tasksettings.VarsCat{:});
@@ -62,6 +67,8 @@ if ismember(task, nonRTRecTasks)
             if ~ismember('Next', RECORD.Properties.VariableNames)
                 RECORD.Next = [diff(RECORD.SLen); 0];
             end
+        case 'Reading'
+            TotalTime = 5 * 60 * 1000; %5 min
     end
 else
     %Unifying modification to some of the variables in RECORD.
@@ -140,36 +147,47 @@ else
     %Set the ACC of no response trials which require response as -1.
     RECORD.ACC(RECORD.RT == tasksettings.NRRT & RECORD.SCat ~= 0) = -1;
 end %if
-%Record the total trials if required.
-if ismember('CountTotalTrl', outvars)
-    spres.CountTotalTrl = height(RECORD);
-end
-%Record the total time used if required.
-if ismember('TotalTime', outvars)
-    spres.TotalTime = TotalTime;
-end
-%Record the number of correct trials if required.
-if ismember('CountAccTrl', outvars)
-    spres.CountAccTrl = sum(RECORD.ACC == 1);
-end
-%Set the score.
-if ismember('ACC', RECORD.Properties.VariableNames)
-    %Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
-    %quadratic curve to transform.
-    RECORD.Score = 1.5 * RECORD.ACC .^ 2 + 0.5 * RECORD.ACC - 1;
-    %Total score and mean score (per minute).
-    if ismember('TotalScore', outvars)
-        TotalScore = sum(RECORD.Score);
-        spres.TotalScore = TotalScore;
-        if ~exist('TotalTime', 'var') %TotalTime is unknown!
-            spres.MeanScore = nan;
-        else
-            spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
-        end
-    end
-end
 %Compute now.
 if ~isempty(RECORD)
+    %Check if split is used.
+    method = lower(method);
+    if ~strcmp(method, 'full')
+        switch method
+            case 'odd'
+                starttrl = 1;
+            case 'even'
+                starttrl = 2;
+        end
+        RECORD = RECORD(starttrl:2:end, :);
+    end
+    %Record the total trials if required.
+    if ismember('CountTotalTrl', outvars)
+        spres.CountTotalTrl = height(RECORD);
+    end
+    %Record the total time used if required.
+    if ismember('TotalTime', outvars)
+        spres.TotalTime = TotalTime;
+    end
+    %Record the number of correct trials if required.
+    if ismember('CountAccTrl', outvars)
+        spres.CountAccTrl = sum(RECORD.ACC == 1);
+    end
+    %Set the score.
+    if ismember('ACC', RECORD.Properties.VariableNames)
+        %Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
+        %quadratic curve to transform.
+        RECORD.Score = 1.5 * RECORD.ACC .^ 2 + 0.5 * RECORD.ACC - 1;
+        %Total score and mean score (per minute).
+        if ismember('TotalScore', outvars)
+            TotalScore = sum(RECORD.Score);
+            spres.TotalScore = TotalScore;
+            if ~exist('TotalTime', 'var') %TotalTime is unknown!
+                spres.MeanScore = nan;
+            else
+                spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
+            end
+        end
+    end
     anafunsuff = tasksettings.AnalysisFun{:};
     if ~isempty(anafunsuff)
         %Note: sngstats means 'single task processing'.
@@ -197,6 +215,8 @@ for irtvar = 1:length(MRTvars)
         break
     end
 end
+%Caculate the scores of each task.
+
 %Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
     res.Properties.VariableNames = strcat(curTaskResVarNames, ...
