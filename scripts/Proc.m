@@ -1,4 +1,4 @@
-function resdata = Proc(dataExtract, tasks, db, method)
+function resdata = Proc(dataExtract, tasks, db)
 %PROC Does some basic computation on data.
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
@@ -10,16 +10,13 @@ function resdata = Proc(dataExtract, tasks, db, method)
 %% Initialization jobs.
 % Checking input arguments.
 if nargin < 2
-    tasks = [];
+    tasks = dataExtract.TaskName;
 end
 if nargin < 3
     db = false; %Debug mode.
 end
-if nargin < 4
-    method = 'full';
-end
 %Folder contains all the analysis functions.
-anafunpath = 'utilis';
+anafunpath = 'analysis';
 addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
@@ -31,9 +28,6 @@ dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 %Display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
 %When constructing table, only cell string is allowed.
-if isempty(tasks)
-    tasks = dataExtract.TaskName;
-end
 tasks = cellstr(tasks);
 %Check the status of existence for the to-be-processed tasks.
 dataExistence = ismember(tasks, dataExtract.TaskName);
@@ -133,13 +127,14 @@ for itask = 1:ntasks4process
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
-        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap, method), ...
+        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap), ...
             curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
-    allsubids = (1:nsubj)'; %Column vector is used in order to form a table.
-    anaresmrg = arrayfun(@(isubj) {horzcat(anares{isubj, :})}, allsubids);
-    %Remove score field in the res.
+    anaresmrg = cell(nsubj, 1);
+    for isubj = 1:nsubj
+        anaresmrg{isubj} = horzcat(anares{isubj, :});
+    end
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
             'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
@@ -147,41 +142,7 @@ for itask = 1:ntasks4process
         nignored = nignored + 1;
         continue
     end
-    %Get the score in an independent field.
-    restbl = cat(1, anaresmrg{:});
-    allresvars = restbl.Properties.VariableNames;
-    scorevars = allresvars(~cellfun(@isempty, regexp(allresvars, '^score', 'once')));
-    score = rowfun(@(varargin) sum([varargin{:}]), restbl, ...
-        'InputVariables', scorevars, 'OutputFormat', 'uniform');
-    %Get the ultimate index.
-    ultIndexVar = curTaskSetting.UltimateIndex{:};
-    ultIndex    = nan(height(restbl), 1);
-    if ~isempty(ultIndexVar)
-        switch ultIndexVar
-            case 'ConflictUnion'
-                conflictCondVars = strsplit(curTaskSetting.VarsCond{:});
-                conflictVars = strcat(strsplit(curTaskSetting.VarsCat{:}), '_', conflictCondVars{end});
-                restbl{rowfun(@(varargin) any([varargin{:}], 2), ...
-                    rowfun(@(varargin) isnan([varargin{:}]), restbl, ...
-                    'InputVariables', conflictVars), 'OutputFormat', 'uniform'), :} = nan;
-                conflictZ = varfun(@(x) (x - nanmean(x)) / nanstd(x), restbl, 'InputVariables', conflictVars);
-                ultIndex = rowfun(@(varargin) sum([varargin{:}]), conflictZ, 'OutputFormat', 'uniform');
-            case 'dprimeUnion'
-                indexMateVar = ~cellfun(@isempty, regexp(allresvars, 'dprime', 'once'));
-                ultIndex = rowfun(@(varargin) sum([varargin{:}]), restbl, 'InputVariables', indexMateVar, 'OutputFormat', 'uniform');
-            otherwise
-                ultIndex = restbl.(ultIndexVar);
-        end
-    end
-    %Remove score from anaresmrg.
-    for irow = 1:length(anaresmrg)
-        curresvars = anaresmrg{irow}.Properties.VariableNames;
-        anaresmrg{irow}(:, ~cellfun(@isempty, regexp(curresvars, '^score', 'once'))) = [];
-    end
-    %Wraper.
     curTaskData.res = anaresmrg;
-    curTaskData.score = score;
-    curTaskData.index = ultIndex;
     dataExtract.Data{taskRange(itask)} = curTaskData;
     %Record the time used for each task.
     curTaskTimeUsed = toc - elapsedTime;
