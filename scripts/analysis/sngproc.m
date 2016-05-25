@@ -1,4 +1,4 @@
-function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
+function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap)
 %SNGPROC forms a wrapper function to compute those single task statistics.
 %   RES = SNGPROC(SPLITRES, TASKSETTING) does basic computation job for
 %   most of the tasks when no SCat(have a look at the data to see what SCat
@@ -6,8 +6,6 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
 %   miscellaneous tasks to prepare data for processing.
 %   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP) adds a map container
 %   for modification of SCat in RECORD.
-%   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP, METHOD) adds a method
-%   to calculate odd trials or even trials only.
 %
 %   See also sngstatsBART, sngstatsCRT, sngstatsConflict, sngstatsMemrep,
 %   sngstatsMemsep, sngstatsMentcompare, sngstatsMentcompute, sngstatsNSN,
@@ -16,9 +14,6 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
 %By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
 %Initialization jobs.
-if nargin < 5
-    method = 'full';
-end
 %Get all the output variable names.
 %coupleVars are formatted out variables.
 varscat = strsplit(tasksettings.VarsCat{:});
@@ -67,8 +62,6 @@ if ismember(task, nonRTRecTasks)
             if ~ismember('Next', RECORD.Properties.VariableNames)
                 RECORD.Next = [diff(RECORD.SLen); 0];
             end
-        case 'Reading'
-            TotalTime = 5 * 60 * 1000; %5 min
     end
 else
     %Unifying modification to some of the variables in RECORD.
@@ -147,47 +140,36 @@ else
     %Set the ACC of no response trials which require response as -1.
     RECORD.ACC(RECORD.RT == tasksettings.NRRT & RECORD.SCat ~= 0) = -1;
 end %if
+%Record the total trials if required.
+if ismember('CountTotalTrl', outvars)
+    spres.CountTotalTrl = height(RECORD);
+end
+%Record the total time used if required.
+if ismember('TotalTime', outvars)
+    spres.TotalTime = TotalTime;
+end
+%Record the number of correct trials if required.
+if ismember('CountAccTrl', outvars)
+    spres.CountAccTrl = sum(RECORD.ACC == 1);
+end
+%Set the score.
+if ismember('ACC', RECORD.Properties.VariableNames)
+    %Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
+    %quadratic curve to transform.
+    RECORD.Score = 1.5 * RECORD.ACC .^ 2 + 0.5 * RECORD.ACC - 1;
+    %Total score and mean score (per minute).
+    if ismember('TotalScore', outvars)
+        TotalScore = sum(RECORD.Score);
+        spres.TotalScore = TotalScore;
+        if ~exist('TotalTime', 'var') %TotalTime is unknown!
+            spres.MeanScore = nan;
+        else
+            spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
+        end
+    end
+end
 %Compute now.
 if ~isempty(RECORD)
-    %Check if split is used.
-    method = lower(method);
-    if ~strcmp(method, 'full')
-        switch method
-            case 'odd'
-                starttrl = 1;
-            case 'even'
-                starttrl = 2;
-        end
-        RECORD = RECORD(starttrl:2:end, :);
-    end
-    %Record the total trials if required.
-    if ismember('CountTotalTrl', outvars)
-        spres.CountTotalTrl = height(RECORD);
-    end
-    %Record the total time used if required.
-    if ismember('TotalTime', outvars)
-        spres.TotalTime = TotalTime;
-    end
-    %Record the number of correct trials if required.
-    if ismember('CountAccTrl', outvars)
-        spres.CountAccTrl = sum(RECORD.ACC == 1);
-    end
-    %Set the score.
-    if ismember('ACC', RECORD.Properties.VariableNames)
-        %Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
-        %quadratic curve to transform.
-        RECORD.Score = 1.5 * RECORD.ACC .^ 2 + 0.5 * RECORD.ACC - 1;
-        %Total score and mean score (per minute).
-        if ismember('TotalScore', outvars)
-            TotalScore = sum(RECORD.Score);
-            spres.TotalScore = TotalScore;
-            if ~exist('TotalTime', 'var') || TotalTime == 0 %TotalTime is unknown!
-                spres.MeanScore = nan;
-            else
-                spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
-            end
-        end
-    end
     anafunsuff = tasksettings.AnalysisFun{:};
     if ~isempty(anafunsuff)
         %Note: sngstats means 'single task processing'.
@@ -201,36 +183,14 @@ if ~isempty(RECORD)
         end
     end
     res = [comres, spres];
-    %Caculate the scores of each task.
-    scorefunsuff = tasksettings.ScoringFun{:};
-    scorevars   = strsplit(tasksettings.ScoringVars{:});
-    score = nan;
-    if ~isempty(scorefunsuff)
-        scorefunstr = ['sngscore', scorefunsuff];
-        scorefun    = str2func(scorefunstr);
-        if ~isempty(tasksettings.ScoringPara{:})
-            scoreparas  = cellfun(@str2double, strsplit(tasksettings.ScoringPara{:}), 'UniformOutput', false);
-            score = rowfun(@(varargin) scorefun(varargin{:}, scoreparas{:}), res, ...
-                'InputVariables', scorevars, 'OutputFormat', 'uniform');
-        else
-            score = rowfun(@(varargin) scorefun(varargin{:}), res, ...
-                'InputVariables', scorevars, 'OutputFormat', 'uniform');
-        end
-    end
     res(:, ~ismember(res.Properties.VariableNames, outvars)) = [];
-    missVars = outvars(~ismember(outvars, res.Properties.VariableNames));
-    for imiss = 1:length(missVars)
-        res.(missVars{imiss}) = nan;
-    end
 else
     res = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
-    score = nan;
-end %if ~isempty(RECORD)
-res.score = score;
+end
 %Treat mean RT of any condition is less than 300ms as missing.
 curTaskResVarNames = res.Properties.VariableNames;
 MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-    regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
+    regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost)', 'once')));
 for irtvar = 1:length(MRTvars)
     if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
         res{:, :} = nan;
@@ -271,14 +231,12 @@ allSTIM = unique(RECORD.STIM);
 if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
     %DRT of newer version detected.
     %Amend the ACC records.
-    if ischar(RECORD.STIM)
-        RECORD.STIM = str2double(num2cell(RECORD.STIM));
-    end
-    RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
+    RECORD.ACC(RECORD.Resp == 0) = 0;
+    RECORD(str2double(num2cell(RECORD.STIM)) == RECORD.Resp & RECORD.ACC == 0, :) = [];
 end
 if ~isempty(allSTIM)
     firstTrial = RECORD(1, :);
-    firstIsGo = ~xor(firstTrial.ACC == 1, firstTrial.RT < criterion);
+    firstIsGo = firstTrial.ACC == 1 && firstTrial.RT < criterion;
     firstTrialInfo = allSTIM == firstTrial.STIM;
     %Here is an interesting way to find out no-go stimulus.
     NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));
