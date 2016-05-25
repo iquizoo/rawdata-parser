@@ -181,7 +181,7 @@ if ~isempty(RECORD)
         if ismember('TotalScore', outvars)
             TotalScore = sum(RECORD.Score);
             spres.TotalScore = TotalScore;
-            if ~exist('TotalTime', 'var') %TotalTime is unknown!
+            if ~exist('TotalTime', 'var') || TotalTime == 0 %TotalTime is unknown!
                 spres.MeanScore = nan;
             else
                 spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));

@@ -139,21 +139,6 @@ for itask = 1:ntasks4process
     %% Post-computation jobs.
     allsubids = (1:nsubj)'; %Column vector is used in order to form a table.
     anaresmrg = arrayfun(@(isubj) {horzcat(anares{isubj, :})}, allsubids);
-    %Get the score in an independent field.
-    if ~any(cellfun(@isempty, anaresmrg))
-        score = cellfun(@(tbl) ...
-            rowfun(@(varargin) sum([varargin{:}]), tbl, ...
-            'InputVariables', ...
-            tbl.Properties.VariableNames(~cellfun(@isempty, regexp(tbl.Properties.VariableNames, '^score', 'once'))), ...
-            'OutputFormat', 'uniform'), ...
-            anaresmrg);
-        for icol = 1:size(anaresmrg, 2)
-            for irow = 1:length(anaresmrg)
-                curresvars = anaresmrg{irow, icol}.Properties.VariableNames;
-                anaresmrg{irow, icol}(:, ~cellfun(@isempty, regexp(curresvars, '^score', 'once'))) = [];
-            end
-        end
-    end
     %Remove score field in the res.
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
@@ -162,13 +147,41 @@ for itask = 1:ntasks4process
         nignored = nignored + 1;
         continue
     end
+    %Get the score in an independent field.
+    restbl = cat(1, anaresmrg{:});
+    allresvars = restbl.Properties.VariableNames;
+    scorevars = allresvars(~cellfun(@isempty, regexp(allresvars, '^score', 'once')));
+    score = rowfun(@(varargin) sum([varargin{:}]), restbl, ...
+        'InputVariables', scorevars, 'OutputFormat', 'uniform');
     %Get the ultimate index.
     ultIndexVar = curTaskSetting.UltimateIndex{:};
+    ultIndex    = nan(height(restbl), 1);
     if ~isempty(ultIndexVar)
+        switch ultIndexVar
+            case 'ConflictUnion'
+                conflictCondVars = strsplit(curTaskSetting.VarsCond{:});
+                conflictVars = strcat(strsplit(curTaskSetting.VarsCat{:}), '_', conflictCondVars{end});
+                restbl{rowfun(@(varargin) any([varargin{:}], 2), ...
+                    rowfun(@(varargin) isnan([varargin{:}]), restbl, ...
+                    'InputVariables', conflictVars), 'OutputFormat', 'uniform'), :} = nan;
+                conflictZ = varfun(@(x) (x - nanmean(x)) / nanstd(x), restbl, 'InputVariables', conflictVars);
+                ultIndex = rowfun(@(varargin) sum([varargin{:}]), conflictZ, 'OutputFormat', 'uniform');
+            case 'dprimeUnion'
+                indexMateVar = ~cellfun(@isempty, regexp(allresvars, 'dprime', 'once'));
+                ultIndex = rowfun(@(varargin) sum([varargin{:}]), restbl, 'InputVariables', indexMateVar, 'OutputFormat', 'uniform');
+            otherwise
+                ultIndex = restbl.(ultIndexVar);
+        end
+    end
+    %Remove score from anaresmrg.
+    for irow = 1:length(anaresmrg)
+        curresvars = anaresmrg{irow}.Properties.VariableNames;
+        anaresmrg{irow}(:, ~cellfun(@isempty, regexp(curresvars, '^score', 'once'))) = [];
     end
     %Wraper.
     curTaskData.res = anaresmrg;
     curTaskData.score = score;
+    curTaskData.index = ultIndex;
     dataExtract.Data{taskRange(itask)} = curTaskData;
     %Record the time used for each task.
     curTaskTimeUsed = toc - elapsedTime;
