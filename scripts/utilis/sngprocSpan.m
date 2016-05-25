@@ -2,10 +2,7 @@ function res = sngprocSpan(RECORD)
 %SNGPROCSPAN Does some basic data transformation to working memory span tasks.
 %
 %   Basically, the supported tasks are as follows:
-%     MOT
-%     ForSpan,
-%     BackSpan,
-%     SpatialSpan.
+%     MOT ForSpan, BackSpan, SpatialSpan.
 %   The output table contains 2 variables: TE_ML(!D)(Two Error-Maximal
 %   Length), TE_TT(!D)(Two Error-Total Trial), ML(Maximal Length), MS(Mean
 %   Span).
@@ -45,7 +42,8 @@ else
     end
     MS = msBase + msIncre - msDecre;
 end
-res = table(ML, MS);
-res.Properties.VariableDescriptions = {...
-    'the longest list correctly reported', ...
-    'the list length where 50% of lists would be correctly reported'};
+%For scoring.
+MLACC = mean(RECORD.ACC(RECORD.SLen == ML));
+MLNextACC = mean(RECORD.ACC(RECORD.SLen == ML - 1));
+%Wrap these output into a table.
+res = table(ML, MS, MLACC, MLNextACC);

@@ -16,8 +16,10 @@ RT_Overall = mean(RECORD.RT(RECORD.ACC == 1));
 Count_hit = sum(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC ~= -1));
 Count_FA = sum(~RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= -1));
 %Ratio of hit and false alarm.
-Rate_hit = mean(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC ~= -1));
-Rate_FA = mean(~RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= -1));
+Rate_hit = length(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC == 1)) / length(RECORD.ACC(RECORD.SCat == 1));
+% Rate_hit = mean(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC ~= -1));
+Rate_FA = length(RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= 1)) / length(RECORD.ACC(RECORD.SCat ~= 1));
+% Rate_FA = mean(~RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= -1));
 %Mean RT computation.
 RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
 RT_FA = mean(RECORD.RT(RECORD.SCat ~= 1 & RECORD.ACC == 0));

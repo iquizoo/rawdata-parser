@@ -11,7 +11,7 @@ function dataExtract = Preproc(fname, shtname, db)
 %Modification completed at 2016/04/13.
 
 %Folder contains all the analysis and plots functions.
-anafunpath = 'analysis';
+anafunpath = 'utilis';
 addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
