@@ -1,4 +1,4 @@
-function mrgdata = Merges(resdata)
+function [mrgdata, taskstat] = Merges(resdata)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -90,11 +90,15 @@ end
 dataMergeMetadata(isnan(dataMergeMetadata.userId), :) = [];
 mrgdata = dataMergeMetadata; %Metadata done!
 %Change the subjects order according the order of school in schInfo.
-mrgdata.ID = nan(height(mrgdata), 1);
+mrgdata.schID = nan(height(mrgdata), 1);
 definedSchRowsIdx = ~isundefined(mrgdata.school);
-mrgdata.ID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
-mrgdata = sortrows(mrgdata, 'ID');
-mrgdata.ID = [];
+mrgdata.schID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
+mrgdata = sortrows(mrgdata, 'schID');
+mrgdata.schID = [];
+%Generate a table to store the completion status for each id and task.
+userId = mrgdata.userId;
+nsubj = length(userId);
+taskstat = table(userId);
 %Get the experimental data.
 resdata.TaskIDName = categorical(resdata.TaskIDName);
 tasks = unique(resdata.TaskIDName, 'stable');
@@ -107,6 +111,16 @@ for imrgtask = 1:nTasks
     curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
     curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
+    %Generate the tasks status matrix.
+    curTask = char(curTaskIDName);
+    taskstat.(curTask) = zeros(nsubj, 1);
+    for isubj = 1:nsubj
+        curID = taskstat.userId(isubj);
+        [isexisted, loc] = ismember(curID, curTaskData.userId);
+        if isexisted
+            taskstat.(curTask)(isubj) = ~any(isnan(curTaskData(loc, :).res{:, :}));
+        end
+    end
     %Use the taskIDName as the variable name precedence.
     curTaskOutVars = strcat(cellstr(curTaskIDName), '_', curTaskData.res.Properties.VariableNames);
     curTaskData.res.Properties.VariableNames = curTaskOutVars;

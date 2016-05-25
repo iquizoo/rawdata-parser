@@ -10,7 +10,7 @@ function resdata = Proc(dataExtract, tasks, db, method)
 %% Initialization jobs.
 % Checking input arguments.
 if nargin < 2
-    tasks = dataExtract.TaskName;
+    tasks = [];
 end
 if nargin < 3
     db = false; %Debug mode.
@@ -31,6 +31,9 @@ dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 %Display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
 %When constructing table, only cell string is allowed.
+if isempty(tasks)
+    tasks = dataExtract.TaskName;
+end
 tasks = cellstr(tasks);
 %Check the status of existence for the to-be-processed tasks.
 dataExistence = ismember(tasks, dataExtract.TaskName);
@@ -134,10 +137,24 @@ for itask = 1:ntasks4process
             curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
-    anaresmrg = cell(nsubj, 1);
-    for isubj = 1:nsubj
-        anaresmrg{isubj} = horzcat(anares{isubj, :});
+    allsubids = (1:nsubj)'; %Column vector is used in order to form a table.
+    anaresmrg = arrayfun(@(isubj) {horzcat(anares{isubj, :})}, allsubids);
+    %Get the score in an independent field.
+    if ~any(cellfun(@isempty, anaresmrg))
+        score = cellfun(@(tbl) ...
+            rowfun(@(varargin) sum([varargin{:}]), tbl, ...
+            'InputVariables', ...
+            tbl.Properties.VariableNames(~cellfun(@isempty, regexp(tbl.Properties.VariableNames, '^score', 'once'))), ...
+            'OutputFormat', 'uniform'), ...
+            anaresmrg);
+        for icol = 1:size(anaresmrg, 2)
+            for irow = 1:length(anaresmrg)
+                curresvars = anaresmrg{irow, icol}.Properties.VariableNames;
+                anaresmrg{irow, icol}(:, ~cellfun(@isempty, regexp(curresvars, '^score', 'once'))) = [];
+            end
+        end
     end
+    %Remove score field in the res.
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
             'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
@@ -145,7 +162,13 @@ for itask = 1:ntasks4process
         nignored = nignored + 1;
         continue
     end
+    %Get the ultimate index.
+    ultIndexVar = curTaskSetting.UltimateIndex{:};
+    if ~isempty(ultIndexVar)
+    end
+    %Wraper.
     curTaskData.res = anaresmrg;
+    curTaskData.score = score;
     dataExtract.Data{taskRange(itask)} = curTaskData;
     %Record the time used for each task.
     curTaskTimeUsed = toc - elapsedTime;

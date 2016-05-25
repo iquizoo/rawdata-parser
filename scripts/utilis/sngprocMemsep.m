@@ -2,13 +2,13 @@ function res = sngprocMemsep(RECORD, varPref, delimiter, varSuff)
 %SNGPROCMEMSEP Does some basic data transformation to memory task.
 %
 %   Basically, the supported tasks are as follows:
-%     PicMemory
-%     WordMemory
+%     PicMemory WordMemory
 %   The output table contains 9 variables.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 res = table;
+res.MRT = mean(RECORD.RT(RECORD.ACC == 1));
 %Code for each category of stimuli.
 oldcode = 1;
 simcode = 2;
@@ -33,3 +33,5 @@ for run = runs
     res.([varPref{run + 1}, delimiter, varSuff{3}]) = ...
         1 - length(curRunNewTrials.ACC(curRunNewTrials.ACC == 1)) / length(curRunNewTrials.ACC);
 end
+res.dprimeTM = sgldetect(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{3}]));
+res.dprimeFM = sgldetect(res.([varPref{1}, delimiter, varSuff{2}]), res.([varPref{1}, delimiter, varSuff{3}]));

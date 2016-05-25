@@ -47,6 +47,3 @@ MLACC = mean(RECORD.ACC(RECORD.SLen == ML));
 MLNextACC = mean(RECORD.ACC(RECORD.SLen == ML - 1));
 %Wrap these output into a table.
 res = table(ML, MS, MLACC, MLNextACC);
-res.Properties.VariableDescriptions = {...
-    'the longest list correctly reported', ...
-    'the list length where 50% of lists would be correctly reported'};

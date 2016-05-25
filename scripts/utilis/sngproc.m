@@ -201,25 +201,42 @@ if ~isempty(RECORD)
         end
     end
     res = [comres, spres];
+    %Caculate the scores of each task.
+    scorefunsuff = tasksettings.ScoringFun{:};
+    scorevars   = strsplit(tasksettings.ScoringVars{:});
+    score = nan;
+    if ~isempty(scorefunsuff)
+        scorefunstr = ['sngscore', scorefunsuff];
+        scorefun    = str2func(scorefunstr);
+        if ~isempty(tasksettings.ScoringPara{:})
+            scoreparas  = cellfun(@str2double, strsplit(tasksettings.ScoringPara{:}), 'UniformOutput', false);
+            score = rowfun(@(varargin) scorefun(varargin{:}, scoreparas{:}), res, ...
+                'InputVariables', scorevars, 'OutputFormat', 'uniform');
+        else
+            score = rowfun(@(varargin) scorefun(varargin{:}), res, ...
+                'InputVariables', scorevars, 'OutputFormat', 'uniform');
+        end
+    end
     res(:, ~ismember(res.Properties.VariableNames, outvars)) = [];
+    missVars = outvars(~ismember(outvars, res.Properties.VariableNames));
+    for imiss = 1:length(missVars)
+        res.(missVars{imiss}) = nan;
+    end
 else
     res = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
-end
+    score = nan;
+end %if ~isempty(RECORD)
+res.score = score;
 %Treat mean RT of any condition is less than 300ms as missing.
 curTaskResVarNames = res.Properties.VariableNames;
 MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-    regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost)', 'once')));
+    regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
 for irtvar = 1:length(MRTvars)
     if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
         res{:, :} = nan;
         break
     end
 end
-%Caculate the scores of each task.
-% switch task
-%     case {'Flanker', 'Stroop1', 'Stroop2', 'NumStroop'}
-%     case
-% end
 %Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
     res.Properties.VariableNames = strcat(curTaskResVarNames, ...
@@ -254,12 +271,14 @@ allSTIM = unique(RECORD.STIM);
 if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
     %DRT of newer version detected.
     %Amend the ACC records.
-    RECORD.ACC(RECORD.Resp == 0) = 0;
-    RECORD(str2double(num2cell(RECORD.STIM)) == RECORD.Resp & RECORD.ACC == 0, :) = [];
+    if ischar(RECORD.STIM)
+        RECORD.STIM = str2double(num2cell(RECORD.STIM));
+    end
+    RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
 end
 if ~isempty(allSTIM)
     firstTrial = RECORD(1, :);
-    firstIsGo = firstTrial.ACC == 1 && firstTrial.RT < criterion;
+    firstIsGo = ~xor(firstTrial.ACC == 1, firstTrial.RT < criterion);
     firstTrialInfo = allSTIM == firstTrial.STIM;
     %Here is an interesting way to find out no-go stimulus.
     NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));

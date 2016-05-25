@@ -15,7 +15,7 @@ res.([varPref{2}, delimiter, varSuff{1}]) = mean(RECORD.RT(RECORD.ACC == 1));
 runs = 1:2;
 for run = runs
     res.([varPref{1}, delimiter, varSuff{run + 1}]) = ...
-        length(RECORD.ACC(RECORD.REP == run & RECORD.ACC == 1)) / length(RECORD.REP == run & RECORD.ACC);
+        length(RECORD.ACC(RECORD.REP == run & RECORD.ACC == 1)) / length(RECORD.ACC(RECORD.REP == run));
     res.([varPref{2}, delimiter, varSuff{run + 1}]) = ...
         mean(RECORD.RT(RECORD.ACC == 1 & RECORD.REP == run));
 end
