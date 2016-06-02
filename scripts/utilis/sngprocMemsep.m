@@ -9,6 +9,7 @@ function res = sngprocMemsep(RECORD, varPref, delimiter, varSuff)
 
 res = table;
 res.MRT = mean(RECORD.RT(RECORD.ACC == 1));
+res.ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
 %Code for each category of stimuli.
 oldcode = 1;
 simcode = 2;

@@ -200,7 +200,7 @@ if ~isempty(RECORD)
                 comres = anafun(RECORD, varscat, delimiterVC, varscond);
         end
     end
-    res = [comres, spres];
+    res = cat(2, comres, spres);
     %Caculate the scores of each task.
     scorefunsuff = tasksettings.ScoringFun{:};
     scorevars   = strsplit(tasksettings.ScoringVars{:});
@@ -217,8 +217,30 @@ if ~isempty(RECORD)
                 'InputVariables', scorevars, 'OutputFormat', 'uniform');
         end
     end
-    res(:, ~ismember(res.Properties.VariableNames, outvars)) = [];
-    missVars = outvars(~ismember(outvars, res.Properties.VariableNames));
+    %Get all the variable names of current res table.
+    curTaskResVarNames = res.Properties.VariableNames;
+    %Treat mean RT of less than 300ms/larger than 2500ms as missing.
+    MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
+        regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
+    for irtvar = 1:length(MRTvars)
+        if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
+            res{:, :} = nan;
+            score = nan;
+            break
+        end
+    end
+    %Treat ACC_Overall of below chance level as missing.
+    ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
+        regexp(curTaskResVarNames, '^ACC$|^ACC_Overall|^Rate_Overall', 'once')));
+    for iaccvar = 1:length(ACCvars)
+        if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
+            res{:, :} = nan;
+            score = nan;
+            break
+        end
+    end
+    res(:, ~ismember(curTaskResVarNames, outvars)) = [];
+    missVars = outvars(~ismember(outvars, curTaskResVarNames));
     for imiss = 1:length(missVars)
         res.(missVars{imiss}) = nan;
     end
@@ -227,29 +249,9 @@ else
     score = nan;
 end %if ~isempty(RECORD)
 res.score = score;
-%Get all the variable names of current res table.
-curTaskResVarNames = res.Properties.VariableNames;
-%Treat mean RT of less than 300ms/larger than 2500ms as missing.
-MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-    regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
-for irtvar = 1:length(MRTvars)
-    if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
-        res{:, :} = nan;
-        break
-    end
-end
-%Treat ACC_Overall of below chance level as missing.
-ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
-    regexp(curTaskResVarNames, '^ACC|^Rate_Overall', 'once')));
-for iaccvar = 1:length(ACCvars)
-    if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
-        res{:, :} = nan;
-        break
-    end
-end
 %Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
-    res.Properties.VariableNames = strcat(curTaskResVarNames, ...
+    res.Properties.VariableNames = strcat(res.Properties.VariableNames, ...
         '_', resvarsuff);
 end
 end
