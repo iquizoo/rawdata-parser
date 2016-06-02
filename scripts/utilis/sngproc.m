@@ -9,9 +9,9 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
 %   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP, METHOD) adds a method
 %   to calculate odd trials or even trials only.
 %
-%   See also sngstatsBART, sngstatsCRT, sngstatsConflict, sngstatsMemrep,
-%   sngstatsMemsep, sngstatsMentcompare, sngstatsMentcompute, sngstatsNSN,
-%   sngstatsNback, sngstatsSRT, sngstatsSpan
+%   See also sngprocBART, sngprocCRT, sngprocConflict, sngprocMemrep,
+%   sngprocMemsep, sngprocMentcompare, sngprocMentcompute, sngprocNSN,
+%   sngprocNback, sngprocSRT, sngprocSpan
 
 %By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
@@ -190,7 +190,7 @@ if ~isempty(RECORD)
     end
     anafunsuff = tasksettings.AnalysisFun{:};
     if ~isempty(anafunsuff)
-        %Note: sngstats means 'single task processing'.
+        %Note: sngproc means 'single task processing'.
         anafunstr = ['sngproc', anafunsuff];
         anafun = str2func(anafunstr);
         switch nargin(anafunstr)
@@ -227,12 +227,22 @@ else
     score = nan;
 end %if ~isempty(RECORD)
 res.score = score;
-%Treat mean RT of any condition is less than 300ms as missing.
+%Get all the variable names of current res table.
 curTaskResVarNames = res.Properties.VariableNames;
+%Treat mean RT of less than 300ms/larger than 2500ms as missing.
 MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-    regexp(curTaskResVarNames, '\<M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
+    regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
 for irtvar = 1:length(MRTvars)
     if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
+        res{:, :} = nan;
+        break
+    end
+end
+%Treat ACC_Overall of below chance level as missing.
+ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
+    regexp(curTaskResVarNames, '^ACC|^Rate_Overall', 'once')));
+for iaccvar = 1:length(ACCvars)
+    if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
         res{:, :} = nan;
         break
     end
