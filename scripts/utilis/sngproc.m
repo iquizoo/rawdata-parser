@@ -231,7 +231,7 @@ if ~isempty(RECORD)
     end
     %Treat ACC_Overall of below chance level as missing.
     ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
-        regexp(curTaskResVarNames, '^ACC$|^ACC_Overall|^Rate_Overall', 'once')));
+        regexp(curTaskResVarNames, '^ACC$|^ACC(?!_CongEffect|_SwitchCost)|^Rate(?!_FA)', 'once')));
     for iaccvar = 1:length(ACCvars)
         if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
             res{:, :} = nan;

@@ -85,8 +85,9 @@ for ivarcond = 1:nVarCond
     end
     for ivarcat = 1:nVarCats
         curTblVar = curTblVars{ivarcat};
+        curTblVarCat = chkVarsCat{ivarcat};
         %Set ylabel string.
-        yLabel = regexp(curTblVar, 'Rate|ACC|Count|RT|Time', 'match', 'once');
+        yLabel = regexp(curTblVarCat, 'Rate|ACC|Count|RT|Time', 'match', 'once');
         if isempty(yLabel)
             yLabel = 'Arbitrary Unit';
             showLegend = true; %Set it to true to separate different variables.
