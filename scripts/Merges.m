@@ -4,6 +4,16 @@ function [mrgdata, scores, indices, taskstat] = Merges(resdata)
 %   some information, e.g., gender, school, grade, is also merged according
 %   to some arbitrary principle.
 %
+%   [MRGDATA, SCORES] = MERGES(RESDATA) also merges scores into the result,
+%   the regulation of which is from Prof. He.
+%
+%   [MRGDATA, SCORES, INDICES] = MERGES(RESDATA) also merges indices into
+%   the result, which are regulated by Prof. Xue.
+%
+%   [MRGDATA, SCORES, INDICES, TASKSTAT] = MERGES(RESDATA) gets the status
+%   of each task. Cheat sheet: 0 -> no data; 1 -> data valid; -1 -> data
+%   invalid (to be exact, meta information found, but data appears NaN).
+%
 %   See also PREPROC, PROC.
 
 %Set the school information.
@@ -13,16 +23,19 @@ schIDMap = containers.Map(schInfo.SchoolIDName, schInfo.SID);
 %Set the grade information.
 grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
+%Set the class information.
+clsInfo = readtable('taskSettings.xlsx', 'Sheet', 'clsinfo');
+clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %Get the metadata. Not all of the variables in meta data block is
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
-varsOfMetadata = {'userId', 'gender', 'school', 'grade'};
+varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
 %Check the following variables.
-chkVarsOfMetadata = {'gender', 'school', 'grade'};
+chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
     cVarNotCharLoc = ~cellfun(@ischar, dataMergeMetadata.(cvomd));
@@ -44,6 +57,12 @@ for ivomd = 1:length(chkVarsOfMetadata)
         allGradeStr = dataMergeMetadata.grade;
         allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
         dataMergeMetadata.grade = values(grdMap, allGradeStr);
+    end
+    %Convert class strings to numeric data.
+    if strcmp(cvomd, 'cls')
+        allClsStr = dataMergeMetadata.cls;
+        allClsStr(~isKey(clsMap, allClsStr)) = {''};
+        dataMergeMetadata.cls = values(clsMap, allClsStr);
     end
     dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
 end
@@ -121,7 +140,8 @@ for imrgtask = 1:nTasks
         curID = taskstat.userId(isubj);
         [isexisted, loc] = ismember(curID, curTaskData.userId);
         if isexisted
-            taskstat.(curTask)(isubj) = ~any(isnan(curTaskData(loc, :).res{:, :}));
+            taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
+                (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
             scores.(curTask)(isubj) = curTaskData(loc, :).score;
             indices.(curTask)(isubj) = curTaskData(loc, :).index;
         end
