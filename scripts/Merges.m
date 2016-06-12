@@ -23,16 +23,19 @@ schIDMap = containers.Map(schInfo.SchoolIDName, schInfo.SID);
 %Set the grade information.
 grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
+%Set the class information.
+clsInfo = readtable('taskSettings.xlsx', 'Sheet', 'clsinfo');
+clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %Get the metadata. Not all of the variables in meta data block is
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
-varsOfMetadata = {'userId', 'gender', 'school', 'grade'};
+varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
 %Check the following variables.
-chkVarsOfMetadata = {'gender', 'school', 'grade'};
+chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
     cVarNotCharLoc = ~cellfun(@ischar, dataMergeMetadata.(cvomd));
@@ -54,6 +57,12 @@ for ivomd = 1:length(chkVarsOfMetadata)
         allGradeStr = dataMergeMetadata.grade;
         allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
         dataMergeMetadata.grade = values(grdMap, allGradeStr);
+    end
+    %Convert class strings to numeric data.
+    if strcmp(cvomd, 'cls')
+        allClsStr = dataMergeMetadata.cls;
+        allClsStr(~isKey(clsMap, allClsStr)) = {''};
+        dataMergeMetadata.cls = values(clsMap, allClsStr);
     end
     dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
 end

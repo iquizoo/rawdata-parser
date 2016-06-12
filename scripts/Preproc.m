@@ -120,8 +120,8 @@ for itask = 1:ntasks4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Check if the data fields are in the correct type.
-    varsOfChk = {'Taskname', 'userId', 'gender', 'school', 'grade', 'birthDay', 'conditions'};
-    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    varsOfChk = {'Taskname', 'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'conditions'};
+    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell'};
     for ivar = 1:length(varsOfChk)
         curVar = varsOfChk{ivar};
         curClass = varsOfChkClass{ivar};
@@ -161,7 +161,7 @@ for itask = 1:ntasks4process
     %Use curTaskRes as the results variable store. And store the TaskIDName
     %from settings, which is usually used in the following analysis.
     curTaskOutVarsOIMetadata = ...
-        {'userId', 'gender', 'school', 'grade', 'birthDay'};
+        {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay'};
     curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
     %Store the taskIDName.
     dataExtract.TaskIDName(itask) = curTaskSetting.TaskIDName;
