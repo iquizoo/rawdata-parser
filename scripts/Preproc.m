@@ -134,46 +134,53 @@ for itask = 1:ntasks4process
             end
         end
     end
+    %Get the setting of current task.
+    curTaskSetting = settings(locset, :);
+    %Store the taskIDName.
+    dataExtract.TaskIDName(itask) = curTaskSetting.TaskIDName;
     %Get a table curTaskCfg to combine two variables: conditions and para,
     %which are used in the function sngproc. See more in function sngproc.
-    curTaskSetting = settings(locset, :);
     curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
     curTaskCfg = table;
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
-    curTaskRes = cat(1, cursplit.splitRes{:});
-    curTaskRes.status = cursplit.status;
-    %Generate some warning according to the status.
-    if any(cursplit.status ~= 0)
-        warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
-        if any(cursplit.status == -1) %Data mismatch found.
-            fprintf(logfid, ...
-                'Data mismatch encountered in task %s. Normally, its format is ''%s''.\r\n', ...
-                curTaskName, curTaskPara.VariablesNames{:});
+    if isempty(cursplit)
+        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.\n', curTaskName);
+        fprintf(logfid, ...
+            'No data found for task %s.\r\n', curTaskName);
+    else
+        curTaskRes = cat(1, cursplit.splitRes{:});
+        curTaskRes.status = cursplit.status;
+        %Generate some warning according to the status.
+        if any(cursplit.status ~= 0)
+            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
+            if any(cursplit.status == -1) %Data mismatch found.
+                fprintf(logfid, ...
+                    'Data mismatch encountered in task %s. Normally, its format is ''%s''.\r\n', ...
+                    curTaskName, curTaskPara.VariablesNames{:});
+            end
+            if any(cursplit.status == -2) %Parameters for this task not found.
+                fprintf(logfid, ...
+                    'No parameters specification found in task %s.\r\n', ...
+                    curTaskName);
+            end
         end
-        if any(cursplit.status == -2) %Parameters for this task not found.
-            fprintf(logfid, ...
-                'No parameters specification found in task %s.\r\n', ...
-                curTaskName);
+        %Use curTaskRes as the results variable store. And store the TaskIDName
+        %from settings, which is usually used in the following analysis.
+        curTaskOutVarsOIMetadata = ...
+            {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay'};
+        curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
+        %Store the spitting results.
+        curTaskSplitRes = cat(1, cursplit.splitRes{:});
+        curTaskSplitResVars = curTaskSplitRes.Properties.VariableNames;
+        nvars = length(curTaskSplitResVars);
+        for ivar = 1:nvars
+            curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSplitRes.(curTaskSplitResVars{ivar});
         end
+        curTaskRes.status = cursplit.status;
+        dataExtract.Data{itask} = curTaskRes;
     end
-    %Use curTaskRes as the results variable store. And store the TaskIDName
-    %from settings, which is usually used in the following analysis.
-    curTaskOutVarsOIMetadata = ...
-        {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay'};
-    curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
-    %Store the taskIDName.
-    dataExtract.TaskIDName(itask) = curTaskSetting.TaskIDName;
-    %Store the spitting results.
-    curTaskSpitRes = cat(1, cursplit.splitRes{:});
-    curTaskSplitResVars = curTaskSpitRes.Properties.VariableNames;
-    nvars = length(curTaskSplitResVars);
-    for ivar = 1:nvars
-        curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSpitRes.(curTaskSplitResVars{ivar});
-    end
-    curTaskRes.status = cursplit.status;
-    dataExtract.Data{itask} = curTaskRes;
     %Record the time used for each task.
     curTaskTimeUsed = toc - elapsedTime;
     dataExtract.Time2Preproc{itask} = seconds2human(curTaskTimeUsed, 'full');
