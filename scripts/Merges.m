@@ -4,6 +4,16 @@ function [mrgdata, scores, indices, taskstat] = Merges(resdata)
 %   some information, e.g., gender, school, grade, is also merged according
 %   to some arbitrary principle.
 %
+%   [MRGDATA, SCORES] = MERGES(RESDATA) also merges scores into the result,
+%   the regulation of which is from Prof. He.
+%
+%   [MRGDATA, SCORES, INDICES] = MERGES(RESDATA) also merges indices into
+%   the result, which are regulated by Prof. Xue.
+%
+%   [MRGDATA, SCORES, INDICES, TASKSTAT] = MERGES(RESDATA) gets the status
+%   of each task. Cheat sheet: 0 -> no data; 1 -> data valid; -1 -> data
+%   invalid (to be exact, meta information found, but data appears NaN).
+%
 %   See also PREPROC, PROC.
 
 %Set the school information.
@@ -121,7 +131,8 @@ for imrgtask = 1:nTasks
         curID = taskstat.userId(isubj);
         [isexisted, loc] = ismember(curID, curTaskData.userId);
         if isexisted
-            taskstat.(curTask)(isubj) = ~any(isnan(curTaskData(loc, :).res{:, :}));
+            taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
+                (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
             scores.(curTask)(isubj) = curTaskData(loc, :).score;
             indices.(curTask)(isubj) = curTaskData(loc, :).index;
         end
