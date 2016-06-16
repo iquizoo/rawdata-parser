@@ -40,8 +40,7 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
     end
     if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
         fprintf('No preprocessing task completed this time. User canceled...\n');
-        dataExtract = [];
-        return
+        shtname = {''};
     end
 end
 %Initializing works.

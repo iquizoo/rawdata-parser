@@ -28,7 +28,7 @@ addpath(anafunpath);
 %Add a folder to store all the results.
 curCallFullname = mfilename('fullpath');
 curDir = fileparts(curCallFullname);
-resFolder = fullfile(fileparts(curDir), 'DATA_RES');
+resFolder = fullfile(curDir, 'DATA_RES');
 %% Settings processing in total.
 %Read in the settings table.
 settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
