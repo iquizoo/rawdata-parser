@@ -26,6 +26,10 @@ if nargin < 3
     db = false; %Debug mode.
 end
 if nargin < 2
+    shtname = [];
+end
+%Check whether shtname is empty, if so, change it to denote all the sheets.
+if isempty(shtname)
     shtname = sheets';
 end
 %When constructing table, only cell string is allowed.
@@ -40,8 +44,7 @@ if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
     end
     if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
         fprintf('No preprocessing task completed this time. User canceled...\n');
-        dataExtract = [];
-        return
+        shtname = {''};
     end
 end
 %Initializing works.

@@ -38,6 +38,9 @@ dataMergeMetadata = cat(1, resMetadata{:});
 chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
+    if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
+        continue
+    end
     cVarNotCharLoc = ~cellfun(@ischar, dataMergeMetadata.(cvomd));
     if any(cVarNotCharLoc)
         dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
@@ -84,6 +87,9 @@ for iusr = 1:nusr
         mrgResolved = true;
         for ivomd = 1:length(chkVarsOfMetadata)
             cvomd = chkVarsOfMetadata{ivomd};
+            if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
+                continue
+            end
             curUsrCurVarData = curUsrMetadata.(cvomd);
             udfLoc = isundefined(curUsrCurVarData);
             if length(unique(curUsrCurVarData(~udfLoc))) > 1

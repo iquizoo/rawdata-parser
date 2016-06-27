@@ -4,6 +4,9 @@ function [n, idx] = coutlier(x, outliermode)
 %   Reference:
 %   http://www.itl.nist.gov/div898/handbook/prc/section1/prc16.htm
 
+if nargin <= 1
+    outliermode = 'mild';
+end
 %Get the first quartile and the third quartile.
 Q = quantile(x, [0.25, 0.75]);
 %Interquantile range.
