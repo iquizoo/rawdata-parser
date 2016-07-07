@@ -45,29 +45,33 @@ for ivomd = 1:length(chkVarsOfMetadata)
     if any(cVarNotCharLoc)
         dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
     end
-    %Set those schools of no interest into empty string, so as to be
-    %transformed into undefined.
-    if strcmp(cvomd, 'school')
-        %Locations of schools of interest.
-        schOIloc = ismember(dataMergeMetadata.school, schInfo.SchoolName);
-        if any(~schOIloc)
-            dataMergeMetadata.school(~schOIloc) = {''};
-        end
-        dataMergeMetadata.school(schOIloc) = values(schMap, dataMergeMetadata.school(schOIloc));
+    switch cvomd
+        %Set those schools of no interest into empty string, so as to be
+        %transformed into undefined.
+        case 'school'
+            %Locations of schools of interest.
+            schOIloc = ismember(dataMergeMetadata.school, schInfo.SchoolName);
+            if any(~schOIloc)
+                dataMergeMetadata.school(~schOIloc) = {''};
+            end
+            dataMergeMetadata.school(schOIloc) = ...
+                values(schMap, dataMergeMetadata.school(schOIloc));
+        %Convert grade strings to numeric data.
+        case 'grade'
+            allGradeStr = dataMergeMetadata.grade;
+            allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
+            dataMergeMetadata.grade = values(grdMap, allGradeStr);
+        %Convert class strings to numeric data.
+        case 'cls'
+            allClsStr = dataMergeMetadata.cls;
+            allClsStr(~isKey(clsMap, allClsStr)) = {''};
+            dataMergeMetadata.cls = values(clsMap, allClsStr);
     end
-    %Convert grade strings to numeric data.
-    if strcmp(cvomd, 'grade')
-        allGradeStr = dataMergeMetadata.grade;
-        allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
-        dataMergeMetadata.grade = values(grdMap, allGradeStr);
+    if ~strcmp(cvomd, 'grade')
+        dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
+    else
+        dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd), 'ordinal', true);
     end
-    %Convert class strings to numeric data.
-    if strcmp(cvomd, 'cls')
-        allClsStr = dataMergeMetadata.cls;
-        allClsStr(~isKey(clsMap, allClsStr)) = {''};
-        dataMergeMetadata.cls = values(clsMap, allClsStr);
-    end
-    dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
 end
 dataMergeMetadata = unique(dataMergeMetadata);
 %Merge undefined. Basic logic, of each checking variable, one of the

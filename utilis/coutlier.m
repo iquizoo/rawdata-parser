@@ -1,4 +1,4 @@
-function [n, idx] = coutlier(x, outliermode)
+function [n, idx, ci] = coutlier(x, outliermode)
 %COUTLIER counts the number and gets the index of outliers.
 %
 %   Reference:
@@ -20,5 +20,6 @@ switch outliermode
 end
 LF = Q(1) - w * IQ;
 UF = Q(2) + w * IQ;
+ci = [LF, UF];
 idx = x > UF | x < LF;
 n = sum(idx);
