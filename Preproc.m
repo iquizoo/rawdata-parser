@@ -37,7 +37,7 @@ shtname = cellstr(shtname);
 %If all the tasks in the data will be processed, ask if continue.
 shtRange = find(ismember(sheets, shtname));
 nsht = length(sheets);
-if isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
+if ~db && isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
     userin = input('Will processing all the tasks found in the original data file, continue([Y]/N)?', 's');
     if isempty(userin)
         userin = 'yes';
