@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat] = Merges(resdata)
+function [mrgdata, scores, indices, taskstat, misc] = Merges(resdata)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -30,6 +30,8 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
 varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls'};
+%Use metavars to store all the variable names of meta data.
+metavars = {'userId', 'gender', 'school', 'grade', 'cls'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
     resdata.Data, 'UniformOutput', false);
@@ -39,6 +41,7 @@ chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
     if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
+        metavars(strcmp(metavars, cvomd)) = {''};
         continue
     end
     cVarNotCharLoc = ~cellfun(@ischar, dataMergeMetadata.(cvomd));
@@ -169,3 +172,5 @@ for imrgtask = 1:nTasks
     end
     clearvars('-except', initialVars{:});
 end
+metavars(cellfun(@isempty, metavars)) = [];
+misc.metavars = metavars;

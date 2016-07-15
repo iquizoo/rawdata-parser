@@ -128,12 +128,14 @@ for itask = 1:ntasks4process
     for ivar = 1:length(varsOfChk)
         curVar = varsOfChk{ivar};
         curClass = varsOfChkClass{ivar};
-        if ~isa(curTaskData.(curVar), curClass)
-            switch curClass
-                case 'cell'
-                    curTaskData.(curVar) = num2cell(curTaskData.(curVar));
-                case 'double'
-                    curTaskData.(curVar) = str2double(curTaskData.(curVar));
+        if ismember(curVar, curTaskData.Properties.VariableNames) %For better compatibility.
+            if ~isa(curTaskData.(curVar), curClass)
+                switch curClass
+                    case 'cell'
+                        curTaskData.(curVar) = num2cell(curTaskData.(curVar));
+                    case 'double'
+                        curTaskData.(curVar) = str2double(curTaskData.(curVar));
+                end
             end
         end
     end
