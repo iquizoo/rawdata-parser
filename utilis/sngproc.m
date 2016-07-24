@@ -1,4 +1,4 @@
-function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
+function res = sngproc(rec, tasksettings, varargin)
 %SNGPROC forms a wrapper function to compute those single task statistics.
 %   RES = SNGPROC(SPLITRES, TASKSETTING) does basic computation job for
 %   most of the tasks when no SCat(have a look at the data to see what SCat
@@ -15,10 +15,16 @@ function res = sngproc(rec, tasksettings, resvarsuff, taskSTIMMap, method)
 
 %By Zhang, Liang. 05/03/2016, E-mail:psychelzh@gmail.com
 
-%Initialization jobs.
-if nargin < 5
-    method = 'full';
-end
+%Parse input arguments.
+par = inputParser;
+parNames   = {'Condition',  'StimulusMap', 'Method'};
+parDflts   = {   [],            [],        'full'  };
+parValFuns = {  @ischar,   @isobject,     @ischar  };
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+resvarsuff  = par.Results.Condition;
+taskSTIMMap = par.Results.StimulusMap;
+method      = par.Results.Method;
 %Get all the output variable names.
 %coupleVars are formatted out variables.
 varscat = strsplit(tasksettings.VarsCat{:});
@@ -87,6 +93,8 @@ else
                 'Flanker', 'TaskSwitching', ...%Part of EF tasks
                 } %SCat modification required tasks.
             %left -> 1, right -> 2.
+            assert(~isempty(taskSTIMMap), ...
+                'UDF:CCDPRO:SNGPROC:STIMULUSMAP', 'Stimulus map must be specified.');
             RECORD = mapSCat(RECORD, taskSTIMMap);
             %Get the total used time (unit: min).
             TotalTime = sum(RECORD.RT);

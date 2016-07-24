@@ -1,4 +1,4 @@
-function dataExtract = Preproc(fname, shtname, db)
+function dataExtract = Preproc(fname, varargin)
 %PREPROC is used for processing raw data of CCDPro.
 %   Raw data are originally stored in an Excel file. Input argument named
 %   SHTNAME is short of sheet name.
@@ -10,6 +10,15 @@ function dataExtract = Preproc(fname, shtname, db)
 %Modified to use in another problem.
 %Modification completed at 2016/04/13.
 
+% Parse input arguments.
+par = inputParser;
+parNames   = {         'TaskNames',                       'DeBug'            };
+parDflts   = {              [],                            false             };
+parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x)};
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+shtname = par.Results.TaskNames;
+db      = par.Results.DeBug;
 %Folder contains all the analysis and plots functions.
 anafunpath = 'utilis';
 addpath(anafunpath);
@@ -21,13 +30,6 @@ settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
-%Check input variables. Some basic checking for shtname variable.
-if nargin < 3
-    db = false; %Debug mode.
-end
-if nargin < 2
-    shtname = [];
-end
 %Check whether shtname is empty, if so, change it to denote all the sheets.
 if isempty(shtname)
     shtname = sheets';

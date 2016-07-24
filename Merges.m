@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat, misc] = Merges(resdata)
+function [mrgdata, scores, indices, taskstat] = Merges(resdata, verbose)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -121,12 +121,15 @@ for iusr = 1:nusr
 end
 dataMergeMetadata(isnan(dataMergeMetadata.userId), :) = [];
 mrgdata = dataMergeMetadata; %Metadata done!
-%Change the subjects order according the order of school in schInfo.
-mrgdata.schID = nan(height(mrgdata), 1);
-definedSchRowsIdx = ~isundefined(mrgdata.school);
-mrgdata.schID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
-mrgdata = sortrows(mrgdata, 'schID');
-mrgdata.schID = [];
+%Change the subjects order according the order of school in schInfo if
+%school information exists.
+if ismember('school', mrgdata.Properties.VariableNames)
+    mrgdata.schID = nan(height(mrgdata), 1);
+    definedSchRowsIdx = ~isundefined(mrgdata.school);
+    mrgdata.schID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
+    mrgdata = sortrows(mrgdata, 'schID');
+    mrgdata.schID = [];
+end
 %Generate a table to store the completion status for each id and task.
 taskstat = mrgdata;
 scores = mrgdata;
@@ -144,19 +147,26 @@ for imrgtask = 1:nTasks
     curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
     curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
-    %Generate the tasks status matrix.
-    curTask = char(curTaskIDName);
-    taskstat.(curTask) = zeros(nsubj, 1);
-    scores.(curTask) = nan(nsubj, 1);
-    indices.(curTask) = nan(nsubj, 1);
-    for isubj = 1:nsubj
-        curID = taskstat.userId(isubj);
-        [isexisted, loc] = ismember(curID, curTaskData.userId);
-        if isexisted
-            taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
-                (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
-            scores.(curTask)(isubj) = curTaskData(loc, :).score;
-            indices.(curTask)(isubj) = curTaskData(loc, :).index;
+    if verbose
+        %Generate the tasks status, scores and performance indices matrices.
+        curTask = char(curTaskIDName);
+        taskstat.(curTask) = zeros(nsubj, 1);
+        scores.(curTask) = nan(nsubj, 1);
+        indices.(curTask) = nan(nsubj, 1);
+        for isubj = 1:nsubj
+            %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
+            curID = taskstat.userId(isubj);
+            [isexisted, loc] = ismember(curID, curTaskData.userId);
+            if isexisted
+                %The logic here is, if there is no school information for
+                %current observation, set the observation as missing data; if
+                %there is school information, if there is any invalid value,
+                %set the observation as invalid.
+                taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
+                    (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
+                scores.(curTask)(isubj) = curTaskData(loc, :).score;
+                indices.(curTask)(isubj) = curTaskData(loc, :).index;
+            end
         end
     end
     %Use the taskIDName as the variable name precedence.
@@ -173,4 +183,3 @@ for imrgtask = 1:nTasks
     clearvars('-except', initialVars{:});
 end
 metavars(cellfun(@isempty, metavars)) = [];
-misc.metavars = metavars;

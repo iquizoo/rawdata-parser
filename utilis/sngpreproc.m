@@ -29,7 +29,7 @@ function [splitRes, status] = sngpreproc(conditions, para)
 status = 0;
 %Extract useful information form parameters.
 para = para{:};
-if ~isempty(para) && ~isempty(para.Delimiters{:})
+if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
     %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters = para.Delimiters{:};

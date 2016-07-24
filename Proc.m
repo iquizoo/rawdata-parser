@@ -1,4 +1,4 @@
-function resdata = Proc(dataExtract, tasks, db, method)
+function resdata = Proc(dataExtract, varargin)
 %PROC Does some basic computation on data.
 %   RESDATA = PROC(DATA) does some basic analysis to the
 %   output of function readsht. Including basic analysis.
@@ -7,17 +7,17 @@ function resdata = Proc(dataExtract, tasks, db, method)
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
+%% Parse input arguments.
+par = inputParser;
+parNames   = {         'TaskNames',                       'DeBug',            'Method'  };
+parDflts   = {              [],                            false,               'full'  };
+parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x), @ischar  };
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+tasks  = par.Results.TaskNames;
+db     = par.Results.DeBug;
+method = par.Results.Method;
 %% Initialization jobs.
-% Checking input arguments.
-if nargin < 2
-    tasks = [];
-end
-if nargin < 3
-    db = false; %Debug mode.
-end
-if nargin < 4
-    method = 'full';
-end
 %Folder contains all the analysis functions.
 anafunpath = 'utilis';
 addpath(anafunpath);
@@ -110,30 +110,31 @@ for itask = 1:ntasks4process
         curAnaVar = anaVars{ivar};
         curMrgCond = mrgCond{ivar};
         %Check whether the data are recorded legally or not.
-        if isempty(curAnaVar) || all(cellfun(@isempty, curTaskData.(curAnaVar)))
+        if isempty(curAnaVar) ...
+                || ~ismember(curAnaVar, curTaskData.Properties.VariableNames) ...
+                || all(cellfun(@isempty, curTaskData.(curAnaVar)))
             fprintf(logfid, ...
                 'No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
             %Increment of ignored number of tasks.
             nignored = nignored + 1;
             continue
         end
+        procPara = {'Condition', curMrgCond, 'Method', method};
         switch curTaskIDName
             case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                     'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
                     'Flanker', 'TaskSwitching', ...%Conflict
                     }
                 %Get curTaskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
+                curTaskEncode  = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
-            otherwise
-                %Construct an empty curTaskSTIMMap.
-                curTaskSTIMMap = containers.Map;
+                procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
         end
         %Table is wrapped into a cell. The table type of MATLAB has
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
-        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, curMrgCond, curTaskSTIMMap, method), ...
+        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, procPara{:}), ...
             curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
