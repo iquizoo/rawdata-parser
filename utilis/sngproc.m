@@ -1,15 +1,24 @@
 function res = sngproc(rec, tasksettings, varargin)
 %SNGPROC forms a wrapper function to compute those single task statistics.
-%   RES = SNGPROC(SPLITRES, TASKSETTING) does basic computation job for
+%   res = SNGPROC(rec, tasksettings) does basic computation job for
 %   most of the tasks when no SCat(have a look at the data to see what SCat
 %   is) modification is needed. Locally, RT cutoffs, NaN cleaning and other
 %   miscellaneous tasks to prepare data for processing.
-%   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP) adds a map container
-%   for modification of SCat in RECORD.
-%   RES = SNGPROC(SPLITRES, TASKSETTING, TASKSTIMMAP, METHOD) adds a method
-%   to calculate odd trials or even trials only.
 %
-%   See also sngprocBART, sngprocCRT, sngprocConflict, sngprocMemrep,
+%   res = SNGPROC(rec, tasksettings, Name, Value) provides parameters input
+%   by Name, Value pairs. Possible pairs are as follows:
+%            'Condition' - specifies the condition of the data, especially
+%                          for divided attention tasks, which have a left
+%                          and a right conditions.
+%          'StimulusMap' - specifies the mapping between the stimulus type
+%                          and encode type for specific tasks.
+%               'Method' - can be 'full', 'odd', or 'even', which specifies
+%                          the specific trials used in the analysis.
+%       'RemoveAbnormal' - true or false, specifies whether to remove those
+%                          subjects who behave abnormally, for example, the
+%                          accuracy lower than chance level.
+%
+%   See also sngprocBART, sngprocEZDiff, sngprocConflict, sngprocMemrep,
 %   sngprocMemsep, sngprocMentcompare, sngprocMentcompute, sngprocNSN,
 %   sngprocNback, sngprocSRT, sngprocSpan
 
@@ -17,14 +26,15 @@ function res = sngproc(rec, tasksettings, varargin)
 
 %Parse input arguments.
 par = inputParser;
-parNames   = {'Condition',  'StimulusMap', 'Method'};
-parDflts   = {   [],            [],        'full'  };
-parValFuns = {  @ischar,   @isobject,     @ischar  };
+parNames   = {'Condition',  'StimulusMap', 'Method',         'RemoveAbnormal'        };
+parDflts   = {   [],            [],        'full',                true               };
+parValFuns = {  @ischar,   @isobject,     @ischar, @(x) islogical(x) | isnumeric(x)  };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 resvarsuff  = par.Results.Condition;
 taskSTIMMap = par.Results.StimulusMap;
 method      = par.Results.Method;
+rmanml      = par.Results.RemoveAbnormal;
 %Get all the output variable names.
 %coupleVars are formatted out variables.
 varscat = strsplit(tasksettings.VarsCat{:});
@@ -125,14 +135,14 @@ else
             %For SCat: Go -> 1, NoGo -> 0.
             RECORD.SCat = ~ismember(RECORD.STIM, NGSTIM);
         case 'CPT2'
-            %Note only 'C' which is followed by 'B' is Go(target) trial
+            %Note only 'C' following 'B' is Go(target) trial
             GoTrials = strcmp(RECORD.STIM, 'C');
             %'C' appears at the first trial will not be a target.
             if ismember(find(GoTrials), 1)
                 GoTrials(1) = false;
             end
             isFollowB = strcmp(RECORD.STIM(circshift(GoTrials, -1)) , 'B');
-            %'C' not followed by 'B' should be excluded.
+            %'C' not following 'B' should be excluded.
             GoTrials(~isFollowB) = false;
             %Add a field 'SCat', 1 -> go, 0 -> nogo.
             RECORD.SCat = zeros(height(RECORD), 1);
@@ -227,24 +237,26 @@ if ~isempty(RECORD)
     end
     %Get all the variable names of current res table.
     curTaskResVarNames = res.Properties.VariableNames;
-    %Treat mean RT of less than 300ms/larger than 2500ms as missing.
-    MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-        regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
-    for irtvar = 1:length(MRTvars)
-        if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
-            res{:, :} = nan;
-            score = nan;
-            break
+    if rmanml
+        %Treat mean RT of less than 300ms/larger than 2500ms as missing.
+        MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
+            regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
+        for irtvar = 1:length(MRTvars)
+            if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
+                res{:, :} = nan;
+                score = nan;
+                break
+            end
         end
-    end
-    %Treat ACC_Overall of below chance level as missing.
-    ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
-        regexp(curTaskResVarNames, '^ACC$|^ACC(?!_CongEffect|_SwitchCost)|^Rate(?!_FA)', 'once')));
-    for iaccvar = 1:length(ACCvars)
-        if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
-            res{:, :} = nan;
-            score = nan;
-            break
+        %Treat ACC_Overall of below chance level as missing.
+        ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
+            regexp(curTaskResVarNames, '^ACC$|^ACC(?!_CongEffect|_SwitchCost)|^Rate(?!_FA)', 'once')));
+        for iaccvar = 1:length(ACCvars)
+            if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
+                res{:, :} = nan;
+                score = nan;
+                break
+            end
         end
     end
     res(:, ~ismember(curTaskResVarNames, outvars)) = [];

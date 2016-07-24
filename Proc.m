@@ -9,14 +9,18 @@ function resdata = Proc(dataExtract, varargin)
 
 %% Parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',                       'DeBug',            'Method'  };
-parDflts   = {              [],                            false,               'full'  };
-parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x), @ischar  };
+parNames   = {         'TaskNames',                       'DeBug', ...
+    'Method',           'RemoveAbnormal'     };
+parDflts   = {              [],                            false, ...
+    'full'                  true             };
+parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x), ...
+    @ischar, @(x) islogical(x) | isnumeric(x)};
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 tasks  = par.Results.TaskNames;
 db     = par.Results.DeBug;
 method = par.Results.Method;
+rmanml = par.Results.RemoveAbnormal;
 %% Initialization jobs.
 %Folder contains all the analysis functions.
 anafunpath = 'utilis';
@@ -119,7 +123,7 @@ for itask = 1:ntasks4process
             nignored = nignored + 1;
             continue
         end
-        procPara = {'Condition', curMrgCond, 'Method', method};
+        procPara = {'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml};
         switch curTaskIDName
             case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                     'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.

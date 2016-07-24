@@ -75,7 +75,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
         token = para.TemplateToken{:};
         switch token
             %language task, , Go/No-Go, cpt, divided attention working memory.
-            case {'LT', 'GNG', 'CPT1', 'DA', 'WM'}
+            case {'LT', 'GNG', 'CPT1', 'DA', 'WM', 'CPT2'}
                 lenTrial = cellfun(@length, curTrialRec);
                 % Trial length of 1 denotes artificial data, esp. one ',' at the end.
                 lenTrial(lenTrial == 1) = [];
