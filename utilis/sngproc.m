@@ -135,15 +135,14 @@ else
             %For SCat: Go -> 1, NoGo -> 0.
             RECORD.SCat = ~ismember(RECORD.STIM, NGSTIM);
         case 'CPT2'
-            %Note only 'C' following 'B' is Go(target) trial
-            GoTrials = strcmp(RECORD.STIM, 'C');
+            %Note: only 'C' following 'B' is Go(target) trial.
+            %Get all the candidate go trials.
+            GoTrials = find(strcmp(RECORD.STIM, 'C'));
             %'C' appears at the first trial will not be a target.
-            if ismember(find(GoTrials), 1)
-                GoTrials(1) = false;
-            end
-            isFollowB = strcmp(RECORD.STIM(circshift(GoTrials, -1)) , 'B');
-            %'C' not following 'B' should be excluded.
-            GoTrials(~isFollowB) = false;
+            GoTrials(GoTrials == 1) = [];
+            %'C's that are not following 'B' should be excluded.
+            isFollowB = strcmp(RECORD.STIM(GoTrials - 1) , 'B');
+            GoTrials(~isFollowB) = [];
             %Add a field 'SCat', 1 -> go, 0 -> nogo.
             RECORD.SCat = zeros(height(RECORD), 1);
             RECORD.SCat(GoTrials) = 1;
