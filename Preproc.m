@@ -12,13 +12,13 @@ function dataExtract = Preproc(fname, varargin)
 
 % Parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',                       'DeBug'            };
-parDflts   = {              [],                            false             };
-parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x)};
+parNames   = {         'TaskNames',       'DisplayInfo'};
+parDflts   = {              [],              'text'    };
+parValFuns = {@(x) ischar(x) | iscellstr(x), @ischar   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 shtname = par.Results.TaskNames;
-db      = par.Results.DeBug;
+prompt  = lower(par.Results.DisplayInfo);
 %Folder contains all the analysis and plots functions.
 anafunpath = 'utilis';
 addpath(anafunpath);
@@ -36,19 +36,19 @@ if isempty(shtname)
 end
 %When constructing table, only cell string is allowed.
 shtname = cellstr(shtname);
-%If all the tasks in the data will be processed, ask if continue.
-shtRange = find(ismember(sheets, shtname));
-nsht = length(sheets);
-if ~db && isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
-    userin = input('Will processing all the tasks found in the original data file, continue([Y]/N)?', 's');
-    if isempty(userin)
-        userin = 'yes';
-    end
-    if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
-        fprintf('No preprocessing task completed this time. User canceled...\n');
-        shtname = {''};
-    end
-end
+% %If all the tasks in the data will be processed, ask if continue.
+% shtRange = find(ismember(sheets, shtname));
+% nsht = length(sheets);
+% if ~db && isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
+%     userin = input('Will processing all the tasks found in the original data file, continue([Y]/N)?', 's');
+%     if isempty(userin)
+%         userin = 'yes';
+%     end
+%     if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
+%         fprintf('No preprocessing task completed this time. User canceled...\n');
+%         shtname = {''};
+%     end
+% end
 %Initializing works.
 %Check the status of existence for the to-be-processed tasks (in shtname).
 % 1. Checking the existence in the original data (in the Excel file).
@@ -77,11 +77,15 @@ dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
     ntasks4process);
 %Use a waitbar to tell the processing information.
-if ~db
-    hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
-        'Name', 'Preprocess raw data of CCDPro',...
-        'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
-    setappdata(hwb, 'canceling', 0)
+switch prompt
+    case 'waitbar'
+        hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
+            'Name', 'Preprocess raw data of CCDPro',...
+            'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+        setappdata(hwb, 'canceling', 0)
+    case 'text'
+        except  = false;
+        dispinfo = '';
 end
 nprocessed = 0;
 nignored = 0;
@@ -92,24 +96,34 @@ elapsedTime = 0;
 for itask = 1:ntasks4process
     initialVarsSht = who;
     curTaskName = TaskName{itask};
-    if ~db
-        % Check for Cancel button press.
-        if getappdata(hwb, 'canceling')
-            fprintf('User canceled...\n');
-            break
-        end
-        %Get the proportion of completion and the estimated time of arrival.
-        completePercent = nprocessed / (ntasks4process - nignored);
-        if nprocessed == 0
-            msgSuff = 'Please wait...';
-        else
-            elapsedTime = toc;
-            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
-            msgSuff = strcat('TimeRem:', eta);
-        end
-        %Update message in the waitbar.
-        msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
-        waitbar(completePercent, hwb, msg);
+    %Update prompt information.
+    %Get the proportion of completion and the estimated time of arrival.
+    completePercent = nprocessed / (ntasks4process - nignored);
+    if nprocessed == 0
+        msgSuff = 'Please wait...';
+    else
+        elapsedTime = toc;
+        eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+        msgSuff = strcat('TimeRem:', eta);
+    end
+    switch prompt
+        case 'waitbar'
+            % Check for Cancel button press.
+            if getappdata(hwb, 'canceling')
+                fprintf('User canceled...\n');
+                break
+            end
+            %Update message in the waitbar.
+            msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
+            waitbar(completePercent, hwb, msg);
+        case 'text'
+            if ~except
+                fprintf(repmat('\b', 1, length(dispinfo)));
+            end
+            dispinfo = sprintf('Now processing %s (total: %d) task: %s(%s). %s\n', ...
+                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskName), msgSuff);
+            fprintf(dispinfo);
+            except = false;
     end
     %Find out the setting of current task.
     locset = ismember(settings.TaskName, curTaskName);
@@ -156,11 +170,13 @@ for itask = 1:ntasks4process
         warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.\n', curTaskName);
         fprintf(logfid, ...
             'No data found for task %s.\r\n', curTaskName);
+        except = true;
     else
         curTaskRes = cat(1, cursplit.splitRes{:});
         curTaskRes.status = cursplit.status;
         %Generate some warning according to the status.
         if any(cursplit.status ~= 0)
+            except = true;
             warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
             if any(cursplit.status == -1) %Data mismatch found.
                 fprintf(logfid, ...
@@ -199,5 +215,5 @@ usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
-if ~db, delete(hwb); end
+if strcmp(prompt, 'waitbar'), delete(hwb); end
 rmpath(anafunpath);

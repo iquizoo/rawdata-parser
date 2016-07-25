@@ -9,16 +9,13 @@ function resdata = Proc(dataExtract, varargin)
 
 %% Parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',                       'DeBug', ...
-    'Method',           'RemoveAbnormal'     };
-parDflts   = {              [],                            false, ...
-    'full'                  true             };
-parValFuns = {@(x) ischar(x) | iscellstr(x), @(x) islogical(x) | isnumeric(x), ...
-    @ischar, @(x) islogical(x) | isnumeric(x)};
+parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal'     };
+parDflts   = {              [],              'text',       'full',                  true           };
+parValFuns = {@(x) ischar(x) | iscellstr(x),  @ischar,    @ischar, @(x) islogical(x) | isnumeric(x)};
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 tasks  = par.Results.TaskNames;
-db     = par.Results.DeBug;
+prompt = lower(par.Results.DisplayInfo);
 method = par.Results.Method;
 rmanml = par.Results.RemoveAbnormal;
 %% Initialization jobs.
@@ -58,13 +55,18 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
 %Add a field to record time used to process in each task.
 dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
 %% Task-wise computation.
-%Use a waitbar to tell the processing information.
-if ~db
-    hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
-        'Name', 'Process the data extracted of CCDPro',...
-        'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
-    setappdata(hwb, 'canceling', 0)
+%Determine the prompt type and initialize for prompt.
+switch prompt
+    case 'waitbar'
+        hwb = waitbar(0, 'Begin processing the tasks specified by users...Please wait...', ...
+            'Name', 'Process the data extracted of CCDPro',...
+            'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
+        setappdata(hwb, 'canceling', 0)
+    case 'text'
+        except  = false;
+        dispinfo = '';
 end
+%Useful for timing information.
 nprocessed = 0;
 nignored = 0;
 %Start stopwatch.
@@ -82,25 +84,34 @@ for itask = 1:ntasks4process
     anaVars = strsplit(curTaskSetting.AnalysisVars{:});
     %Merge conditions. Useful when merging data.
     mrgCond = strsplit(curTaskSetting.MergeCond{:});
-    %% Update waitbar.
-    if ~db
-        % Check for Cancel button press
-        if getappdata(hwb, 'canceling')
-            fprintf('%d basic analysis task(s) completed this time. User canceled...\n', nprocessed);
-            break
-        end
-        %Get the proportion of completion and the estimated time of arrival.
-        completePercent = nprocessed / (ntasks4process - nignored);
-        if nprocessed == 0
-            msgSuff = 'Please wait...';
-        else
-            elapsedTime = toc;
-            eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
-            msgSuff = strcat('TimeRem:', eta);
-        end
-        %Update message in the waitbar.
-        msg = sprintf('Task(%d/%d): %s. %s', itask, ntasks4process, taskIDNameMap(curTaskName), msgSuff);
-        waitbar(completePercent, hwb, msg);
+    %% Update prompt information.
+    %Get the proportion of completion and the estimated time of arrival.
+    completePercent = nprocessed / (ntasks4process - nignored);
+    if nprocessed == 0
+        msgSuff = 'Please wait...';
+    else
+        elapsedTime = toc;
+        eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
+        msgSuff = strcat('TimeRem:', eta);
+    end
+    switch prompt
+        case 'waitbar'
+            % Check for Cancel button press
+            if getappdata(hwb, 'canceling')
+                fprintf('%d basic analysis task(s) completed this time. User canceled...\n', nprocessed);
+                break
+            end
+            %Update message in the waitbar.
+            msg = sprintf('Task(%d/%d): %s. %s', itask, ntasks4process, taskIDNameMap(curTaskName), msgSuff);
+            waitbar(completePercent, hwb, msg);
+        case 'text'
+            if ~except
+                fprintf(repmat('\b', 1, length(dispinfo)));
+            end
+            dispinfo = sprintf('Now processing %s (total: %d) task: %s(%s). %s\n', ...
+                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskName), msgSuff);
+            fprintf(dispinfo);
+            except = false;
     end
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
@@ -121,6 +132,7 @@ for itask = 1:ntasks4process
                 'No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
             %Increment of ignored number of tasks.
             nignored = nignored + 1;
+            except   = true;
             continue
         end
         procPara = {'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml};
@@ -150,6 +162,7 @@ for itask = 1:ntasks4process
             'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;
+        except   = true;
         continue
     end
     %Get the score in an independent field.
@@ -202,5 +215,5 @@ usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 fprintf('Congratulations! %d basic analysis task(s) completed this time.\n', nprocessed);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fclose(logfid);
-if ~db, delete(hwb); end
+if strcmp(prompt, 'waitbar'), delete(hwb); end
 rmpath(anafunpath);
