@@ -145,6 +145,14 @@ for itask = 1:ntasks4process
                 curTaskEncode  = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
+            case {'SemanticMemory'}
+                if strcmp(curAnaVar, 'TEST')
+                    oldStims = cellfun(@(tbl) tbl.STIM, curTaskData.STUDY, 'UniformOutput', false);
+                    testStims = cellfun(@(tbl) tbl.STIM, curTaskData.TEST, 'UniformOutput', false);
+                    for isubj = 1:nsubj
+                        curTaskData.TEST{isubj}.SCat = double(ismember(testStims{isubj}, oldStims{isubj}));
+                    end
+                end
         end
         %Table is wrapped into a cell. The table type of MATLAB has
         %something tricky when nesting table type in a table; it treats the

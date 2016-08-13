@@ -21,6 +21,8 @@ simTrials = RECORD(RECORD.SCat == simcode, :);
 res.([varPref{1}, delimiter, varSuff{2}]) = 1 - length(simTrials.ACC(simTrials.ACC == 1)) / length(simTrials.ACC);
 newTrials = RECORD(RECORD.SCat == newcode, :);
 res.([varPref{1}, delimiter, varSuff{3}]) = 1 - length(newTrials.ACC(newTrials.ACC == 1)) / length(newTrials.ACC);
+allNewTrials = RECORD(RECORD.SCat ~= oldcode, :);
+res.([varPref{1}, delimiter, varSuff{4}]) = 1 - length(allNewTrials.ACC(allNewTrials.ACC == 1)) / length(allNewTrials.ACC);
 %Run-wise hit and false alarm rate.
 runs = 1:2;
 for run = runs
@@ -33,6 +35,10 @@ for run = runs
     curRunNewTrials = newTrials(newTrials.REP == run, :);
     res.([varPref{run + 1}, delimiter, varSuff{3}]) = ...
         1 - length(curRunNewTrials.ACC(curRunNewTrials.ACC == 1)) / length(curRunNewTrials.ACC);
+    curRunAllNewTrials = allNewTrials(allNewTrials.REP == run, :);
+    res.([varPref{run + 1}, delimiter, varSuff{4}]) = ...
+        1 - length(curRunAllNewTrials.ACC(curRunAllNewTrials.ACC == 1)) / length(curRunAllNewTrials.ACC);
 end
 res.dprimeTM = sgldetect(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{3}]));
 res.dprimeFM = sgldetect(res.([varPref{1}, delimiter, varSuff{2}]), res.([varPref{1}, delimiter, varSuff{3}]));
+res.dprime   = sgldetect(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{4}]));

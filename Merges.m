@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat] = Merges(resdata, verbose)
+function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, verbose)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
