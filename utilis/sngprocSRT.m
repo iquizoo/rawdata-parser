@@ -19,5 +19,7 @@ res.ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
 res.MRT = mean(RECORD.RT(RECORD.ACC == 1));
 %Standard deviation of RT. Square root of variance.
 res.VRT = std(RECORD.RT(RECORD.ACC == 1));
-%Efficiency score, contrary to the inverse efficiency score (IES).
-res.Effc = res.ACC / res.MRT;
+% %Efficiency score, contrary to the inverse efficiency score (IES).
+% res.Effc = res.ACC / res.MRT;
+%Efficiency.
+res.efficiency = asin(sqrt(res.ACC / res.MRT));

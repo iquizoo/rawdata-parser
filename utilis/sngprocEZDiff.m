@@ -14,6 +14,8 @@ MRT = mean(RECORD.RT(RECORD.ACC == 1));
 VRT = std(RECORD.RT(RECORD.ACC == 1));
 %Calculate variables defined by a diffusion model.
 [v, a, Ter] = EZdif(ACC, MRT / 10 ^ 3, VRT ^ 2 / 10 ^ 6);
-%Efficiency score, contrary to the inverse efficiency score (IES).
-Effc = ACC / MRT;
-res = table(ACC, MRT, VRT, v, a, Ter, Effc);
+% %Efficiency score, contrary to the inverse efficiency score (IES).
+% Effc = ACC / MRT;
+%Efficiency.
+efficiency = asin(sqrt(ACC / MRT));
+res = table(ACC, MRT, VRT, v, a, Ter, efficiency);

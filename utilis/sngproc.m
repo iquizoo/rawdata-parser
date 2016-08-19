@@ -4,7 +4,7 @@ function res = sngproc(rec, tasksettings, varargin)
 %     most of the tasks when no SCat(have a look at the data to see what SCat
 %     is) modification is needed. Locally, RT cutoffs, NaN cleaning and other
 %     miscellaneous tasks to prepare data for processing.
-% 
+%
 %     res = SNGPROC(rec, tasksettings, Name, Value) provides parameters input
 %     by Name, Value pairs. Possible pairs are as follows:
 %             'Condition' - specifies the condition of the data, especially
@@ -17,7 +17,7 @@ function res = sngproc(rec, tasksettings, varargin)
 %        'RemoveAbnormal' - true or false, specifies whether to remove those
 %                           subjects who behave abnormally, for example, the
 %                           accuracy lower than chance level.
-% 
+%
 %     See also sngprocBART, sngprocEZDiff, sngprocConflict, sngprocMemrep,
 %     sngprocMemsep, sngprocMentcompare, sngprocMentcompute, sngprocNSN,
 %     sngprocNback, sngprocSRT, sngprocSpan
@@ -249,7 +249,7 @@ if ~isempty(RECORD)
         end
         % Treat ACC_Overall of below chance level as missing.
         ACCvars = curTaskResVarNames(~cellfun(@isempty, ...
-            regexp(curTaskResVarNames, '^ACC$|^ACC(?!_CongEffect|_SwitchCost)|^Rate(?!_FA)', 'once')));
+            regexp(curTaskResVarNames, '^ACC$|^ACC(?!_CongEffect|_SwitchCost)|^Rate_Overall', 'once')));
         for iaccvar = 1:length(ACCvars)
             if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
                 res{:, :} = nan;
@@ -303,10 +303,11 @@ if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
     % DRT of newer version detected.
     % Amend the ACC records.
     if ischar(RECORD.STIM)
-        RECORD.STIM = str2double(num2cell(RECORD.STIM));
+        RECORD.Resp = num2str(RECORD.Resp);
     end
     RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
 end
+% Find out no-go stimulus.
 if ~isempty(allSTIM)
     firstTrial = RECORD(1, :);
     firstIsGo = ~xor(firstTrial.ACC == 1, firstTrial.RT < criterion);
@@ -315,5 +316,15 @@ if ~isempty(allSTIM)
     NGSTIM = allSTIM(xor(firstTrialInfo, firstIsGo));
 else
     NGSTIM = [];
+end
+end
+
+function r = isnum(a)
+%Determine if a is a numeric string, or numeric data.
+if (isnumeric(a))
+    r = 1;
+else
+    o = str2double(a);
+    r = ~isnan(o);
 end
 end
