@@ -304,8 +304,10 @@ if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
     % Amend the ACC records.
     if ischar(RECORD.STIM)
         RECORD.Resp = num2str(RECORD.Resp);
+        RECORD(RECORD.Resp ~= '0' & RECORD.STIM ~= RECORD.Resp, :) = [];
+    else
+        RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
     end
-    RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
 end
 % Find out no-go stimulus.
 if ~isempty(allSTIM)
