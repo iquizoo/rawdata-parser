@@ -12,10 +12,12 @@ ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
 MRT = mean(RECORD.RT(RECORD.ACC == 1));
 %Standard deviation of RTs.
 VRT = std(RECORD.RT(RECORD.ACC == 1));
+%Median RT.
+MedRT = median(RECORD.RT(RECORD.ACC == 1)); 
 %Calculate variables defined by a diffusion model.
 [v, a, Ter] = EZdif(ACC, MRT / 10 ^ 3, VRT ^ 2 / 10 ^ 6);
 % %Efficiency score, contrary to the inverse efficiency score (IES).
 % Effc = ACC / MRT;
 %Efficiency.
 efficiency = asin(sqrt(ACC / MRT));
-res = table(ACC, MRT, VRT, v, a, Ter, efficiency);
+res = table(ACC, MRT, MedRT, VRT, v, a, Ter, efficiency);

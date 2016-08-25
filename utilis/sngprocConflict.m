@@ -27,3 +27,10 @@ res = [res, res_congruent, res_incongruent];
 res.MRT_CongEffect = res.MRT_Incongruent - res.MRT_Congruent;
 res.ACC_CongEffect = res.ACC_Congruent - res.ACC_Incongruent;
 res.v_CongEffect   = res.v_Congruent - res.v_Incongruent;
+%The score based NIH instructions.
+ACC = res.ACC_Overall;
+RT  = res.MedRT_Incongruent;
+if RT < 500
+    RT = 500;
+end
+res.NIHScore = asin(sqrt(ACC)) / (pi / 2) + (log(2500) - log(RT)) / (log(2500) - log(500));
