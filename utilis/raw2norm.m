@@ -1,7 +1,25 @@
 function y = raw2norm(x, varargin)
 %RAW2NORM tansforms raw score to normalized score and scale them.
-%   Y = RAW2NORM(X) use the scale 100 mean and 15 deviation without
-%   attention to NaNs.
+%   Y = RAW2NORM(X) use the scale 100 mean and 15 deviation, removing NaN's
+%   by default.
+%
+%   Y = RAW2NORM(X, mean, sd) explicitly tells the program the mean and
+%   standard deviation for the data X.
+%
+%   Y = RAW2NORM(X, ..., Name, Value) does the scaling works according to
+%   the specified parameters using the following Name, Value pairs:
+%               Center - specifies the scaling center for the
+%                        normalization, defalut: 100.
+%                Scale - specifies the scaling size for the normalization,
+%                        default: 15.
+%       MissingRemoval - tells the program to remove missing values or not.
+%                        Default: true.
+%              Missing - explicitly tells the program the missing value of
+%                        the data. Default: NaN.
+
+% Author: Zhang, Liang.
+% Date: August 2016.
+% E-mail: psychelzh@gmail.com
 
 % Parse input arguments.
 par = inputParser;
