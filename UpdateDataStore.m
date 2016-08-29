@@ -51,12 +51,12 @@ function mrg = update(tbl1, tbl2, metavars)
 
 vars1 = tbl1.Properties.VariableNames;
 vars2 = tbl2.Properties.VariableNames;
+% Ordinal variable needs to be set nominal before merge.
+[tbl1, ordvars1] = unordinal(tbl1);
+[tbl2, ordvars2] = unordinal(tbl2);
 % Get metadata from two tables.
 meta1 = tbl1(:, ismember(vars1, metavars));
 meta2 = tbl2(:, ismember(vars2, metavars));
-% Ordinal variable needs to be set nominal before merge.
-[meta1, ordvars1] = unordinal(meta1);
-[meta2, ordvars2] = unordinal(meta2);
 difmeta = setdiff(meta1, meta2);
 % Complete tbl2 into a table that is able to be merged with tbl1.
 datavars2 = setdiff(vars2, metavars);
