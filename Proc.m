@@ -10,7 +10,7 @@ function resdata = Proc(dataExtract, varargin)
 %% Parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal'     };
-parDflts   = {              [],              'text',       'full',                  true           };
+parDflts   = {              '',              'text',       'full',                  true           };
 parValFuns = {@(x) ischar(x) | iscellstr(x),  @ischar,    @ischar, @(x) islogical(x) | isnumeric(x)};
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
@@ -36,6 +36,9 @@ if isempty(tasks)
     tasks = dataExtract.TaskName;
 end
 tasks = cellstr(tasks);
+%For better compatibility, we can specify taskname in Chinese or English.
+tasks = dataExtract.TaskName(ismember(dataExtract.TaskName, tasks) | ...
+    ismember(dataExtract.TaskIDName, tasks));
 %Check the status of existence for the to-be-processed tasks.
 dataExistence = ismember(tasks, dataExtract.TaskName);
 if ~all(dataExistence)
@@ -130,6 +133,7 @@ for itask = 1:ntasks4process
                 || all(cellfun(@isempty, curTaskData.(curAnaVar)))
             fprintf(logfid, ...
                 'No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
+            warning('No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
             %Increment of ignored number of tasks.
             nignored = nignored + 1;
             except   = true;
@@ -168,6 +172,7 @@ for itask = 1:ntasks4process
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
             'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
+        warning('No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;
         except   = true;
