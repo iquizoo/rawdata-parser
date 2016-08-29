@@ -100,7 +100,7 @@ function [tbl, ordvars] = unordinal(tbl)
 
 ordcols = varfun(@(x) iscategorical(x) && isordinal(x), tbl, 'OutputFormat', 'uniform');
 ordvars = tbl.Properties.VariableNames(ordcols);
-for ivar = 1:length(ordvars)
-    tbl.(ordvars{ivar}) = categorical(tbl.(ordvars{ivar}));
+for iord = 1:length(ordvars)
+    tbl.(ordvars{iord}) = categorical(tbl.(ordvars{iord}));
 end
 end
