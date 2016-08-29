@@ -1,6 +1,19 @@
 function UpdateDataStore(tasks, varargin)
 %UPDATEDATASTORE updates data according to the configuration excel file.
+%   UPDATEDATASTORE(tasks) updating the results with the default settings,
+%   note a gui will pop out to locate the two data files used in the
+%   processing.
 %
+%   UPDATEDATASTORE(tasks, Name, Value) adds parameters to specify settings
+%   of the updating processes.
+%          dsout - specify the full file name of data containing all the
+%                  results indicators to update.
+%          dsraw - specify the full file name of raw data file.
+%       MetaVars - specify meta data vars, by default is the common used in
+%                  this project.
+%
+%   Example: In an usual situation, the following command is okay.
+%           UpdateDataStore('BART') % specify the tasknames
 
 %By Zhang, Liang. 2016/08/17. E-mail: psychelzh@gmail.com.
 
@@ -10,13 +23,14 @@ function UpdateDataStore(tasks, varargin)
 
 % Parse input arguments.
 par = inputParser;
-addOptional(par, 'dsout', '', @ischar);
-addOptional(par, 'dsraw', '', @ischar);
-addParameter(par, 'MetaVars', {'userId', 'gender', 'school', 'grade', 'cls'}, @iscellstr);
+parNames   = { 'dsout', 'dsraw',                  'MetaVars'                   };
+parDflts   = {  '',       '',    {'userId', 'gender', 'school', 'grade', 'cls'}};
+parValFuns = {@ischar,  @ischar,         @(x) ischar(x) | iscellstr(x)         };
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 dsout = par.Results.dsout;
 dsraw = par.Results.dsraw;
-metavars = par.Results.MetaVars;
+metavars = cellstr(par.Results.MetaVars);
 if isempty(tasks)
     fprintf('Nothings to do at all. Returning...\n')
     return
