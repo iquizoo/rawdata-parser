@@ -53,14 +53,14 @@ load(dsraw) % raw data.
 % Modifying data.
 resdata = Proc(dataExtract, 'TaskName', tasks);
 [thismrgdata, thisscores, thisindices, thistaskstat] = Merges(resdata, true);
-mrgdata = update(mrgdata, thismrgdata, metavars); %#ok<*NASGU,*NODEF>
-scores = update(scores, thisscores, metavars);
-indices = update(indices, thisindices, metavars);
-taskstat = update(taskstat, thistaskstat, metavars);
+mrgdata = renew(mrgdata, thismrgdata, metavars); %#ok<*NASGU,*NODEF>
+scores = renew(scores, thisscores, metavars);
+indices = renew(indices, thisindices, metavars);
+taskstat = renew(taskstat, thistaskstat, metavars);
 save(dsout, 'mrgdata', 'scores', 'indices', 'taskstat')
 end
 
-function mrg = update(tbl1, tbl2, metavars)
+function mrg = renew(tbl1, tbl2, metavars)
 %MERGE tries to merge two tables and updating variables.
 
 vars1 = tbl1.Properties.VariableNames;
