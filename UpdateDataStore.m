@@ -23,9 +23,9 @@ function UpdateDataStore(tasks, varargin)
 
 % Parse input arguments.
 par = inputParser;
-parNames   = { 'dsout', 'dsraw',                  'MetaVars'                   };
-parDflts   = {  '',       '',    {'userId', 'gender', 'school', 'grade', 'cls'}};
-parValFuns = {@ischar,  @ischar,         @(x) ischar(x) | iscellstr(x)         };
+parNames   = { 'dsout', 'dsraw',                                  'MetaVars'                             };
+parDflts   = {  '',       '',    {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'}};
+parValFuns = {@ischar,  @ischar,                         @(x) ischar(x) | iscellstr(x)                   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 dsout = par.Results.dsout;

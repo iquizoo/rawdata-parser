@@ -36,19 +36,6 @@ if isempty(shtname)
 end
 %When constructing table, only cell string is allowed.
 shtname = cellstr(shtname);
-% %If all the tasks in the data will be processed, ask if continue.
-% shtRange = find(ismember(sheets, shtname));
-% nsht = length(sheets);
-% if ~db && isequal(shtRange, 1:nsht) %Means all the tasks will be processed.
-%     userin = input('Will processing all the tasks found in the original data file, continue([Y]/N)?', 's');
-%     if isempty(userin)
-%         userin = 'yes';
-%     end
-%     if ~strcmpi(userin, 'y') && ~strcmpi(userin, 'yes')
-%         fprintf('No preprocessing task completed this time. User canceled...\n');
-%         shtname = {''};
-%     end
-% end
 %Initializing works.
 %Check the status of existence for the to-be-processed tasks (in shtname).
 % 1. Checking the existence in the original data (in the Excel file).
@@ -139,8 +126,8 @@ for itask = 1:ntasks4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Check if the data fields are in the correct type.
-    varsOfChk = {'Taskname', 'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'conditions'};
-    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    varsOfChk = {'Taskname', 'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate', 'conditions'};
+    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell'};
     for ivar = 1:length(varsOfChk)
         curVar = varsOfChk{ivar};
         curClass = varsOfChkClass{ivar};
@@ -192,7 +179,7 @@ for itask = 1:ntasks4process
         %Use curTaskRes as the results variable store. And store the TaskIDName
         %from settings, which is usually used in the following analysis.
         curTaskOutVarsOIMetadata = ...
-            {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay'};
+            {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
         curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
         %Store the spitting results.
         curTaskSplitRes = cat(1, cursplit.splitRes{:});

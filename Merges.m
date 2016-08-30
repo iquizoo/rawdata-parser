@@ -16,6 +16,8 @@ function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, verbos
 %
 %   See also PREPROC, PROC.
 
+%Input argument checking.
+if nargin <= 1, verbose = true; end
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
@@ -29,9 +31,9 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %Get the metadata. Not all of the variables in meta data block is
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
-varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls'};
+varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
 %Use metavars to store all the variable names of meta data.
-metavars = {'userId', 'gender', 'school', 'grade', 'cls'};
+metavars = {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
     resdata.Data, 'UniformOutput', false);
