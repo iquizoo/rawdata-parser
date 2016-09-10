@@ -31,16 +31,19 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %Get the metadata. Not all of the variables in meta data block is
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
-varsOfMetadata = {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
+fprintf('Now trying to merge the metadata. Please wait...\n')
+varsOfMetadata = {'userId', 'name', 'gender', 'school', 'grade', 'cls'};
 %Use metavars to store all the variable names of meta data.
-metavars = {'userId', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
+metavars = varsOfMetadata;
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
 %Check the following variables.
+fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
 chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
 for ivomd = 1:length(chkVarsOfMetadata)
+    initialVars = who;
     cvomd = chkVarsOfMetadata{ivomd};
     if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
         metavars(strcmp(metavars, cvomd)) = {''};
@@ -51,77 +54,39 @@ for ivomd = 1:length(chkVarsOfMetadata)
         dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
     end
     switch cvomd
-        %Set those schools of no interest into empty string, so as to be
-        %transformed into undefined.
         case 'school'
-            %Locations of schools of interest.
+            %Set those schools of no interest into empty string, so as to
+            %be transformed into undefined.
             schOIloc = ismember(dataMergeMetadata.school, schInfo.SchoolName);
             if any(~schOIloc)
                 dataMergeMetadata.school(~schOIloc) = {''};
             end
             dataMergeMetadata.school(schOIloc) = ...
                 values(schMap, dataMergeMetadata.school(schOIloc));
-        %Convert grade strings to numeric data.
         case 'grade'
+            %Convert grade strings to numeric data.
             allGradeStr = dataMergeMetadata.grade;
             allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
             dataMergeMetadata.grade = values(grdMap, allGradeStr);
-        %Convert class strings to numeric data.
         case 'cls'
+            %Convert class strings to numeric data.
             allClsStr = dataMergeMetadata.cls;
             allClsStr(~isKey(clsMap, allClsStr)) = {''};
             dataMergeMetadata.cls = values(clsMap, allClsStr);
     end
+    clearvars('-except', initialVars{:})
+end
+%Remove non-existent metadata variable.
+metavars(cellfun(@isempty, metavars)) = [];
+dataMergeMetadata = unique(dataMergeMetadata);
+for ivomd = 1:length(chkVarsOfMetadata)
+    cvomd = chkVarsOfMetadata{ivomd};
     if ~strcmp(cvomd, 'grade')
         dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
     else
         dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd), 'ordinal', true);
     end
 end
-dataMergeMetadata = unique(dataMergeMetadata);
-%Merge undefined. Basic logic, of each checking variable, one of the
-%following circumstances indicated an auto merge.
-%   1. if all the instances are undefined, just make it undefined.
-%     Then there is no unique categories of defined instances.
-%   2. other than undefined, only one defined category found, use this
-%   found category.
-%     Then there is only one unique categories of defined instances.
-usrID = dataMergeMetadata.userId;
-uniUsrID = unique(usrID);
-nusr = length(uniUsrID);
-for iusr = 1:nusr
-    curUsrID = uniUsrID(iusr);
-    curUsrMetadata = dataMergeMetadata(dataMergeMetadata.userId == curUsrID, :);
-    if height(curUsrMetadata) > 1 %Mutiple entries for current user's basic information.
-        mrgResolved = true;
-        for ivomd = 1:length(chkVarsOfMetadata)
-            cvomd = chkVarsOfMetadata{ivomd};
-            if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
-                continue
-            end
-            curUsrCurVarData = curUsrMetadata.(cvomd);
-            udfLoc = isundefined(curUsrCurVarData);
-            if length(unique(curUsrCurVarData(~udfLoc))) > 1
-                mrgResolved = false;
-            else
-                inentry = find(~udfLoc);
-                if isempty(inentry)
-                    inentry = 1; %Use the first entry.
-                else
-                    inentry = inentry(1); %Use the first defined instance.
-                end
-            end
-        end
-        if ~mrgResolved
-            disp(curUsrMetadata)
-            inentry = input(...
-                'Please input an integer to denote which entry is used as current user''s information.\n');
-        end
-        curUsrMetadata.userId(~ismember(1:height(curUsrMetadata), inentry)) = nan;
-        dataMergeMetadata(dataMergeMetadata.userId == curUsrID, :) = curUsrMetadata;
-    end
-end
-dataMergeMetadata(isnan(dataMergeMetadata.userId), :) = [];
 mrgdata = dataMergeMetadata; %Metadata done!
 %Change the subjects order according the order of school in schInfo if
 %school information exists.
@@ -142,9 +107,14 @@ tasks = unique(resdata.TaskIDName, 'stable');
 nTasks = length(tasks);
 nsubj = height(mrgdata);
 %Merge data task by task.
+fprintf('Now trying to merge all the data task by task. Please wait...\n')
+dispinfo = '';
 for imrgtask = 1:nTasks
     initialVars = who;
     curTaskIDName = tasks(imrgtask);
+    fprintf(repmat('\b', 1, length(dispinfo)));
+    dispinfo = sprintf('Now merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
+    fprintf(dispinfo);
     %Get the data of current task.
     curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
     curTaskData = cat(1, curTaskData{:});
@@ -184,4 +154,3 @@ for imrgtask = 1:nTasks
     end
     clearvars('-except', initialVars{:});
 end
-metavars(cellfun(@isempty, metavars)) = [];
