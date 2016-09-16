@@ -21,7 +21,6 @@ if nargin <= 1, verbose = true; end
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
-schIDMap = containers.Map(schInfo.SchoolIDName, schInfo.SID);
 %Set the grade information.
 grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
@@ -81,22 +80,20 @@ metavars(cellfun(@isempty, metavars)) = [];
 dataMergeMetadata = unique(dataMergeMetadata);
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
-    if ~strcmp(cvomd, 'grade')
-        dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
-    else
-        dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd), 'ordinal', true);
+    switch cvomd
+        case 'grade'
+            %It is comparable for grades.
+            dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd), 'ordinal', true);
+        case 'school'
+            %School is best ordered in the way of differentiating different
+            %districts.
+            dataMergeMetadata.(cvomd) = reordercats(categorical(dataMergeMetadata.(cvomd)), ...
+                unique(schInfo.SchoolIDName, 'stable'));
+        otherwise
+            dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
     end
 end
 mrgdata = dataMergeMetadata; %Metadata done!
-%Change the subjects order according the order of school in schInfo if
-%school information exists.
-if ismember('school', mrgdata.Properties.VariableNames)
-    mrgdata.schID = nan(height(mrgdata), 1);
-    definedSchRowsIdx = ~isundefined(mrgdata.school);
-    mrgdata.schID(definedSchRowsIdx) = cell2mat(values(schIDMap, cellstr(mrgdata.school(definedSchRowsIdx))));
-    mrgdata = sortrows(mrgdata, 'schID');
-    mrgdata.schID = [];
-end
 %Generate a table to store the completion status for each id and task.
 taskstat = mrgdata;
 scores = mrgdata;
