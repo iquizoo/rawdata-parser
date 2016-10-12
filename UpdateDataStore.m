@@ -23,9 +23,9 @@ function UpdateDataStore(tasks, varargin)
 
 % Parse input arguments.
 par = inputParser;
-parNames   = { 'dsout', 'dsraw',                    'MetaVars'                         };
-parDflts   = {  '',       '',    {'userId', 'name', 'gender', 'school', 'grade', 'cls'}};
-parValFuns = {@ischar,  @ischar,             @(x) ischar(x) | iscellstr(x)             };
+parNames   = { 'dsout', 'dsraw',                                'MetaVars'                           };
+parDflts   = {  '',       '',    {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'}};
+parValFuns = {@ischar,  @ischar,                     @(x) ischar(x) | iscellstr(x)                   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 dsout = par.Results.dsout;
@@ -52,7 +52,7 @@ fprintf('Now loading all the raw data from: \n%s\n', dsraw)
 load(dsraw) % raw data.
 % Modifying data.
 resdata = Proc(dataExtract, 'TaskName', tasks);
-[thismrgdata, thisscores, thisindices, thistaskstat] = Merges(resdata, true);
+[thismrgdata, thisscores, thisindices, thistaskstat] = Merges(resdata, 'MetaVars', metavars);
 mrgdata = renew(mrgdata, thismrgdata, metavars); %#ok<*NASGU,*NODEF>
 scores = renew(scores, thisscores, metavars);
 indices = renew(indices, thisindices, metavars);

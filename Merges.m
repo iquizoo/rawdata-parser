@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, verbose)
+function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, varargin)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -17,7 +17,14 @@ function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, verbos
 %   See also PREPROC, PROC.
 
 %Input argument checking.
-if nargin <= 1, verbose = true; end
+par = inputParser;
+parNames   = {            'Isolation',                               'MetaVars'                            };
+parDflts   = {               true,     {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'}};
+parValFuns = {@(x) isnumeric(x) | islogical(x),              @(x) ischar(x) | iscellstr(x)                 };
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+isolation = par.Results.Isolation;
+metavars  = par.Results.MetaVars;
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
@@ -31,11 +38,11 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
 fprintf('Now trying to merge the metadata. Please wait...\n')
-varsOfMetadata = {'userId', 'name', 'gender', 'school', 'grade', 'cls'};
+varsOfMetadata = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'};
 %Use metavars to store all the variable names of meta data.
-metavars = varsOfMetadata;
+metavars = intersect(varsOfMetadata, metavars, 'stable');
 %Vertcat metadata.
-resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, varsOfMetadata)), ...
+resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
 %Check the following variables.
@@ -77,23 +84,38 @@ for ivomd = 1:length(chkVarsOfMetadata)
 end
 %Remove non-existent metadata variable.
 metavars(cellfun(@isempty, metavars)) = [];
-dataMergeMetadata = unique(dataMergeMetadata);
+%Remove repetitions in the merged metadata. Note: createDate is special.
+spVar = 'createDate';
+metadataNoSpVar = dataMergeMetadata(:, ~ismember(metavars, spVar));
+mrgdata = unique(metadataNoSpVar);
+if ismember(spVar, metavars)
+    %For createDate variable, only the earliest date is remained.
+    fprintf('Create date is required, try remaining the earliest date.\n')
+    nsubs = height(mrgdata);
+    allCreateTime = dataMergeMetadata.(spVar);
+    %Replace the bad formatted strings as empty.
+    allCreateTime(ismember(allCreateTime, '0/0/0000 00:00:00')) = {''};
+    createDateTrans = arrayfun(...
+        @(i) min(datetime(allCreateTime(ismember(metadataNoSpVar, mrgdata(i, :), 'rows')))), ...
+        1:nsubs, ...
+        'UniformOutput', false);
+    mrgdata.(spVar) = cat(1, createDateTrans{:});
+end
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
     switch cvomd
         case 'grade'
             %It is comparable for grades.
-            dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd), 'ordinal', true);
+            mrgdata.(cvomd) = categorical(mrgdata.(cvomd), 'ordinal', true);
         case 'school'
             %School is best ordered in the way of differentiating different
             %districts.
-            dataMergeMetadata.(cvomd) = reordercats(categorical(dataMergeMetadata.(cvomd)), ...
+            mrgdata.(cvomd) = reordercats(categorical(mrgdata.(cvomd)), ...
                 unique(schInfo.SchoolIDName, 'stable'));
         otherwise
-            dataMergeMetadata.(cvomd) = categorical(dataMergeMetadata.(cvomd));
+            mrgdata.(cvomd) = categorical(mrgdata.(cvomd));
     end
 end
-mrgdata = dataMergeMetadata; %Metadata done!
 %Generate a table to store the completion status for each id and task.
 taskstat = mrgdata;
 scores = mrgdata;
@@ -116,7 +138,7 @@ for imrgtask = 1:nTasks
     curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
     curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
-    if verbose
+    if isolation
         %Generate the tasks status, scores and performance indices matrices.
         curTask = char(curTaskIDName);
         taskstat.(curTask) = zeros(nsubj, 1);
