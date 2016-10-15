@@ -154,7 +154,12 @@ for itask = 1:ntasks4process
                     oldStims = cellfun(@(tbl) tbl.STIM, curTaskData.STUDY, 'UniformOutput', false);
                     testStims = cellfun(@(tbl) tbl.STIM, curTaskData.TEST, 'UniformOutput', false);
                     for isubj = 1:nsubj
-                        curTaskData.TEST{isubj}.SCat = double(ismember(testStims{isubj}, oldStims{isubj}));
+                        SCat = double(ismember(testStims{isubj}, oldStims{isubj}));
+                        if isempty(SCat)
+                            curTaskData.TEST{isubj}.SCat = zeros(0, 1);
+                        else
+                            curTaskData.TEST{isubj}.SCat = SCat;
+                        end
                     end
                 end
         end
@@ -192,9 +197,10 @@ for itask = 1:ntasks4process
             case 'ConflictUnion'
                 conflictCondVars = strsplit(curTaskSetting.VarsCond{:});
                 conflictVars = strcat(strsplit(curTaskSetting.VarsCat{:}), '_', conflictCondVars{end});
-                restbl{rowfun(@(varargin) any([varargin{:}], 2), ...
-                    rowfun(@(varargin) isnan([varargin{:}]), restbl, ...
-                    'InputVariables', conflictVars), 'OutputFormat', 'uniform'), :} = nan;
+                restbl{rowfun(@(x) any(isnan(x), 2), restbl, ...
+                    'InputVariables', conflictVars, ...
+                    'SeperateInputs', false, ...
+                    'OutputFormat', 'uniform'), :} = nan;
                 conflictZ = varfun(@(x) (x - nanmean(x)) / nanstd(x), restbl, 'InputVariables', conflictVars);
                 ultIndex = rowfun(@(varargin) sum([varargin{:}]), conflictZ, 'OutputFormat', 'uniform');
             case 'dprimeUnion'

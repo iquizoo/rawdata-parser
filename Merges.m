@@ -93,13 +93,12 @@ if ismember(spVar, metavars)
     fprintf('Create date is required, try remaining the earliest date.\n')
     nsubs = height(mrgdata);
     allCreateTime = dataMergeMetadata.(spVar);
-    %Replace the bad formatted strings as empty.
-    allCreateTime(ismember(allCreateTime, '0/0/0000 00:00:00')) = {''};
-    createDateTrans = arrayfun(...
-        @(i) min(datetime(allCreateTime(ismember(metadataNoSpVar, mrgdata(i, :), 'rows')))), ...
-        1:nsubs, ...
-        'UniformOutput', false);
-    mrgdata.(spVar) = cat(1, createDateTrans{:});
+    createDateTrans = repmat(NaT, nsubs, 1);
+    for isub = 1:nsubs
+        createDateTrans(isub) = ...
+            min(allCreateTime(ismember(metadataNoSpVar, mrgdata(isub, :), 'rows')));
+    end
+    mrgdata.(spVar) = createDateTrans;
 end
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};

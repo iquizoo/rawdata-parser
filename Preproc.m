@@ -127,7 +127,7 @@ for itask = 1:ntasks4process
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Check if the data fields are in the correct type.
     varsOfChk = {'Taskname', 'userId', 'name', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate', 'conditions'};
-    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell'};
+    varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
     for ivar = 1:length(varsOfChk)
         curVar = varsOfChk{ivar};
         curClass = varsOfChkClass{ivar};
@@ -138,6 +138,8 @@ for itask = 1:ntasks4process
                         curTaskData.(curVar) = num2cell(curTaskData.(curVar));
                     case 'double'
                         curTaskData.(curVar) = str2double(curTaskData.(curVar));
+                    case 'datetime'
+                        curTaskData.(curVar) = datetime(curTaskData.(curVar));
                 end
             end
         end

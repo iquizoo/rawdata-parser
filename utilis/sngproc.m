@@ -76,12 +76,11 @@ if ismember(task, nonRTRecTasks)
             % Some of the recording does not include SLen (Stimuli
             % Length) as one of their variable, get it here.
             if ~ismember('SLen', RECORD.Properties.VariableNames)
-                RECORD.SLen = cellfun(@length, RECORD.SSeries);
-            end
-            % Some of the recording does not include Next as one
-            % variable, get it here.
-            if ~ismember('Next', RECORD.Properties.VariableNames)
-                RECORD.Next = [diff(RECORD.SLen); 0];
+                if ~isempty(RECORD)
+                    RECORD.SLen = cellfun(@length, RECORD.SSeries);
+                else
+                    RECORD.SLen = zeros(0);
+                end
             end
         case 'Reading'
             TotalTime = 5 * 60 * 1000; % 5 min

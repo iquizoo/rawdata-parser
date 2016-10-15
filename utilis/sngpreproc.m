@@ -28,51 +28,49 @@ function [splitRes, status] = sngpreproc(conditions, para)
 
 status = 0;
 %Extract useful information form parameters.
-para = para{:};
+para   = para{:};
 if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
     %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
-    delimiters = para.Delimiters{:};
+    delimiters  = para.Delimiters{:};
     %ConditionInformation contains information of condition splitting.
-    conditionInformation = para.ConditionInformation{:};
-    if ~isempty(conditionInformation) % Split conditions.
-        condInfo = strsplit(conditionInformation, '|');
+    condInfoRaw = para.ConditionInformation{:};
+    if ~isempty(condInfoRaw) % Split conditions.
+        condInfo        = strsplit(condInfoRaw, '|');
         %Names for all conditions.
         conditionsNames = strsplit(condInfo{1});
         %Condition precedences for all conditions.
-        conditionsPre = strsplit(condInfo{2});
-        ncond = length(conditionsNames);
+        conditionsPre   = strsplit(condInfo{2});
+        ncond           = length(conditionsNames);
         % recons contains the strings of all conditions extracted from
         %conditions
-        recons = cell(1, ncond);
+        recons          = cell(1, ncond);
         for icond = 1:ncond
-            curRecon = regexp(conditions{:}, ...
+            curRecon      = regexp(conditions{:}, ...
                 ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
             recons{icond} = curRecon;
         end
     else
         conditionsNames = {'RECORD'};
         %By default, use the original conditions string.
-        recons = conditions;
+        recons          = conditions;
     end
     %Rearrange parameters condition-wise.
     ncond = length(conditionsNames); %We have completed the condition splitting task.
     %Splitting variable names and extract information of conditions.
-    [VariablesNames, charVars] = varNamesSplit(para, ncond);
+    [VarNames, charVars] = varNamesSplit(para, ncond);
     for icond = 1:ncond
-        curRecon = recons(icond);
-        curAltVariablesNames = VariablesNames{icond};
-        curAltCharVars = charVars{icond};
-        curAltVariablesNamesSplit = cellfun(@strsplit, curAltVariablesNames, 'UniformOutput', false);
-        nCurAltVars = cellfun(@length, curAltVariablesNamesSplit);
+        curRecon            = recons(icond);
+        curAltVarNames      = VarNames{icond};
+        curAltCharVars      = charVars{icond};
+        curAltVarNamesSplit = cellfun(@strsplit, curAltVarNames, 'UniformOutput', false);
+        nCurAltVars         = cellfun(@length, curAltVarNamesSplit);
         %Get the appropriate variable names of the different template.
-        curRec = cellfun(@strsplit, ...
-            curRecon, repmat({delimiters(1)}, size(curRecon)), ...
+        curRec              = cellfun(@(s) strsplit(s, delimiters(1)), curRecon, ...
             'UniformOutput', false);
-        curTrialRec = cellfun(@strsplit, ...
-            curRec{:}, repmat({delimiters(2)}, size(curRec{1})), ...
+        curTrialRec         = cellfun(@(s) strsplit(s, delimiters(2)), curRec{:}, ...
             'UniformOutput', false);
-        token = para.TemplateToken{:};
+        token               = para.TemplateToken{:};
         switch token
             %language task, , Go/No-Go, cpt, divided attention working memory.
             case {'LT', 'GNG', 'CPT1', 'DA', 'WM', 'CPT2'}
@@ -82,10 +80,10 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
                 lenTrial = unique(lenTrial);
                 [~, altChoice] = ismember(lenTrial, nCurAltVars);
                 if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
-                    altChoice = length(nCurAltVars);
+                    altChoice     = length(nCurAltVars);
                     recons(icond) = recon(curTrialRec, token, nCurAltVars(altChoice), delimiters);
                 elseif isempty(lenTrial)
-                    altChoice = 1; %Use the first by default.
+                    altChoice     = 1; %Use the first by default.
                 end
             case 'F' %Flanker.
                 curTrialRec = str2double(cat(1, curTrialRec{:}));
@@ -98,7 +96,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
                 end
             case 'RTB' %Bread toasting (SRT)
                 curTrialRec = str2double(cat(1, curTrialRec{:}));
-                chkcol = curTrialRec(:, 2);
+                chkcol      = curTrialRec(:, 2);
                 chkcol(isnan(chkcol)) = [];
                 if all(ismember(chkcol, 0:1)) %The second column is ACC.
                     altChoice = 2;
@@ -108,29 +106,27 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
             otherwise
                 altChoice = 1; %In common conditions, there is only one condition.
         end
-        VariablesNames(icond) = curAltVariablesNames(altChoice);
+        VarNames(icond) = curAltVarNames(altChoice);
         charVars(icond) = curAltCharVars(altChoice);
     end
-    VariablesNames = cellfun(@strsplit, VariablesNames, 'UniformOutput', false);
-    nVars = cellfun(@length, VariablesNames, 'UniformOutput', false);
-    allLocs = cellfun(@colon, num2cell(ones(size(nVars))), nVars, 'UniformOutput', false);
-    trans = cellfun(@not, ...
-        cellfun(@ismember, allLocs, charVars, 'UniformOutput', false), ...
+    VarNames = cellfun(@strsplit, VarNames, 'UniformOutput', false);
+    nVars    = cellfun(@length, VarNames, 'UniformOutput', false);
+    allLocs  = cellfun(@colon, num2cell(ones(size(nVars))), nVars, 'UniformOutput', false);
+    trans    = cellfun(@(loc, chv) ~ismember(loc, chv), allLocs, charVars, ...
         'UniformOutput', false);
     %Routine split.
-    reconsTrialApart = cellfun(@strsplit, ...
-        recons, repmat({delimiters(1)}, size(recons)),...
+    reconsTrialApart = cellfun(@(str) strsplit(str, delimiters(1)), recons, ...
         'UniformOutput', false);
     reconsTrialApart = cell2table(reconsTrialApart, 'VariableNames', conditionsNames);
     for icond = 1:ncond
         curCondTrials = reconsTrialApart.(conditionsNames{icond});
         if ~all(cellfun(@isempty, curCondTrials))
-            curCondTrialsSplit = cellfun(@(x) strsplit(x, delimiters(2)), ...
+            curCondTrialsSplit    = cellfun(@(x) strsplit(x, delimiters(2)), ...
                 curCondTrials, 'UniformOutput', false);
             curCondTrialsSplitLen = cellfun(@length, curCondTrialsSplit);
             %If the length of the split-out string is not equal to the number
             %of output variable names.
-            curCondNVars = nVars{icond};
+            curCondNVars          = nVars{icond};
             curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
             if all(curCondTrialsSplitLen ~= curCondNVars)
                 warning('UDF:SNGPREPROC:NOFORMATDATA', ...
@@ -141,13 +137,13 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
             curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
             %Here cell type is used, because the RECORD have multiple rows.
             reconsTrialApart.(conditionsNames{icond}) = ...
-                {cell2table(curCondTrialsSplit, 'VariableNames', VariablesNames{icond})};
+                {cell2table(curCondTrialsSplit, 'VariableNames', VarNames{icond})};
         else
             warning('UDF:SNGPREPROC:MODE1ABNORMAL', ...
                 'No data for condition of %s.\n', conditionsNames{icond});
             status = -1;
             reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
-                'VariableNames', VariablesNames{icond})};
+                'VariableNames', VarNames{icond})};
         end
     end
 else
@@ -176,20 +172,20 @@ end
 VariablesNames = cellfun(@(x) strsplit(x, '\'), ...
     VariablesNames, 'UniformOutput', false);
 %Variable char locs.
-VariablesChar = cellfun(@(x) strsplit(x, '\'), ...
+VariablesChar  = cellfun(@(x) strsplit(x, '\'), ...
     VariablesChar, 'UniformOutput', false);
 charVars = cell(size(VariablesChar));
 for icond = 1:ncond
     curCondVariablesChar = VariablesChar{icond};
-    tpCurVariablesChar = cellfun(@transpose, curCondVariablesChar, 'UniformOutput', false);
-    ctpCurVariablesChar = cellfun(@num2cell, tpCurVariablesChar, 'UniformOutput', false);
-    charVars{icond} = cellfun(@str2double, ctpCurVariablesChar, 'UniformOutput', false);
+    tpCurVariablesChar   = cellfun(@transpose, curCondVariablesChar, 'UniformOutput', false);
+    ctpCurVariablesChar  = cellfun(@num2cell, tpCurVariablesChar, 'UniformOutput', false);
+    charVars{icond}      = cellfun(@str2double, ctpCurVariablesChar, 'UniformOutput', false);
 end
 %In case the lazy mode, in which one instance is presented for multiple
 %conditions or variable candidates.
 lenVarNames = cellfun(@length, VariablesNames);
 lenCharVars = cellfun(@length, charVars);
-nCandsCond = max(lenVarNames, lenCharVars);
+nCandsCond  = max(lenVarNames, lenCharVars);
 VariablesNames(lenVarNames == 1) = cellfun(@repmat, ...
     VariablesNames(lenVarNames == 1), num2cell(ones(size(VariablesNames(lenVarNames == 1)))), ...
     num2cell(nCandsCond(lenVarNames == 1)), 'UniformOutput', false);
@@ -218,6 +214,8 @@ switch token
         trialRecons = cellfun(@(x) x([1:4, end]), trialRec, 'UniformOutput', false);
         trialRecons = cellfun(@(x) strjoin(x, delimiters(2)), ...
             trialRecons, 'UniformOutput', false);
+    otherwise %Special issues: in this case the raw data are not correctly recorded.
+        trialRecons = {''};
 end
 recons = {strjoin(trialRecons, delimiters(1))};
 end
