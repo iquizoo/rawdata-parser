@@ -156,7 +156,7 @@ for itask = 1:ntasks4process
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
     if isempty(cursplit)
-        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.\n', curTaskName);
+        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', curTaskName);
         fprintf(logfid, ...
             'No data found for task %s.\r\n', curTaskName);
         except = true;
@@ -166,7 +166,7 @@ for itask = 1:ntasks4process
         %Generate some warning according to the status.
         if any(cursplit.status ~= 0)
             except = true;
-            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.\n', curTaskName);
+            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.', curTaskName);
             if any(cursplit.status == -1) %Data mismatch found.
                 fprintf(logfid, ...
                     'Data mismatch encountered in task %s. Normally, its format is ''%s''.\r\n', ...

@@ -133,7 +133,7 @@ for itask = 1:ntasks4process
                 || all(cellfun(@isempty, curTaskData.(curAnaVar)))
             fprintf(logfid, ...
                 'No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
-            warning('No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
+            warning('No correct recorded data is found in task %s. Will ignore this task. Aborting...', curTaskIDName);
             %Increment of ignored number of tasks.
             nignored = nignored + 1;
             except   = true;
@@ -177,7 +177,7 @@ for itask = 1:ntasks4process
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
             'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
-        warning('No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
+        warning('No valid results found in task %s. Will ignore this task. Aborting...', curTaskIDName);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;
         except   = true;
