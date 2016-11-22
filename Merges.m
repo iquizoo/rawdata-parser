@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, varargin)
+function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -16,15 +16,6 @@ function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata, vararg
 %
 %   See also PREPROC, PROC.
 
-%Input argument checking.
-par = inputParser;
-parNames   = {            'Isolation',                               'MetaVars'                            };
-parDflts   = {               true,     {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'}};
-parValFuns = {@(x) isnumeric(x) | islogical(x),              @(x) ischar(x) | iscellstr(x)                 };
-cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
-parse(par, varargin{:});
-isolation = par.Results.Isolation;
-metavars  = par.Results.MetaVars;
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
@@ -38,16 +29,16 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %interested, so descard those of no interest. And then do some basic
 %transformation of meta data, e.g. school and grade.
 fprintf('Now trying to merge the metadata. Please wait...\n')
-varsOfMetadata = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'};
 %Use metavars to store all the variable names of meta data.
-metavars = intersect(varsOfMetadata, metavars, 'stable');
+metavars = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
+metavars = intersect(dataMergeMetadata.Properties.VariableNames, metavars);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
-chkVarsOfMetadata = {'gender', 'school', 'grade', 'cls'};
+chkVarsOfMetadata = intersect({'gender', 'school', 'grade', 'cls'}, metavars);
 for ivomd = 1:length(chkVarsOfMetadata)
     initialVars = who;
     cvomd = chkVarsOfMetadata{ivomd};
@@ -137,26 +128,28 @@ for imrgtask = 1:nTasks
     curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
     curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
-    if isolation
-        %Generate the tasks status, scores and performance indices matrices.
-        curTask = char(curTaskIDName);
-        taskstat.(curTask) = zeros(nsubj, 1);
-        scores.(curTask) = nan(nsubj, 1);
-        indices.(curTask) = nan(nsubj, 1);
-        for isubj = 1:nsubj
-            %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
-            curID = taskstat.userId(isubj);
-            [isexisted, loc] = ismember(curID, curTaskData.userId);
-            if isexisted
+    %Generate the tasks status, scores and performance indices matrices.
+    curTask = char(curTaskIDName);
+    taskstat.(curTask) = zeros(nsubj, 1);
+    scores.(curTask) = nan(nsubj, 1);
+    indices.(curTask) = nan(nsubj, 1);
+    for isubj = 1:nsubj
+        %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
+        curID = taskstat.userId(isubj);
+        [isexisted, loc] = ismember(curID, curTaskData.userId);
+        if isexisted
+            if ismember(metavars, 'school')
                 %The logic here is, if there is no school information for
                 %current observation, set the observation as missing data; if
                 %there is school information, if there is any invalid value,
                 %set the observation as invalid.
                 taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
                     (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
-                scores.(curTask)(isubj) = curTaskData(loc, :).score;
-                indices.(curTask)(isubj) = curTaskData(loc, :).index;
+            else
+                taskstat.(curTask)(isubj) = (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
             end
+            scores.(curTask)(isubj) = curTaskData(loc, :).score;
+            indices.(curTask)(isubj) = curTaskData(loc, :).index;
         end
     end
     %Use the taskIDName as the variable name precedence.
