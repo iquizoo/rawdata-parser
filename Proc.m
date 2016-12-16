@@ -25,7 +25,9 @@ addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
 %Load basic parameters.
-settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
+tasknameMap   = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Remove rows without any data.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
@@ -57,6 +59,7 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
     ntasks4process);
 %Add a field to record time used to process in each task.
 dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
+taskNameTrans = values(tasknameMap, dataExtract.TaskName);
 %% Task-wise computation.
 %Determine the prompt type and initialize for prompt.
 switch prompt
@@ -81,7 +84,8 @@ for itask = 1:ntasks4process
     %% In loop initialzation tasks.
     curTaskData = dataExtract.Data{taskRange(itask)};
     curTaskName = dataExtract.TaskName{taskRange(itask)};
-    curTaskSetting = settings(ismember(settings.TaskName, curTaskName), :);
+    curTaskNameTrans = taskNameTrans{taskRange(itask)};
+    curTaskSetting = settings(ismember(settings.TaskName, curTaskNameTrans), :);
     curTaskIDName = curTaskSetting.TaskIDName{:};
     %Get all the analysis variables.
     anaVars = strsplit(curTaskSetting.AnalysisVars{:});
@@ -105,14 +109,14 @@ for itask = 1:ntasks4process
                 break
             end
             %Update message in the waitbar.
-            msg = sprintf('Task(%d/%d): %s. %s', itask, ntasks4process, taskIDNameMap(curTaskName), msgSuff);
+            msg = sprintf('Task(%d/%d): %s. %s', itask, ntasks4process, taskIDNameMap(curTaskNameTrans), msgSuff);
             waitbar(completePercent, hwb, msg);
         case 'text'
             if ~except
                 fprintf(repmat('\b', 1, length(dispinfo)));
             end
             dispinfo = sprintf('Now processing %s (total: %d) task: %s(%s). %s\n', ...
-                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskName), msgSuff);
+                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskNameTrans), msgSuff);
             fprintf(dispinfo);
             except = false;
     end
