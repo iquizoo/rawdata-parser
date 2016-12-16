@@ -95,13 +95,14 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
                     altChoice = 2;
                 end
             case 'RTB' %Bread toasting (SRT)
+                altChoice = 1;
                 curTrialRec = str2double(cat(1, curTrialRec{:}));
-                chkcol      = curTrialRec(:, 2);
-                chkcol(isnan(chkcol)) = [];
-                if all(ismember(chkcol, 0:1)) %The second column is ACC.
-                    altChoice = 2;
-                else
-                    altChoice = 1;
+                if ~isnan(curTrialRec)
+                    chkcol  = curTrialRec(:, 2);
+                    chkcol(isnan(chkcol)) = [];
+                    if all(ismember(chkcol, 0:1)) %The second column is ACC.
+                        altChoice = 2;
+                    end
                 end
             otherwise
                 altChoice = 1; %In common conditions, there is only one condition.

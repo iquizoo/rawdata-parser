@@ -1,5 +1,5 @@
 function dataExtract = Preproc(fname, varargin)
-%PREPROC is used for processing raw data of CCDPro.
+%PREPROC preprocesses raw data of CCDPro.
 %   Raw data are originally stored in an Excel file. Input argument named
 %   SHTNAME is short of sheet name.
 %
@@ -12,52 +12,59 @@ function dataExtract = Preproc(fname, varargin)
 
 % Parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',       'DisplayInfo'};
-parDflts   = {              [],              'text'    };
-parValFuns = {@(x) ischar(x) | iscellstr(x), @ischar   };
+parNames   = {         'TaskNames',       'DisplayInfo', 'DebugEntry'};
+parDflts   = {              [],              'text',         []      };
+parValFuns = {@(x) ischar(x) | iscellstr(x), @ischar,   @isnumeric   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
-shtname = par.Results.TaskNames;
+TaskName = par.Results.TaskNames;
 prompt  = lower(par.Results.DisplayInfo);
+dbentry = par.Results.DebugEntry;
+if isempty(TaskName) && ~isempty(dbentry)
+    error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
+end
 %Folder contains all the analysis and plots functions.
 anafunpath = 'utilis';
 addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
 %Load parameters.
-para = readtable('taskSettings.xlsx', 'Sheet', 'para');
-settings = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
+para          = readtable('taskSettings.xlsx', 'Sheet', 'para');
+taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
+tasknameMap   = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
 %Check whether shtname is empty, if so, change it to denote all the sheets.
-if isempty(shtname)
-    shtname = sheets';
+if isempty(TaskName)
+    TaskName = sheets';
 end
 %When constructing table, only cell string is allowed.
-shtname = cellstr(shtname);
+TaskName = cellstr(TaskName);
 %Initializing works.
 %Check the status of existence for the to-be-processed tasks (in shtname).
 % 1. Checking the existence in the original data (in the Excel file).
-dataExistence = ismember(shtname, sheets);
+dataExistence = ismember(TaskName, sheets) & ismember(TaskName, taskname.TaskOrigName);
 if ~all(dataExistence)
     fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n');
-    disp(shtname(~dataExistence))
-    shtname(~dataExistence) = []; %Remove not found tasks.
+    disp(TaskName(~dataExistence))
+    TaskName(~dataExistence) = []; %Remove not found tasks.
 end
 % 2. Checking the existence in the settings.
-setExistence = ismember(shtname, settings.TaskName);
+TaskNameTrans = values(tasknameMap, TaskName);
+setExistence = ismember(TaskNameTrans, settings.TaskName);
 if ~all(setExistence)
     fprintf('Oops! Settings of these tasks you specified are not found, will remove these tasks...\n');
-    disp(shtname(~setExistence))
-    shtname(~setExistence) = []; %Remove not found tasks.
+    disp(TaskName(~setExistence))
+    TaskName(~setExistence) = []; %Remove not found tasks.
+    TaskNameTrans(~setExistence) = [];
 end
-%Use the task order formed in the settings.
-TaskName = settings.TaskName(ismember(settings.TaskName, shtname));
+%Preallocating the results.
 ntasks4process = length(TaskName);
-TaskIDName = cell(ntasks4process, 1);
-Data = cell(ntasks4process, 1);
-Time2Preproc = repmat(cellstr('TBE'), ntasks4process, 1);
+TaskIDName     = cell(ntasks4process, 1);
+Data           = cell(ntasks4process, 1);
+Time2Preproc   = repmat(cellstr('TBE'), ntasks4process, 1);
 %Preallocating.
 dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.
@@ -83,6 +90,7 @@ elapsedTime = 0;
 for itask = 1:ntasks4process
     initialVarsSht = who;
     curTaskName = TaskName{itask};
+    curTaskNameTrans = TaskNameTrans{itask};
     %Update prompt information.
     %Get the proportion of completion and the estimated time of arrival.
     completePercent = nprocessed / (ntasks4process - nignored);
@@ -101,22 +109,22 @@ for itask = 1:ntasks4process
                 break
             end
             %Update message in the waitbar.
-            msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskName), msgSuff);
+            msg = sprintf('Task: %s. %s', taskIDNameMap(curTaskNameTrans), msgSuff);
             waitbar(completePercent, hwb, msg);
         case 'text'
             if ~except
                 fprintf(repmat('\b', 1, length(dispinfo)));
             end
             dispinfo = sprintf('Now processing %s (total: %d) task: %s(%s). %s\n', ...
-                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskName), msgSuff);
+                num2ord(nprocessed + 1), ntasks4process, curTaskName, taskIDNameMap(curTaskNameTrans), msgSuff);
             fprintf(dispinfo);
             except = false;
     end
     %Find out the setting of current task.
-    locset = ismember(settings.TaskName, curTaskName);
+    locset = ismember(settings.TaskName, curTaskNameTrans);
     if ~any(locset)
         fprintf(logfid, ...
-            'No settings specified for task %s. Continue to the next task.\n', curTaskName);
+            'No settings specified for task %s. Continue to the next task.\n', curTaskNameTrans);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;
         continue
@@ -152,13 +160,18 @@ for itask = 1:ntasks4process
     %which are used in the function sngproc. See more in function sngproc.
     curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
     curTaskCfg = table;
-    curTaskCfg.conditions = curTaskData.conditions;
-    curTaskCfg.para = repmat({curTaskPara}, height(curTaskData), 1);
+    if ~isempty(dbentry) % Read the debug entry only.
+        curTaskCfg.conditions = curTaskData.conditions(dbentry);
+        dbstop in sngpreproc
+    else
+        curTaskCfg.conditions = curTaskData.conditions;
+    end
+    curTaskCfg.para = repmat({curTaskPara}, height(curTaskCfg), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
     if isempty(cursplit)
-        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', curTaskName);
+        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', curTaskNameTrans);
         fprintf(logfid, ...
-            'No data found for task %s.\r\n', curTaskName);
+            'No data found for task %s.\r\n', curTaskNameTrans);
         except = true;
     else
         curTaskRes = cat(1, cursplit.splitRes{:});
@@ -166,16 +179,16 @@ for itask = 1:ntasks4process
         %Generate some warning according to the status.
         if any(cursplit.status ~= 0)
             except = true;
-            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.', curTaskName);
+            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.', curTaskNameTrans);
             if any(cursplit.status == -1) %Data mismatch found.
                 fprintf(logfid, ...
                     'Data mismatch encountered in task %s. Normally, its format is ''%s''.\r\n', ...
-                    curTaskName, curTaskPara.VariablesNames{:});
+                    curTaskNameTrans, curTaskPara.VariablesNames{:});
             end
             if any(cursplit.status == -2) %Parameters for this task not found.
                 fprintf(logfid, ...
                     'No parameters specification found in task %s.\r\n', ...
-                    curTaskName);
+                    curTaskNameTrans);
             end
         end
         %Use curTaskRes as the results variable store. And store the TaskIDName

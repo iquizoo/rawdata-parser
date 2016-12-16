@@ -37,7 +37,7 @@ if isempty(tasks)
 end
 if isempty(dsout)
     [dsoutfn, dsoutpath] = uigetfile('*.mat', ...
-        'Select the file containing the data needing updating', 'E:\git\CCDPro\DATA_RES\ds\CCDRes.mat');
+        'Select the file containing the data needing updating', 'DATA_RES\ds\CCDRes.mat');
     dsout = fullfile(dsoutpath, dsoutfn);
 end
 if isempty(dsraw)

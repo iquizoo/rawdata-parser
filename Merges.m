@@ -100,8 +100,9 @@ for ivomd = 1:length(chkVarsOfMetadata)
         case 'school'
             %School is best ordered in the way of differentiating different
             %districts.
+            schoolsMeasured = schInfo.SchoolIDName(ismember(schInfo.SchoolIDName, mrgdata.(cvomd)));
             mrgdata.(cvomd) = reordercats(categorical(mrgdata.(cvomd)), ...
-                unique(schInfo.SchoolIDName, 'stable'));
+                unique(schoolsMeasured, 'stable'));
         otherwise
             mrgdata.(cvomd) = categorical(mrgdata.(cvomd));
     end
