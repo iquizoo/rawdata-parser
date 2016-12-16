@@ -119,7 +119,7 @@ else
             % All the trials require response.
             RECORD.SCat = ones(height(RECORD), 1);
             % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
-            RECORD.STIM = (RECORD.STIM ==  'r' | RECORD.STIM ==  '2') + 1;
+            RECORD.STIM = (ismember(RECORD.STIM,  'r') | ismember(RECORD.STIM,  '2')) + 1;
             RECORD.ACC = RECORD.STIM == RECORD.Resp;
         case {'SRTWatch', 'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.

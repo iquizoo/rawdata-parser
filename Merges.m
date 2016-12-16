@@ -38,7 +38,7 @@ dataMergeMetadata = cat(1, resMetadata{:});
 metavars = intersect(dataMergeMetadata.Properties.VariableNames, metavars);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
-chkVarsOfMetadata = intersect({'gender', 'school', 'grade', 'cls'}, metavars);
+chkVarsOfMetadata = intersect({'name', 'gender', 'school', 'grade', 'cls'}, metavars);
 for ivomd = 1:length(chkVarsOfMetadata)
     initialVars = who;
     cvomd = chkVarsOfMetadata{ivomd};
@@ -46,11 +46,14 @@ for ivomd = 1:length(chkVarsOfMetadata)
         metavars(strcmp(metavars, cvomd)) = {''};
         continue
     end
-    cVarNotCharLoc = ~cellfun(@ischar, dataMergeMetadata.(cvomd));
+    cVarNotCharLoc = cellfun(@(item) ~ischar(item) | isempty(item), dataMergeMetadata.(cvomd));
     if any(cVarNotCharLoc)
         dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
     end
     switch cvomd
+        case 'name'
+            % remove all of the spaces in the name string.
+            dataMergeMetadata.name = regexprep(dataMergeMetadata.name, '\s+', '');
         case 'school'
             %Set those schools of no interest into empty string, so as to
             %be transformed into undefined.
@@ -91,8 +94,10 @@ if ismember(spVar, metavars)
     end
     mrgdata.(spVar) = createDateTrans;
 end
-for ivomd = 1:length(chkVarsOfMetadata)
-    cvomd = chkVarsOfMetadata{ivomd};
+% categorical metadata.
+cateMetadata = setdiff(chkVarsOfMetadata, 'name');
+for ivomd = 1:length(cateMetadata)
+    cvomd = cateMetadata{ivomd};
     switch cvomd
         case 'grade'
             %It is comparable for grades.
