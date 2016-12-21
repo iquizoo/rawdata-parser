@@ -147,6 +147,9 @@ for itask = 1:ntasks4process
                     case 'double'
                         curTaskData.(curVar) = str2double(curTaskData.(curVar));
                     case 'datetime'
+                        if isnumeric(curTaskData.(curVar))
+                            curTaskData.(curVar) = repmat({''}, size(curTaskData.(curVar)));
+                        end
                         curTaskData.(curVar) = datetime(curTaskData.(curVar));
                 end
             end

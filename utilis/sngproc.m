@@ -148,7 +148,7 @@ else
         case {'NumStroop', 'Stroop1', 'Stroop2'}
             % Replace SCat 0 with 2.
             RECORD.SCat(RECORD.SCat == 0) = 2;
-        case {'PicMemory', 'WordMemory'}
+        case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             RECORD.SCat(RECORD.SCat == 0) = 3;
         case {'Nback1', 'Nback2'} % Nback

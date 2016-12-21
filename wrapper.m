@@ -1,4 +1,14 @@
-function wrapper(s)
+function wrapper(varargin)
+
+par = inputParser;
+addOptional(par, 's', 1, @isnumeric);
+parNames   = {            'Continue'          };
+parDflts   = {               true             };
+parValFuns = {@(x) islogical(x) | isnumeric(x)};
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+s    = par.Results.s;
+cntn = par.Results.Continue;
 
 % set environmental settings.
 dflts
@@ -13,20 +23,18 @@ rawdataFN  = fullfile(resdir, ['RawData', suffix{:}]);
 procdataFN = fullfile(resdir, ['ProcData', suffix{:}]);
 ccdresFN   = fullfile(resdir, ['CCDRes', suffix{:}]);
 
-% if empty input arguments, 
-if nargin < 1
-    s = 1;
-end
-
 if s < 2 % s = 1 only
     [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
         'Select the file containing the raw data', ...
-        'DATA_RawData\splitted.xlsx');
+        ['DATA_RawData\splitted', suffix{:}, '.xlsx']);
     rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
     dataExtract = Preproc(rawdataFullPath, 'DisplayInfo', 'text');
     fprintf('Now saving raw data (dataExtract) as file %s...\n', rawdataFN)
     save(rawdataFN, 'dataExtract')
     fprintf('Saving done.\n')
+    if ~cntn
+        return
+    end
 elseif s < 3 % s = 2 only
     fprintf('Now reading raw data (dataExtract) from file %s...\n', rawdataFN)
     load(rawdataFN, 'dataExtract')
@@ -37,6 +45,9 @@ if s < 3 % s = 1, 2
     fprintf('Now saving processed data (resdata) as file %s...\n', procdataFN)
     save(procdataFN, 'resdata')
     fprintf('Saving done.\n')
+    if ~cntn
+        return
+    end
 elseif s < 4 % s = 3 only
     fprintf('Now reading processed data (resdata) from file %s...\n', procdataFN)
     load(procdataFN, 'resdata')
