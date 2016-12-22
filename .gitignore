@@ -1,0 +1,45 @@
+#A list of ignore files.
+#For matlab non-script/function files.
+*.mat
+*.fig
+*.asv
+
+#For MS Office files
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+#For special folders.
+DATA*/
+doc*/
+BAK*/
+scripts*/
+R*/
+Presentations/
+etc/
+tmp/
+
+#For miscellaneous TEXT files.
+*~
+*.bak
+*.bak2
+*.log
+*.pmd
+*.csv
+
+#For miscellaneous BINARY files.
+*.jpg
+*.png
+*.tif
+*.pdf
+*.rar
+*.zip
+*.lnk
+
+#Special files.
+figplot.m
+get_dat.m
+.Rproj.user

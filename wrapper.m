@@ -54,7 +54,7 @@ elseif s < 4 % s = 3 only
     fprintf('Reading done.\n')
 end
 if s < 4 % s = 1, 2, 3
-    [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata); %#ok<ASGLU>
+    [indices, scores, mrgdata, taskstat, metavars] = Merges(resdata); %#ok<ASGLU>
     fprintf('Now saving results data (mutiple variables) as file %s...\n', ccdresFN)
     save(ccdresFN, 'mrgdata', 'scores', 'indices', 'taskstat', 'metavars')
     fprintf('Saving done.\n')

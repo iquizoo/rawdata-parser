@@ -1,4 +1,4 @@
-function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata)
+function [indicesStruct, scoresStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resdata, varargin)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -16,6 +16,16 @@ function [mrgdata, scores, indices, taskstat, metavars] = Merges(resdata)
 %
 %   See also PREPROC, PROC.
 
+% Parse input arguments.
+par = inputParser;
+parNames   = {         'TaskNames'          };
+parDflts   = {              [],             };
+parValFuns = {@(x) ischar(x) | iscellstr(x) };
+cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+parse(par, varargin{:});
+tasknames = par.Results.TaskNames;
+%Log file.
+logfid = fopen('mergeLog(AutoGen).log', 'w');
 %Set the school information.
 schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
 schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
@@ -30,22 +40,20 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %transformation of meta data, e.g. school and grade.
 fprintf('Now trying to merge the metadata. Please wait...\n')
 %Use metavars to store all the variable names of meta data.
-metavars = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'createDate'};
+metavars = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'birthDay'};
+metavarsClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
-metavars = intersect(dataMergeMetadata.Properties.VariableNames, metavars);
+[metavars, imeta] = intersect(dataMergeMetadata.Properties.VariableNames, metavars, 'stable');
+metavarsClass = metavarsClass(imeta);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
-chkVarsOfMetadata = intersect({'name', 'gender', 'school', 'grade', 'cls'}, metavars);
+chkVarsOfMetadata = intersect({'name', 'gender', 'school', 'grade', 'cls'}, metavars, 'stable');
 for ivomd = 1:length(chkVarsOfMetadata)
     initialVars = who;
     cvomd = chkVarsOfMetadata{ivomd};
-    if ~ismember(cvomd, dataMergeMetadata.Properties.VariableNames)
-        metavars(strcmp(metavars, cvomd)) = {''};
-        continue
-    end
     cVarNotCharLoc = cellfun(@(item) ~ischar(item) | isempty(item), dataMergeMetadata.(cvomd));
     if any(cVarNotCharLoc)
         dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
@@ -76,25 +84,45 @@ for ivomd = 1:length(chkVarsOfMetadata)
     end
     clearvars('-except', initialVars{:})
 end
-%Remove non-existent metadata variable.
-metavars(cellfun(@isempty, metavars)) = [];
-%Remove repetitions in the merged metadata. Note: createDate is special.
-spVar = 'createDate';
-metadataNoSpVar = dataMergeMetadata(:, ~ismember(metavars, spVar));
-mrgdata = unique(metadataNoSpVar);
-if ismember(spVar, metavars)
-    %For createDate variable, only the earliest date is remained.
-    fprintf('Create date is required, try remaining the earliest date.\n')
-    nsubs = height(mrgdata);
-    allCreateTime = dataMergeMetadata.(spVar);
-    createDateTrans = repmat(NaT, nsubs, 1);
-    for isub = 1:nsubs
-        createDateTrans(isub) = ...
-            min(allCreateTime(ismember(metadataNoSpVar, mrgdata(isub, :), 'rows')));
+%Remove repetitions in the merged metadata according to the userId.
+fprintf('Now remove repetitions in the metadata. Probably will takes some time.\n')
+dataMergeMetadata = unique(dataMergeMetadata);
+userId = unique(dataMergeMetadata.userId);
+nsubj = length(userId);
+prealloCell = cell(nsubj, length(metavars));
+for imeta = 1:length(metavars)
+    curMetaClass = metavarsClass{imeta};
+    switch curMetaClass
+        case 'double'
+            prealloCell(:, imeta) = {nan};
+        case 'cell'
+            prealloCell(:, imeta) = {{''}};
+        case 'datetime'
+            prealloCell(:, imeta) = {NaT};
     end
-    mrgdata.(spVar) = createDateTrans;
 end
-% categorical metadata.
+mrgdata = cell2table(prealloCell, 'VariableNames', metavars);
+mrgdata.userId = userId;
+idInfo = '';
+for id = 1:length(userId)
+    fprintf(repmat('\b', 1, length(idInfo)));
+    idInfo = sprintf('Subject %d/%d.\n', id, length(userId));
+    fprintf(idInfo);
+    curId = userId(id);
+    curIdMeta = dataMergeMetadata(dataMergeMetadata.userId == curId, :);
+    for imeta = 1:length(metavars)
+        curMetavar = metavars{imeta};
+        curMetavarIdData = curIdMeta.(curMetavar);
+        msPattern = ismissing(curMetavarIdData);
+        if ~all(msPattern)
+            curMetavarIdData(msPattern) = [];
+            uniMetavarIdData = unique(curMetavarIdData);
+            % choose the first entry of not empty meta data.
+            mrgdata{id, curMetavar} = uniMetavarIdData(1);
+        end
+    end
+end
+% categorise metadata.
 cateMetadata = setdiff(chkVarsOfMetadata, 'name');
 for ivomd = 1:length(cateMetadata)
     cvomd = cateMetadata{ivomd};
@@ -112,62 +140,113 @@ for ivomd = 1:length(cateMetadata)
             mrgdata.(cvomd) = categorical(mrgdata.(cvomd));
     end
 end
-%Generate a table to store the completion status for each id and task.
-taskstat = mrgdata;
-scores = mrgdata;
-indices = mrgdata;
+% Preallocate for the output.
+indices  = mrgdata;
+scores   = mrgdata;
+taskstat = mrgdata; % Generate a table to store the completion status for each id and task.
+% for the repetition test.
+indicesRep  = mrgdata;
+scoresRep   = mrgdata;
+taskstatRep = mrgdata;
+mrgdataRep  = mrgdata;
 %Get the experimental data.
-resdata.TaskIDName = categorical(resdata.TaskIDName);
 tasks = unique(resdata.TaskIDName, 'stable');
-nTasks = length(tasks);
-nsubj = height(mrgdata);
+if isempty(tasknames)
+    tasknames = tasks;
+end
+tasknames = cellstr(tasknames);
+taskExistence = ismember(tasknames, tasks);
+if any(~taskExistence)
+    fprintf('Oops! Data of these following tasks you specified are not found, will remove these tasks...\n');
+    disp(tasknames(~taskExistence))
+end
+tasks4merge = tasknames(taskExistence);
+nTasks = length(tasks4merge);
 %Merge data task by task.
 fprintf('Now trying to merge all the data task by task. Please wait...\n')
-dispinfo = '';
+dispInfo = '';
+subDispInfo = '';
 for imrgtask = 1:nTasks
     initialVars = who;
-    curTaskIDName = tasks(imrgtask);
-    fprintf(repmat('\b', 1, length(dispinfo)));
-    dispinfo = sprintf('Now merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
-    fprintf(dispinfo);
+    curTaskIDName = tasks4merge{imrgtask};
+    fprintf(repmat('\b', 1, length(subDispInfo)));
+    fprintf(repmat('\b', 1, length(dispInfo)));
+    dispInfo = sprintf('Now merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
+    fprintf(dispInfo);
     %Get the data of current task.
-    curTaskData = resdata.Data(resdata.TaskIDName == curTaskIDName, :);
+    curTaskData = resdata.Data(ismember(resdata.TaskIDName, curTaskIDName), :);
     curTaskData = cat(1, curTaskData{:});
     curTaskData.res = cat(1, curTaskData.res{:});
-    %Generate the tasks status, scores and performance indices matrices.
-    curTask = char(curTaskIDName);
-    taskstat.(curTask) = zeros(nsubj, 1);
-    scores.(curTask) = nan(nsubj, 1);
-    indices.(curTask) = nan(nsubj, 1);
-    for isubj = 1:nsubj
-        %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
-        curID = taskstat.userId(isubj);
-        [isexisted, loc] = ismember(curID, curTaskData.userId);
-        if isexisted
-            if ismember(metavars, 'school')
-                %The logic here is, if there is no school information for
-                %current observation, set the observation as missing data; if
-                %there is school information, if there is any invalid value,
-                %set the observation as invalid.
-                taskstat.(curTask)(isubj) = ~isundefined(taskstat(isubj, :).school) * ...
-                    (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
-            else
-                taskstat.(curTask)(isubj) = (-2 * (any(isnan(curTaskData(loc, :).res{:, :}))) + 1);
+    curTaskResVars = curTaskData.res.Properties.VariableNames;
+    if ~isempty(curTaskResVars)
+        %Generate the tasks status, scores and performance indices matrices.
+        taskstat.(curTaskIDName) = zeros(nsubj, 1);
+        scores.(curTaskIDName) = nan(nsubj, 1);
+        indices.(curTaskIDName) = nan(nsubj, 1);
+        taskstatRep.(curTaskIDName) = zeros(nsubj, 1);
+        scoresRep.(curTaskIDName) = nan(nsubj, 1);
+        indicesRep.(curTaskIDName) = nan(nsubj, 1);
+        %Use the taskIDName as the variable name precedence.
+        curTaskOutVars = strcat(curTaskIDName, '_', curTaskResVars);
+        mrgdata = [mrgdata, array2table(nan(nsubj, length(curTaskOutVars)), 'VariableNames', curTaskOutVars)]; %#ok<*AGROW>
+        mrgdataRep = [mrgdataRep, array2table(nan(nsubj, length(curTaskOutVars)), 'VariableNames', curTaskOutVars)];
+        subDispInfo = '';
+        for isubj = 1:nsubj
+            fprintf(repmat('\b', 1, length(subDispInfo)));
+            subDispInfo = sprintf('Subject %d/%d.\n', isubj, nsubj);
+            fprintf(subDispInfo);
+            %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
+            curID      = taskstat.userId(isubj);
+            curIDloc   = find(ismember(curTaskData.userId, curID));
+            curIDnPart = length(curIDloc);
+            curSubTaskData = curTaskData(curIDloc, :);
+            % find the entry of earlier date.
+            [~, ind] = sort(curSubTaskData.createDate);
+            if curIDnPart > 2
+                fprintf(logfid, strcat('More than two (%d) test phases found for subject ID: %d, in task: %s. ', ...
+                    'Will try to remain the earlist two only.\n'), curIDnPart, curID, curTaskIDName);
             end
-            scores.(curTask)(isubj) = curTaskData(loc, :).score;
-            indices.(curTask)(isubj) = curTaskData(loc, :).index;
+            if curIDnPart > 0
+                if ismember(metavars, 'school')
+                    %The logic here is, if there is no school information for
+                    %current observation, set the observation as missing data; if
+                    %there is school information, if there is any invalid value,
+                    %set the observation as invalid.
+                    taskstat{isubj, curTaskIDName} = ~isundefined(taskstat(isubj, :).school) * ...
+                        (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
+                else
+                    taskstat{isubj, curTaskIDName} = (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
+                end
+                scores{isubj, curTaskIDName} = curSubTaskData.score(ind(1));
+                indices{isubj, curTaskIDName} = curSubTaskData.index(ind(1));
+                mrgdata{isubj, curTaskOutVars} = curSubTaskData.res{ind(1), :};
+            end
+            if curIDnPart > 1
+                if ismember(metavars, 'school')
+                    %The logic here is, if there is no school information for
+                    %current observation, set the observation as missing data; if
+                    %there is school information, if there is any invalid value,
+                    %set the observation as invalid.
+                    taskstatRep.(curTaskIDName)(isubj) = ~isundefined(taskstatRep(isubj, :).school) * ...
+                        (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
+                else
+                    taskstatRep.(curTaskIDName)(isubj) = (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
+                end
+                scoresRep.(curTaskIDName)(isubj) = curSubTaskData.score(ind(2));
+                indicesRep.(curTaskIDName)(isubj) = curSubTaskData.index(ind(2));
+                mrgdataRep{isubj, curTaskOutVars} = curSubTaskData.res{ind(2), :};
+            end
         end
-    end
-    %Use the taskIDName as the variable name precedence.
-    curTaskOutVars = strcat(cellstr(curTaskIDName), '_', curTaskData.res.Properties.VariableNames);
-    curTaskData.res.Properties.VariableNames = curTaskOutVars;
-    %Transformation for 'res'.
-    curTaskData = [curTaskData, curTaskData.res]; %#ok<AGROW>
-    for ivars = 1:length(curTaskOutVars)
-        curvar = curTaskOutVars{ivars};
-        mrgdata.(curvar) = nan(height(mrgdata), 1);
-        [LiMrgData, LocCurTaskData] = ismember(mrgdata.userId, curTaskData.userId);
-        mrgdata.(curvar)(LiMrgData) = curTaskData.(curvar)(LocCurTaskData(LocCurTaskData ~= 0));
     end
     clearvars('-except', initialVars{:});
 end
+fclose(logfid);
+% get all the resulting structures.
+indicesStruct.indices = indices;
+indicesStruct.indicesRep = indicesRep;
+scoresStruct.scores = scores;
+scoresStruct.scoresRep = scoresRep;
+mrgdataStruct.mrgdata = mrgdata;
+mrgdataStruct.mrgdataRep = mrgdataRep;
+taskstatStruct.taskstat = taskstat;
+taskstatStruct.taskstatRep = taskstatRep;
