@@ -122,11 +122,13 @@ for id = 1:length(userId)
         end
     end
 end
-% categorise metadata.
-cateMetadata = setdiff(chkVarsOfMetadata, 'name');
-for ivomd = 1:length(cateMetadata)
-    cvomd = cateMetadata{ivomd};
+% transform metadata type.
+for ivomd = 1:length(chkVarsOfMetadata)
+    cvomd = chkVarsOfMetadata{ivomd};
     switch cvomd
+        case 'name'
+            % change name cell string to string array.
+            mrgdata.(cvomd) = string(mrgdata.(cvomd));
         case 'grade'
             %It is comparable for grades.
             mrgdata.(cvomd) = categorical(mrgdata.(cvomd), 'ordinal', true);
@@ -208,10 +210,10 @@ for imrgtask = 1:nTasks
             end
             if curIDnPart > 0
                 if ismember(metavars, 'school')
-                    %The logic here is, if there is no school information for
-                    %current observation, set the observation as missing data; if
-                    %there is school information, if there is any invalid value,
-                    %set the observation as invalid.
+                    %The logic here is, if there is no school information
+                    %for current observation, set the observation as
+                    %missing data; if there is school information, if there
+                    %is any invalid value, set the observation as invalid.
                     taskstat{isubj, curTaskIDName} = ~isundefined(taskstat(isubj, :).school) * ...
                         (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
                 else
@@ -223,10 +225,10 @@ for imrgtask = 1:nTasks
             end
             if curIDnPart > 1
                 if ismember(metavars, 'school')
-                    %The logic here is, if there is no school information for
-                    %current observation, set the observation as missing data; if
-                    %there is school information, if there is any invalid value,
-                    %set the observation as invalid.
+                    %The logic here is, if there is no school information
+                    %for current observation, set the observation as
+                    %missing data; if there is school information, if there
+                    %is any invalid value, set the observation as invalid.
                     taskstatRep.(curTaskIDName)(isubj) = ~isundefined(taskstatRep(isubj, :).school) * ...
                         (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
                 else
