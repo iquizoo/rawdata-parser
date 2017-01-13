@@ -32,7 +32,8 @@ logfid = fopen('readlog(AutoGen).log', 'w');
 settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 para          = readtable('taskSettings.xlsx', 'Sheet', 'para');
 taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
-tasknameMap   = containers.Map(taskname.TaskOrigName, taskname.TaskName);
+tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
+tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
@@ -45,14 +46,16 @@ TaskName = cellstr(TaskName);
 %Initializing works.
 %Check the status of existence for the to-be-processed tasks (in shtname).
 % 1. Checking the existence in the original data (in the Excel file).
-dataExistence = ismember(TaskName, sheets) & ismember(TaskName, taskname.TaskOrigName);
+dataExistence = ismember(TaskName, sheets) & (ismember(TaskName, taskname.TaskOrigName) | ismember(TaskName, taskname.TaskNameCN));
 if ~all(dataExistence)
     fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n');
     disp(TaskName(~dataExistence))
     TaskName(~dataExistence) = []; %Remove not found tasks.
 end
 % 2. Checking the existence in the settings.
-TaskNameTrans = values(tasknameMap, TaskName);
+TaskNameTrans = TaskName;
+TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)));
+TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)));
 setExistence = ismember(TaskNameTrans, settings.TaskName);
 if ~all(setExistence)
     fprintf('Oops! Settings of these tasks you specified are not found, will remove these tasks...\n');
