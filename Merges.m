@@ -46,7 +46,7 @@ metavarsClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime'};
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
-[metavars, imeta] = intersect(dataMergeMetadata.Properties.VariableNames, metavars, 'stable');
+[metavars, imeta] = intersect(metavars, dataMergeMetadata.Properties.VariableNames, 'stable');
 metavarsClass = metavarsClass(imeta);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')

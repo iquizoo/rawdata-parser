@@ -27,7 +27,8 @@ logfid = fopen('readlog(AutoGen).log', 'w');
 %Load basic parameters.
 settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
-tasknameMap   = containers.Map(taskname.TaskOrigName, taskname.TaskName);
+tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
+tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 %Remove rows without any data.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
@@ -59,7 +60,10 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
     ntasks4process);
 %Add a field to record time used to process in each task.
 dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
-taskNameTrans = values(tasknameMap, dataExtract.TaskName);
+TaskName = dataExtract.TaskName(taskRange);
+TaskNameTrans = TaskName;
+TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)));
+TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)));
 %% Task-wise computation.
 %Determine the prompt type and initialize for prompt.
 switch prompt
@@ -84,7 +88,7 @@ for itask = 1:ntasks4process
     %% In loop initialzation tasks.
     curTaskData = dataExtract.Data{taskRange(itask)};
     curTaskName = dataExtract.TaskName{taskRange(itask)};
-    curTaskNameTrans = taskNameTrans{taskRange(itask)};
+    curTaskNameTrans = TaskNameTrans{taskRange(itask)};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskNameTrans), :);
     curTaskIDName = curTaskSetting.TaskIDName{:};
     %Get all the analysis variables.
