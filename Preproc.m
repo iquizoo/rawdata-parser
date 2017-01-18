@@ -212,7 +212,7 @@ for itask = 1:ntasks4process
         for ivar = 1:length(curTaskSplitResVars)
             curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSplitRes.(curTaskSplitResVars{ivar});
         end
-        curTaskSpVarOpts = strsplit(curTaskPara.PreSpVar{:}, '|');
+        curTaskSpVarOpts = strsplit(curTaskSetting.PreSpVar{:}, '|');
         curTaskSpecialVar = intersect(curTaskVars, curTaskSpVarOpts);
         for ivar = 1:length(curTaskSpecialVar)
             curTaskRes.(curTaskSpecialVar{ivar}) = curTaskData.(curTaskSpecialVar{ivar});
