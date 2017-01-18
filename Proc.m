@@ -147,7 +147,9 @@ for itask = 1:ntasks4process
             except   = true;
             continue
         end
-        procPara = {'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml, 'AnalysisVariableName', curAnaVar};
+        procPara = {'TaskSetting', curTaskSetting, 'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml};
+        % some preparation: adding additional parameters for
+        % sngproc/manipulation of raw data.
         switch curTaskIDName
             case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                     'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
@@ -171,12 +173,14 @@ for itask = 1:ntasks4process
                     end
                 end
         end
+        spAnaVar = strsplit(curTaskSetting.PreSpVar{:});
+        curAnaVars = horzcat(curAnaVar, spAnaVar);
         %Table is wrapped into a cell. The table type of MATLAB has
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
-        anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, procPara{:}), ...
-            curTaskData, 'OutputFormat', 'cell');
+        anares(:, ivar) = rowfun(@(varargin) sngproc(varargin{:}, procPara{:}), ...
+            curTaskData, 'InputVariables', curAnaVars, 'ExtractCellContents', true, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
     allsubids = (1:nsubj)'; %Column vector is used in order to form a table.
