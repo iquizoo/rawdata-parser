@@ -105,7 +105,7 @@ else
             assert(~isempty(taskSTIMMap), ...
                 'UDF:CCDPRO:SNGPROC:STIMULUSMAP', 'Stimulus map must be specified.');
             RECORD = mapSCat(RECORD, taskSTIMMap);
-            % Get the total used time (unit: min).
+            % Get the total used time (unit: ms).
             TotalTime = sum(RECORD.RT);
         case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
                 'DigitCmp', 'Subitizing', ...% Another two math tasks.

@@ -40,8 +40,8 @@ clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
 %transformation of meta data, e.g. school and grade.
 fprintf('Now trying to merge the metadata. Please wait...\n')
 %Use metavars to store all the variable names of meta data.
-metavars = {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'birthDay'};
-metavarsClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime'};
+metavars = {'userId', 'name', 'gender', 'sex', 'school', 'grade', 'cls', 'birthDay'};
+metavarsClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime'};
 %Vertcat metadata.
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
@@ -50,7 +50,7 @@ dataMergeMetadata = cat(1, resMetadata{:});
 metavarsClass = metavarsClass(imeta);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
-chkVarsOfMetadata = intersect({'name', 'gender', 'school', 'grade', 'cls'}, metavars, 'stable');
+chkVarsOfMetadata = intersect({'name', 'gender', 'sex', 'school', 'grade', 'cls'}, metavars, 'stable');
 for ivomd = 1:length(chkVarsOfMetadata)
     initialVars = who;
     cvomd = chkVarsOfMetadata{ivomd};
@@ -126,18 +126,12 @@ end
 for ivomd = 1:length(chkVarsOfMetadata)
     cvomd = chkVarsOfMetadata{ivomd};
     switch cvomd
-        case 'name'
-            % change name cell string to string array.
+        case {'name', 'school'}
+            % change name/school cell string to string array.
             mrgdata.(cvomd) = string(mrgdata.(cvomd));
         case 'grade'
-            %It is comparable for grades.
+            % it is ordinal for grades.
             mrgdata.(cvomd) = categorical(mrgdata.(cvomd), 'ordinal', true);
-        case 'school'
-            %School is best ordered in the way of differentiating different
-            %districts.
-            schoolsMeasured = schInfo.SchoolIDName(ismember(schInfo.SchoolIDName, mrgdata.(cvomd)));
-            mrgdata.(cvomd) = reordercats(categorical(mrgdata.(cvomd)), ...
-                unique(schoolsMeasured, 'stable'));
         otherwise
             mrgdata.(cvomd) = categorical(mrgdata.(cvomd));
     end
@@ -203,7 +197,8 @@ for imrgtask = 1:nTasks
             curIDnPart = length(curIDloc);
             curSubTaskData = curTaskData(curIDloc, :);
             % find the entry of earlier date.
-            [~, ind] = sort(curSubTaskData.createDate);
+            createTimeVar = intersect(curSubTaskData.Properties.VariableNames, {'createDate', 'createTime'});
+            [~, ind] = sort(curSubTaskData.(createTimeVar{:}));
             if curIDnPart > 2
                 fprintf(logfid, strcat('More than two (%d) test phases found for subject ID: %d, in task: %s. ', ...
                     'Will try to remain the earlist two only.\n'), curIDnPart, curID, curTaskIDName);

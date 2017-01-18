@@ -1,14 +1,23 @@
 function wrapper(varargin)
+%WRAPPER shows a method to a batch job of processing of data.
+%
+%   Note: data were saved in v7.3 format, which is only supported by R2006b
+%   or later.
+
+%   By Zhang, Liang. E-mail:psychelzh@gmail.com
 
 par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
-parNames   = {            'Continue'          };
-parDflts   = {               true             };
-parValFuns = {@(x) islogical(x) | isnumeric(x)};
+parNames   = {            'Continue',                      'TaskNames',      'DisplayInfo', 'DebugEntry'};
+parDflts   = {               true   ,                          '',             'text',           []     };
+parValFuns = {@(x) islogical(x) | isnumeric(x), @(x) ischar(x) | iscellstr(x), @ischar,       @isnumeric};
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
-s    = par.Results.s;
-cntn = par.Results.Continue;
+s        = par.Results.s;
+cntn     = par.Results.Continue;
+TaskName = par.Results.TaskNames;
+prompt   = lower(par.Results.DisplayInfo);
+dbentry  = par.Results.DebugEntry;
 
 % set environmental settings.
 dflts
@@ -18,7 +27,13 @@ if ~exist(resdir, 'dir')
 end
 warning('off', 'backtrace')
 % suffix is a major identifier for data set.
-suffix     = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
+suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
+if ~isempty(TaskName)
+    suffix = strcat(suffixOrig, matlab.lang.makeValidName(char(datetime)));
+else
+    suffix = suffixOrig;
+end
+fprintf('Will use suffix ''%s'' to store data.\n', suffix{:})
 rawdataFN  = fullfile(resdir, ['RawData', suffix{:}]);
 procdataFN = fullfile(resdir, ['ProcData', suffix{:}]);
 ccdresFN   = fullfile(resdir, ['CCDRes', suffix{:}]);
@@ -26,11 +41,14 @@ ccdresFN   = fullfile(resdir, ['CCDRes', suffix{:}]);
 if s < 2 % s = 1 only
     [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
         'Select the file containing the raw data', ...
-        ['DATA_RawData\splitted', suffix{:}, '.xlsx']);
+        ['DATA_RawData\splitted', suffixOrig{:}, '.xlsx']);
     rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
-    dataExtract = Preproc(rawdataFullPath, 'DisplayInfo', 'text');
+    dataExtract = Preproc(rawdataFullPath, ...
+        'TaskNames', TaskName, ...
+        'DisplayInfo', prompt, ...
+        'DebugEntry', dbentry);
     fprintf('Now saving raw data (dataExtract) as file %s...\n', rawdataFN)
-    save(rawdataFN, 'dataExtract')
+    save(rawdataFN, 'dataExtract', '-v7.3')
     fprintf('Saving done.\n')
     if ~cntn
         return
@@ -41,9 +59,12 @@ elseif s < 3 % s = 2 only
     fprintf('Reading done.\n')
 end
 if s < 3 % s = 1, 2
-    resdata = Proc(dataExtract, 'DisplayInfo', 'text', 'RemoveAbnormal', true);
+    resdata = Proc(dataExtract, ...
+        'TaskNames', TaskName, ....
+        'DisplayInfo', prompt, ...
+        'RemoveAbnormal', true);
     fprintf('Now saving processed data (resdata) as file %s...\n', procdataFN)
-    save(procdataFN, 'resdata')
+    save(procdataFN, 'resdata', '-v7.3')
     fprintf('Saving done.\n')
     if ~cntn
         return
@@ -56,7 +77,7 @@ end
 if s < 4 % s = 1, 2, 3
     [indices, scores, mrgdata, taskstat, metavars] = Merges(resdata); %#ok<ASGLU>
     fprintf('Now saving results data (mutiple variables) as file %s...\n', ccdresFN)
-    save(ccdresFN, 'mrgdata', 'scores', 'indices', 'taskstat', 'metavars')
+    save(ccdresFN, 'mrgdata', 'scores', 'indices', 'taskstat', 'metavars', '-v7.3')
     fprintf('Saving done.\n')
 else % s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')

@@ -2,7 +2,7 @@ function res = sngprocMentcompare(RECORD)
 %SNGPROCMENTCOMPARE Does some basic data transformation to mental comparison task.
 %
 %   Basically, the supported tasks are as follows:
-%     DigitCmp CountSense
+%     DigitCmp Subitizing
 %   The output table contains 14 variables.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com

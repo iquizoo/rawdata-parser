@@ -147,7 +147,7 @@ for itask = 1:ntasks4process
             except   = true;
             continue
         end
-        procPara = {'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml};
+        procPara = {'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml, 'AnalysisVariableName', curAnaVar};
         switch curTaskIDName
             case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                     'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
@@ -176,7 +176,7 @@ for itask = 1:ntasks4process
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
         anares(:, ivar) = rowfun(@(x) sngproc(x, curTaskSetting, procPara{:}), ...
-            curTaskData, 'InputVariables', curAnaVar, 'OutputFormat', 'cell');
+            curTaskData, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.
     allsubids = (1:nsubj)'; %Column vector is used in order to form a table.

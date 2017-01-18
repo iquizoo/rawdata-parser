@@ -13,13 +13,13 @@ function dataExtract = Preproc(fname, varargin)
 % Parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames',       'DisplayInfo', 'DebugEntry'};
-parDflts   = {              [],              'text',         []      };
+parDflts   = {              '',              'text',         []      };
 parValFuns = {@(x) ischar(x) | iscellstr(x), @ischar,   @isnumeric   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 TaskName = par.Results.TaskNames;
-prompt  = lower(par.Results.DisplayInfo);
-dbentry = par.Results.DebugEntry;
+prompt   = lower(par.Results.DisplayInfo);
+dbentry  = par.Results.DebugEntry;
 if isempty(TaskName) && ~isempty(dbentry)
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
@@ -137,12 +137,17 @@ for itask = 1:ntasks4process
     %Read in all the information from the specified file.
     curTaskData = readtable(fname, 'Sheet', curTaskName);
     %Check if the data fields are in the correct type.
-    varsOfChk = {'Taskname', 'userId', 'name', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate', 'conditions'};
+    % vars checking settings.
+    varsOfChk = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
     varsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
+    curTaskVars = curTaskData.Properties.VariableNames;
     for ivar = 1:length(varsOfChk)
-        curVar = varsOfChk{ivar};
+        curVarOpts = split(varsOfChk{ivar}, '|');
+        curVar = intersect(curVarOpts, curTaskVars);
         curClass = varsOfChkClass{ivar};
-        if ismember(curVar, curTaskData.Properties.VariableNames) %For better compatibility.
+        if ~isempty(curVar) %For better compatibility.
+            curVar = curVar{:}; % get the data in the cell as a charater.
+            varsOfChk{ivar} = curVar;
             if ~isa(curTaskData.(curVar), curClass)
                 switch curClass
                     case 'cell'
@@ -167,11 +172,10 @@ for itask = 1:ntasks4process
     curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
     curTaskCfg = table;
     if ~isempty(dbentry) % Read the debug entry only.
-        curTaskCfg.conditions = curTaskData.conditions(dbentry);
+        curTaskData = curTaskData(dbentry, :);
         dbstop in sngpreproc
-    else
-        curTaskCfg.conditions = curTaskData.conditions;
     end
+    curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskCfg), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
     if isempty(cursplit)
@@ -199,15 +203,19 @@ for itask = 1:ntasks4process
         end
         %Use curTaskRes as the results variable store. And store the TaskIDName
         %from settings, which is usually used in the following analysis.
-        curTaskOutVarsOIMetadata = ...
-            {'userId', 'name', 'gender', 'school', 'grade', 'cls', 'birthDay', 'createDate'};
-        curTaskRes = curTaskData(:, ismember(curTaskData.Properties.VariableNames, curTaskOutVarsOIMetadata));
+        %out meta vars index.
+        outMetaVarsIdx = 2:9;
+        curTaskRes = curTaskData(:, ismember(curTaskVars, varsOfChk(outMetaVarsIdx)));
         %Store the spitting results.
         curTaskSplitRes = cat(1, cursplit.splitRes{:});
         curTaskSplitResVars = curTaskSplitRes.Properties.VariableNames;
-        nvars = length(curTaskSplitResVars);
-        for ivar = 1:nvars
+        for ivar = 1:length(curTaskSplitResVars)
             curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSplitRes.(curTaskSplitResVars{ivar});
+        end
+        curTaskSpVarOpts = strsplit(curTaskPara.PreSpVar{:}, '|');
+        curTaskSpecialVar = intersect(curTaskVars, curTaskSpVarOpts);
+        for ivar = 1:length(curTaskSpecialVar)
+            curTaskRes.(curTaskSpecialVar{ivar}) = curTaskData.(curTaskSpecialVar{ivar});
         end
         curTaskRes.status = cursplit.status;
         dataExtract.Data{itask} = curTaskRes;
