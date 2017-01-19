@@ -175,6 +175,7 @@ for itask = 1:ntasks4process
         end
         spAnaVar = strsplit(curTaskSetting.PreSpVar{:});
         curAnaVars = horzcat(curAnaVar, spAnaVar);
+        curAnaVars(cellfun(@isempty, curAnaVars)) = [];
         %Table is wrapped into a cell. The table type of MATLAB has
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or

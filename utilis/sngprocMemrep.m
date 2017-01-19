@@ -19,3 +19,4 @@ for run = runs
     res.([varPref{2}, delimiter, varSuff{run + 1}]) = ...
         mean(RECORD.RT(RECORD.ACC == 1 & RECORD.REP == run));
 end
+res.angACC = asin(sqrt(res.([varPref{1}, delimiter, varSuff{1}])));

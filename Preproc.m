@@ -34,7 +34,7 @@ para          = readtable('taskSettings.xlsx', 'Sheet', 'para');
 taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
-taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
+taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
 %Check whether shtname is empty, if so, change it to denote all the sheets.
@@ -65,6 +65,7 @@ if ~all(setExistence)
 end
 %Preallocating the results.
 ntasks4process = length(TaskName);
+TaskName       = reshape(TaskName, ntasks4process, 1);
 TaskIDName     = cell(ntasks4process, 1);
 Data           = cell(ntasks4process, 1);
 Time2Preproc   = repmat(cellstr('TBE'), ntasks4process, 1);

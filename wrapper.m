@@ -15,7 +15,7 @@ cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 s        = par.Results.s;
 cntn     = par.Results.Continue;
-TaskName = par.Results.TaskNames;
+TaskName = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
 
@@ -28,8 +28,14 @@ end
 warning('off', 'backtrace')
 % suffix is a major identifier for data set.
 suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
+TaskName(cellfun(@isempty, TaskName)) = [];
 if ~isempty(TaskName)
-    suffix = strcat(suffixOrig, matlab.lang.makeValidName(char(datetime)));
+    if length(TaskName) == 1
+        TaskName = TaskName{:};
+        suffix = strcat(suffixOrig, TaskName);
+    else
+        suffix = strcat(suffixOrig, matlab.lang.makeValidName(char(datetime)));
+    end
 else
     suffix = suffixOrig;
 end

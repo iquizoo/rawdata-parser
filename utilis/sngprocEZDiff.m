@@ -20,4 +20,5 @@ MedRT = median(RECORD.RT(RECORD.ACC == 1));
 % Effc = ACC / MRT;
 %Efficiency.
 efficiency = asin(sqrt(ACC / MRT));
-res = table(ACC, MRT, MedRT, VRT, v, a, Ter, efficiency);
+angACC = asin(sqrt(ACC));
+res = table(ACC, MRT, MedRT, VRT, v, a, Ter, efficiency, angACC);

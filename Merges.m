@@ -46,7 +46,12 @@ metavarsClass = {'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'cell', 'date
 resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
     resdata.Data, 'UniformOutput', false);
 dataMergeMetadata = cat(1, resMetadata{:});
-[metavars, imeta] = intersect(metavars, dataMergeMetadata.Properties.VariableNames, 'stable');
+if ~isempty(dataMergeMetadata)
+    dataMetaVars = dataMergeMetadata.Properties.VariableNames;
+else
+    dataMetaVars = '';
+end
+[metavars, imeta] = intersect(metavars, dataMetaVars, 'stable');
 metavarsClass = metavarsClass(imeta);
 %Check the following variables.
 fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
@@ -87,7 +92,11 @@ end
 %Remove repetitions in the merged metadata according to the userId.
 fprintf('Now remove repetitions in the metadata. Probably will takes some time.\n')
 dataMergeMetadata = unique(dataMergeMetadata);
-userId = unique(dataMergeMetadata.userId);
+if ~isempty(dataMergeMetadata)
+    userId = unique(dataMergeMetadata.userId);
+else
+    userId = [];
+end
 nsubj = length(userId);
 prealloCell = cell(nsubj, length(metavars));
 for imeta = 1:length(metavars)
