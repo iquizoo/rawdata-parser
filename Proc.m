@@ -9,15 +9,19 @@ function resdata = Proc(dataExtract, varargin)
 
 %% Parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal'     };
-parDflts   = {              '',              'text',       'full',                  true           };
-parValFuns = {@(x) ischar(x) | iscellstr(x),  @ischar,    @ischar, @(x) islogical(x) | isnumeric(x)};
+parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal',     'DebugEntry'   };
+parDflts   = {              '',              'text',       'full',                  true                 []        };
+parValFuns = {@(x) ischar(x) | iscellstr(x),  @ischar,    @ischar, @(x) islogical(x) | isnumeric(x),    @isnumeric };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 tasks  = par.Results.TaskNames;
 prompt = lower(par.Results.DisplayInfo);
 method = par.Results.Method;
 rmanml = par.Results.RemoveAbnormal;
+dbentry  = par.Results.DebugEntry;
+if isempty(tasks) && ~isempty(dbentry)
+    error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
+end
 %% Initialization jobs.
 %Folder contains all the analysis functions.
 anafunpath = 'utilis';
@@ -87,8 +91,12 @@ for itask = 1:ntasks4process
     initialVarsTask = who;
     %% In loop initialzation tasks.
     curTaskData = dataExtract.Data{taskRange(itask)};
+    if ~isempty(dbentry) % Read the debug entry only.
+        curTaskData = curTaskData(dbentry, :);
+        dbstop in sngproc
+    end
     curTaskName = dataExtract.TaskName{taskRange(itask)};
-    curTaskNameTrans = TaskNameTrans{taskRange(itask)};
+    curTaskNameTrans = TaskNameTrans{itask};
     curTaskSetting = settings(ismember(settings.TaskName, curTaskNameTrans), :);
     curTaskIDName = curTaskSetting.TaskIDName{:};
     %Get all the analysis variables.

@@ -15,7 +15,7 @@ cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 s        = par.Results.s;
 cntn     = par.Results.Continue;
-TaskName = cellstr(par.Results.TaskNames);
+tasks    = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
 
@@ -28,11 +28,11 @@ end
 warning('off', 'backtrace')
 % suffix is a major identifier for data set.
 suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
-TaskName(cellfun(@isempty, TaskName)) = [];
-if ~isempty(TaskName)
-    if length(TaskName) == 1
-        TaskName = TaskName{:};
-        suffix = strcat(suffixOrig, TaskName);
+tasks(cellfun(@isempty, tasks)) = [];
+if ~isempty(tasks) && s == 1
+    if length(tasks) == 1
+        tasks = tasks{:};
+        suffix = strcat(suffixOrig, tasks);
     else
         suffix = strcat(suffixOrig, matlab.lang.makeValidName(char(datetime)));
     end
@@ -50,7 +50,7 @@ if s < 2 % s = 1 only
         ['DATA_RawData\splitted', suffixOrig{:}, '.xlsx']);
     rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
     dataExtract = Preproc(rawdataFullPath, ...
-        'TaskNames', TaskName, ...
+        'TaskNames', tasks, ...
         'DisplayInfo', prompt, ...
         'DebugEntry', dbentry);
     fprintf('Now saving raw data (dataExtract) as file %s...\n', rawdataFN)
@@ -66,9 +66,10 @@ elseif s < 3 % s = 2 only
 end
 if s < 3 % s = 1, 2
     resdata = Proc(dataExtract, ...
-        'TaskNames', TaskName, ....
+        'TaskNames', tasks, ....
         'DisplayInfo', prompt, ...
-        'RemoveAbnormal', true);
+        'RemoveAbnormal', true, ...
+        'DebugEntry', dbentry);
     fprintf('Now saving processed data (resdata) as file %s...\n', procdataFN)
     save(procdataFN, 'resdata', '-v7.3')
     fprintf('Saving done.\n')

@@ -17,10 +17,10 @@ parDflts   = {              '',              'text',         []      };
 parValFuns = {@(x) ischar(x) | iscellstr(x), @ischar,   @isnumeric   };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
-TaskName = par.Results.TaskNames;
+tasks = par.Results.TaskNames;
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
-if isempty(TaskName) && ~isempty(dbentry)
+if isempty(tasks) && ~isempty(dbentry)
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
 %Folder contains all the analysis and plots functions.
@@ -38,39 +38,39 @@ taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
 %Check whether shtname is empty, if so, change it to denote all the sheets.
-if isempty(TaskName)
-    TaskName = sheets';
+if isempty(tasks)
+    tasks = sheets';
 end
 %When constructing table, only cell string is allowed.
-TaskName = cellstr(TaskName);
+tasks = cellstr(tasks);
 %Initializing works.
 %Check the status of existence for the to-be-processed tasks (in shtname).
 % 1. Checking the existence in the original data (in the Excel file).
-dataExistence = ismember(TaskName, sheets) & (ismember(TaskName, taskname.TaskOrigName) | ismember(TaskName, taskname.TaskNameCN));
+dataExistence = ismember(tasks, sheets) & (ismember(tasks, taskname.TaskOrigName) | ismember(tasks, taskname.TaskNameCN));
 if ~all(dataExistence)
     fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n');
-    disp(TaskName(~dataExistence))
-    TaskName(~dataExistence) = []; %Remove not found tasks.
+    disp(tasks(~dataExistence))
+    tasks(~dataExistence) = []; %Remove not found tasks.
 end
 % 2. Checking the existence in the settings.
-TaskNameTrans = TaskName;
-TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)));
-TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)));
+TaskNameTrans = tasks;
+TaskNameTrans(ismember(tasks, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(tasks, taskname.TaskOrigName)));
+TaskNameTrans(ismember(tasks, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(tasks, taskname.TaskNameCN)));
 setExistence = ismember(TaskNameTrans, settings.TaskName);
 if ~all(setExistence)
     fprintf('Oops! Settings of these tasks you specified are not found, will remove these tasks...\n');
-    disp(TaskName(~setExistence))
-    TaskName(~setExistence) = []; %Remove not found tasks.
+    disp(tasks(~setExistence))
+    tasks(~setExistence) = []; %Remove not found tasks.
     TaskNameTrans(~setExistence) = [];
 end
 %Preallocating the results.
-ntasks4process = length(TaskName);
-TaskName       = reshape(TaskName, ntasks4process, 1);
+ntasks4process = length(tasks);
+tasks       = reshape(tasks, ntasks4process, 1);
 TaskIDName     = cell(ntasks4process, 1);
 Data           = cell(ntasks4process, 1);
 Time2Preproc   = repmat(cellstr('TBE'), ntasks4process, 1);
 %Preallocating.
-dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
+dataExtract = table(tasks, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.
 fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
     ntasks4process);
@@ -93,7 +93,7 @@ elapsedTime = 0;
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
-    curTaskName = TaskName{itask};
+    curTaskName = tasks{itask};
     curTaskNameTrans = TaskNameTrans{itask};
     %Update prompt information.
     %Get the proportion of completion and the estimated time of arrival.
@@ -171,11 +171,12 @@ for itask = 1:ntasks4process
     %Get a table curTaskCfg to combine two variables: conditions and para,
     %which are used in the function sngproc. See more in function sngproc.
     curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
-    curTaskCfg = table;
     if ~isempty(dbentry) % Read the debug entry only.
         curTaskData = curTaskData(dbentry, :);
         dbstop in sngpreproc
     end
+    % construct a table for preprocessing using @sngpreproc.
+    curTaskCfg = table;
     curTaskCfg.conditions = curTaskData.conditions;
     curTaskCfg.para = repmat({curTaskPara}, height(curTaskCfg), 1);
     cursplit = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
