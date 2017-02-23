@@ -65,12 +65,12 @@ if ~all(setExistence)
 end
 %Preallocating the results.
 ntasks4process = length(tasks);
-tasks       = reshape(tasks, ntasks4process, 1);
+TaskName       = reshape(tasks, ntasks4process, 1);
 TaskIDName     = cell(ntasks4process, 1);
 Data           = cell(ntasks4process, 1);
 Time2Preproc   = repmat(cellstr('TBE'), ntasks4process, 1);
 %Preallocating.
-dataExtract = table(tasks, TaskIDName, Data, Time2Preproc);
+dataExtract = table(TaskName, TaskIDName, Data, Time2Preproc);
 %Display the information of processing.
 fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
     ntasks4process);
@@ -93,7 +93,7 @@ elapsedTime = 0;
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;
-    curTaskName = tasks{itask};
+    curTaskName = TaskName{itask};
     curTaskNameTrans = TaskNameTrans{itask};
     %Update prompt information.
     %Get the proportion of completion and the estimated time of arrival.
