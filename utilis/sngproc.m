@@ -169,8 +169,11 @@ else
     % Set the ACC of abnormal trials (RT) as -1.
     rec.ACC((rec.RT < 100 & rec.RT ~= 0) | ... % Too short RTs
         (rec.RT > 2500 & rec.RT ~= tasksettings.NRRT)) = -1; % Too long RTs
-    % Set the ACC of no response trials which require response as -1.
-    rec.ACC(rec.RT == tasksettings.NRRT & rec.SCat ~= 0) = -1;
+    % Set the ACC of no response trials which require response as -1 for
+    % those tasks which need a response for each trial.
+    if tasksettings.RespRequired
+        rec.ACC(rec.RT == tasksettings.NRRT & rec.SCat ~= 0) = -1;
+    end
 end % if
 % Compute now.
 if ~isempty(rec)
