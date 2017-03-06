@@ -198,6 +198,7 @@ if nTasks > 0
         end
     end
 else
+    metavars = {};
     mrgdata = table;
 end
 % Preallocate for the output.
