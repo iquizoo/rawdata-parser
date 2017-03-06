@@ -16,6 +16,8 @@ function [indicesStruct, scoresStruct, mrgdataStruct, taskstatStruct, metavars] 
 %
 %   See also PREPROC, PROC.
 
+%Start stopwatch.
+tic
 % Parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames'          };
@@ -40,6 +42,7 @@ end
 tasks4merge = tasknames(taskExistence);
 nTasks = length(tasks4merge);
 if nTasks > 0
+    fprintf('Please wait, now reading tasks settings...\n');
     %Set the school information.
     schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
     schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
@@ -49,6 +52,7 @@ if nTasks > 0
     %Set the class information.
     clsInfo = readtable('taskSettings.xlsx', 'Sheet', 'clsinfo');
     clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
+    fprintf('Reading done!\n')
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic
     %transformation of meta data, e.g. school and grade.
@@ -267,10 +271,7 @@ for imrgtask = 1:nTasks
             end
             if curIDnPart > 1
                 if ismember(metavars, 'school')
-                    %The logic here is, if there is no school information
-                    %for current observation, set the observation as
-                    %missing data; if there is school information, if there
-                    %is any invalid value, set the observation as invalid.
+                    %The logic here is the same as above.
                     taskstatRep.(curTaskIDName)(isubj) = ~isundefined(taskstatRep(isubj, :).school) * ...
                         (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
                 else
@@ -294,3 +295,9 @@ mrgdataStruct.mrgdata = mrgdata;
 mrgdataStruct.mrgdataRep = mrgdataRep;
 taskstatStruct.taskstat = taskstat;
 taskstatStruct.taskstatRep = taskstatRep;
+usedTimeSecs = toc;
+addpath utilis
+usedTimeHuman = seconds2human(usedTimeSecs, 'full');
+rmpath utilis
+fprintf('Congratulations! Data of %d task(s) merged completely this time.\n', nTasks);
+fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);

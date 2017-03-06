@@ -7,6 +7,8 @@ function resdata = Proc(dataExtract, varargin)
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
+%Start stopwatch.
+tic
 %% Parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal',     'DebugEntry'   };
@@ -29,11 +31,13 @@ addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
 %Load basic parameters.
+fprintf('Please wait, now reading tasks settings...\n');
 settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
+fprintf('Reading done!\n')
 %Remove rows without any data.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 %Display notation message.
@@ -83,9 +87,7 @@ end
 %Useful for timing information.
 nprocessed = 0;
 nignored = 0;
-%Start stopwatch.
-tic
-elapsedTime = 0;
+elapsedTime = toc;
 %Begin computing.
 for itask = 1:ntasks4process
     initialVarsTask = who;

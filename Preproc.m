@@ -10,6 +10,8 @@ function dataExtract = Preproc(fname, varargin)
 %Modified to use in another problem.
 %Modification completed at 2016/04/13.
 
+%Start stopwatch.
+tic
 % Parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames',       'DisplayInfo', 'DebugEntry'};
@@ -29,16 +31,19 @@ addpath(anafunpath);
 %Log file.
 logfid = fopen('readlog(AutoGen).log', 'w');
 %Load parameters.
+fprintf('Please wait, now reading tasks settings...\n');
 settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
 para          = readtable('taskSettings.xlsx', 'Sheet', 'para');
 taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
+fprintf('Reading done!\n')
 %Get sheets' names.
 [~, sheets] = xlsfinfo(fname);
 %Check whether shtname is empty, if so, change it to denote all the sheets.
 if isempty(tasks)
+    sheets(~cellfun(@isempty, regexp(sheets, '^Sheet', 'once'))) = [];
     tasks = sheets';
 end
 %When constructing table, only cell string is allowed.
@@ -87,9 +92,7 @@ switch prompt
 end
 nprocessed = 0;
 nignored = 0;
-%Start stopwatch.
-tic
-elapsedTime = 0;
+elapsedTime = toc;
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;

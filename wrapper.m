@@ -89,3 +89,4 @@ if s < 4 % s = 1, 2, 3
 else % s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')
 end
+warning('on', 'backtrace')

@@ -72,19 +72,6 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
             'UniformOutput', false);
         token               = para.TemplateToken{:};
         switch token
-            %language task, , Go/No-Go, cpt, divided attention working memory.
-            case {'LT', 'GNG', 'CPT1', 'DA', 'WM', 'CPT2'}
-                lenTrial = cellfun(@length, curTrialRec);
-                % Trial length of 1 denotes artificial data, esp. one ',' at the end.
-                lenTrial(lenTrial == 1) = [];
-                lenTrial = unique(lenTrial);
-                [~, altChoice] = ismember(lenTrial, nCurAltVars);
-                if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
-                    altChoice     = length(nCurAltVars);
-                    recons(icond) = recon(curTrialRec, token, nCurAltVars(altChoice), delimiters);
-                elseif isempty(lenTrial)
-                    altChoice     = 1; %Use the first by default.
-                end
             case 'F' %Flanker.
                 curTrialRec = str2double(cat(1, curTrialRec{:}));
                 chkcol = curTrialRec(:, 1);
@@ -105,7 +92,19 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
                     end
                 end
             otherwise
-                altChoice = 1; %In common conditions, there is only one condition.
+                lenTrial = cellfun(@length, curTrialRec);
+                if isempty(lenTrial) || length(nCurAltVars) == 1
+                    altChoice     = 1; %Use the first by default.
+                else
+                    % Trial length of 1 denotes artificial data, esp. one ',' at the end.
+                    lenTrial(lenTrial == 1) = [];
+                    lenTrial = unique(lenTrial);
+                    [~, altChoice] = ismember(lenTrial, nCurAltVars);
+                    if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
+                        altChoice     = length(nCurAltVars);
+                        recons(icond) = recon(curTrialRec, token, nCurAltVars(altChoice), delimiters);
+                    end
+                end
         end
         VarNames(icond) = curAltVarNames(altChoice);
         charVars(icond) = curAltCharVars(altChoice);
