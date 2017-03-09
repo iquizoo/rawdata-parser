@@ -25,6 +25,16 @@ dbentry  = par.Results.DebugEntry;
 if isempty(tasks) && ~isempty(dbentry)
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
+%Get sheets' names.
+if ~exist(fname, 'file')
+    error('UDF:PREPROC:DATAFILEWRONG', 'File %s not found, please check!', fname)
+end
+[~, sheets] = xlsfinfo(fname);
+%Check whether shtname is empty, if so, change it to denote all the sheets.
+if isempty(tasks)
+    sheets(~cellfun(@isempty, regexp(sheets, '^Sheet', 'once'))) = [];
+    tasks = sheets';
+end
 %Folder contains all the analysis and plots functions.
 anafunpath = 'utilis';
 addpath(anafunpath);
@@ -39,13 +49,6 @@ tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
 fprintf('Reading done!\n')
-%Get sheets' names.
-[~, sheets] = xlsfinfo(fname);
-%Check whether shtname is empty, if so, change it to denote all the sheets.
-if isempty(tasks)
-    sheets(~cellfun(@isempty, regexp(sheets, '^Sheet', 'once'))) = [];
-    tasks = sheets';
-end
 %When constructing table, only cell string is allowed.
 tasks = cellstr(tasks);
 %Initializing works.
