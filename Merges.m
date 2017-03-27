@@ -167,7 +167,7 @@ if nTasks > 0
     idInfo = '';
     for id = 1:length(userId)
         fprintf(repmat('\b', 1, length(idInfo)));
-        idInfo = sprintf('Subject %d/%d.\n', id, length(userId));
+        idInfo = sprintf('Subject %d/%d.', id, length(userId));
         fprintf(idInfo);
         curId = userId(id);
         curIdMeta = dataMergeMetadata(dataMergeMetadata.userId == curId, :);
@@ -211,7 +211,7 @@ scoresRep   = mrgdata;
 taskstatRep = mrgdata;
 mrgdataRep  = mrgdata;
 %Merge data task by task.
-fprintf('Now trying to merge all the data task by task. Please wait...\n')
+fprintf('\nNow trying to merge all the data task by task. Please wait...')
 dispInfo = '';
 subDispInfo = '';
 for imrgtask = 1:nTasks
@@ -219,7 +219,7 @@ for imrgtask = 1:nTasks
     curTaskIDName = tasks4merge{imrgtask};
     fprintf(repmat('\b', 1, length(subDispInfo)));
     fprintf(repmat('\b', 1, length(dispInfo)));
-    dispInfo = sprintf('Now merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
+    dispInfo = sprintf('\nNow merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
     fprintf(dispInfo);
     %Get the data of current task.
     curTaskData = resdata.Data(ismember(resdata.TaskIDName, curTaskIDName), :);
@@ -241,7 +241,7 @@ for imrgtask = 1:nTasks
         subDispInfo = '';
         for isubj = 1:nsubj
             fprintf(repmat('\b', 1, length(subDispInfo)));
-            subDispInfo = sprintf('Subject %d/%d.\n', isubj, nsubj);
+            subDispInfo = sprintf('Subject %d/%d.', isubj, nsubj);
             fprintf(subDispInfo);
             %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
             curID      = taskstat.userId(isubj);
@@ -300,5 +300,5 @@ usedTimeSecs = toc;
 addpath utilis
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
 rmpath utilis
-fprintf('Congratulations! Data of %d task(s) merged completely this time.\n', nTasks);
+fprintf('\nCongratulations! Data of %d task(s) merged completely this time.\n', nTasks);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);

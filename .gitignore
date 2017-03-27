@@ -18,9 +18,9 @@ doc*/
 BAK*/
 scripts*/
 R*/
-Presentations/
 etc/
 tmp/
+_*/
 
 #For miscellaneous TEXT files.
 *~
