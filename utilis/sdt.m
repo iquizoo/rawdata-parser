@@ -1,4 +1,4 @@
-function [dprime, c] = sdt(HR, FAR)
+function [dprime, c] = sdt(HR, FAR, ntrial)
 %SDT Calculates parameters of signal detection theory.
 %   [DPRIME, C] = SDT(HR, FAR) calculates dprime and bias c in signal
 %   detection theory. HR and FAR are respectively the hit rate and false
@@ -11,12 +11,15 @@ function [dprime, c] = sdt(HR, FAR)
 
 %By Zhang, Liang. 04/22/2016. E-mail: psychelzh@gmail.com
 
+% check inputs.
+if nargin == 2, ntrial = 100; end % set default trial number as 100.
+
 %When either HR or FAR equals to 1 or 0, the output would otherwise result
 %in unexpected value.
-HR(HR == 1) = 0.99;
-HR(HR == 0) = 0.01;
-FAR(FAR == 1) = 0.99;
-FAR(FAR == 0) = 0.01;
+HR(HR == 1) = 1 - 1 / ntrial;
+HR(HR == 0) = 1 / ntrial;
+FAR(FAR == 1) = 1 - 1 / ntrial;
+FAR(FAR == 0) = 1 / ntrial;
 %d' and c.
 dprime = norminv(HR) - norminv(FAR);
 c = - (norminv(HR) + norminv(FAR)) / 2;
