@@ -39,6 +39,6 @@ for run = runs
     res.([varPref{run + 1}, delimiter, varSuff{4}]) = ...
         1 - length(curRunAllNewTrials.ACC(curRunAllNewTrials.ACC == 1)) / length(curRunAllNewTrials.ACC);
 end
-res.dprimeTM = sgldetect(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{3}]));
-res.dprimeFM = sgldetect(res.([varPref{1}, delimiter, varSuff{2}]), res.([varPref{1}, delimiter, varSuff{3}]));
-res.dprime   = sgldetect(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{4}]));
+res.dprimeTM = sdt(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{3}]));
+res.dprimeFM = sdt(res.([varPref{1}, delimiter, varSuff{2}]), res.([varPref{1}, delimiter, varSuff{3}]));
+res.dprime   = sdt(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{4}]));

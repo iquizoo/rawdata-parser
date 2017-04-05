@@ -24,7 +24,7 @@ Rate_FA = length(RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= 1)) / length(RECORD
 RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
 RT_FA = mean(RECORD.RT(RECORD.SCat ~= 1 & RECORD.ACC == 0));
 %d' and c.
-[dprime, c] = sgldetect(Rate_hit, Rate_FA);
+[dprime, c] = sdt(Rate_hit, Rate_FA);
 % %Efficiency score, contrary to the inverse efficiency score (IES).
 % Effc = Rate_hit / RT_hit;
 %Efficiency.
