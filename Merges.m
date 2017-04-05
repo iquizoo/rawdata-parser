@@ -65,7 +65,7 @@ if nTasks > 0
     % ones.
     dataMetaVars = [];
     for iTask = 1:height(resdata)
-        curTaskData = resdata.Data{iTask, :};
+        curTaskData = resdata.Data{iTask};
         curTaskVars = curTaskData.Properties.VariableNames;
         for ivar = 1:length(varsOfChk)
             curVarOpts = split(varsOfChk{ivar}, '|');
@@ -76,12 +76,13 @@ if nTasks > 0
             end
         end
         dataMetaVars = union(dataMetaVars, curTaskData.Properties.VariableNames);
+        resdata.Data{iTask} = curTaskData;
     end
     [metavars, imeta] = intersect(metavars, dataMetaVars, 'stable');
     varsOfChkClass = varsOfChkClass(imeta);
     % change data in case of some loss of meta data.
     for iTask = 1:height(resdata)
-        curTaskData = resdata.Data{iTask, :};
+        curTaskData = resdata.Data{iTask};
         curTaskVars = curTaskData.Properties.VariableNames;
         metavarsExistence = ismember(metavars, curTaskVars);
         if ~all(metavarsExistence)
@@ -99,7 +100,7 @@ if nTasks > 0
                 end
             end
         end
-        resdata.Data{iTask, :} = curTaskData;
+        resdata.Data{iTask} = curTaskData;
     end
     %Vertcat metadata.
     resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
