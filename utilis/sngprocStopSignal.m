@@ -12,3 +12,4 @@ SSD = mean([findpeaks(RECORD.SSD(RECORD.IsStop == 1)); ...
     -findpeaks(-RECORD.SSD(RECORD.IsStop == 1))]);
 MedGoRT = median(RECORD.RT(RECORD.ACC == 1 & RECORD.IsStop == 0));
 res.SSRT = MedGoRT - SSD;
+res.ACC = mean(RECORD.ACC(RECORD.IsStop == 0));
