@@ -1,4 +1,4 @@
-function [indicesStruct, scoresStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resdata, varargin)
+function [indicesStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resdata, varargin)
 %MERGES merges all the results obtained data.
 %   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
@@ -105,48 +105,50 @@ if nTasks > 0
     %Vertcat metadata.
     resMetadata = cellfun(@(tbl) tbl(:, ismember(tbl.Properties.VariableNames, metavars)), ...
         resdata.Data, 'UniformOutput', false);
-    dataMergeMetadata = cat(1, resMetadata{:});
+    resMetadata = cat(1, resMetadata{:});
     %Check the following variables.
     fprintf('Now trying to modify metadata: gender, school, grade, cls. Change these variables to categorical data. Please wait...\n')
     chkVarsOfMetadata = intersect({'name', 'gender', 'sex', 'school', 'grade', 'cls'}, metavars, 'stable');
     for ivomd = 1:length(chkVarsOfMetadata)
         initialVars = who;
         cvomd = chkVarsOfMetadata{ivomd};
-        cVarNotCharLoc = cellfun(@(item) ~ischar(item) | isempty(item), dataMergeMetadata.(cvomd));
-        if any(cVarNotCharLoc)
-            dataMergeMetadata.(cvomd)(cVarNotCharLoc) = {''};
-        end
+        numNaNLoc = cellfun(@(item) isnumeric(item) && isnan(item), resMetadata.(cvomd));
+        numNotNaNloc = cellfun(@(item) isnumeric(item) && ~isnan(item), resMetadata.(cvomd));
+        resMetadata.(cvomd)(numNaNLoc) = {''}; % number NaN to ''.
+        resMetadata.(cvomd)(numNotNaNloc) = ...
+            cellfun(@num2str, resMetadata.(cvomd)(numNotNaNloc), ... % number and not NaN to string.
+            'UniformOutput', false);
         switch cvomd
             case 'name'
                 % remove all of the spaces in the name string.
-                dataMergeMetadata.name = regexprep(dataMergeMetadata.name, '\s+', '');
+                resMetadata.name = regexprep(resMetadata.name, '\s+', '');
             case 'school'
                 %Set those schools of no interest into empty string, so as to
                 %be transformed into undefined.
-                schOIloc = ismember(dataMergeMetadata.school, schInfo.SchoolName);
+                schOIloc = ismember(resMetadata.school, schInfo.SchoolName);
                 if any(~schOIloc)
-                    dataMergeMetadata.school(~schOIloc) = {''};
+                    resMetadata.school(~schOIloc) = {''};
                 end
-                dataMergeMetadata.school(schOIloc) = ...
-                    values(schMap, dataMergeMetadata.school(schOIloc));
+                resMetadata.school(schOIloc) = ...
+                    values(schMap, resMetadata.school(schOIloc));
             case 'grade'
                 %Convert grade strings to numeric data.
-                allGradeStr = dataMergeMetadata.grade;
+                allGradeStr = resMetadata.grade;
                 allGradeStr(~isKey(grdMap, allGradeStr)) = {''};
-                dataMergeMetadata.grade = values(grdMap, allGradeStr);
+                resMetadata.grade = values(grdMap, allGradeStr);
             case 'cls'
                 %Convert class strings to numeric data.
-                allClsStr = dataMergeMetadata.cls;
+                allClsStr = resMetadata.cls;
                 allClsStr(~isKey(clsMap, allClsStr)) = {''};
-                dataMergeMetadata.cls = values(clsMap, allClsStr);
+                resMetadata.cls = values(clsMap, allClsStr);
         end
         clearvars('-except', initialVars{:})
     end
     %Remove repetitions in the merged metadata according to the userId.
     fprintf('Now remove repetitions in the metadata. Probably will takes some time.\n')
-    dataMergeMetadata = unique(dataMergeMetadata);
-    if ~isempty(dataMergeMetadata)
-        userId = unique(dataMergeMetadata.userId);
+    resMetadata = unique(resMetadata);
+    if ~isempty(resMetadata)
+        userId = unique(resMetadata.userId);
     else
         userId = [];
     end
@@ -171,7 +173,7 @@ if nTasks > 0
         idInfo = sprintf('Subject %d/%d.', id, length(userId));
         fprintf(idInfo);
         curId = userId(id);
-        curIdMeta = dataMergeMetadata(dataMergeMetadata.userId == curId, :);
+        curIdMeta = resMetadata(resMetadata.userId == curId, :);
         for imeta = 1:length(metavars)
             curMetavar = metavars{imeta};
             curMetavarIdData = curIdMeta.(curMetavar);
@@ -204,7 +206,7 @@ else
 end
 % Preallocate for the output.
 indices  = mrgdata;
-scores   = mrgdata;
+% scores   = mrgdata;
 taskstat = mrgdata; % Generate a table to store the completion status for each id and task.
 % for the repetition test.
 indicesRep  = mrgdata;
@@ -230,7 +232,7 @@ for imrgtask = 1:nTasks
     if ~isempty(curTaskResVars)
         %Generate the tasks status, scores and performance indices matrices.
         taskstat.(curTaskIDName) = zeros(nsubj, 1);
-        scores.(curTaskIDName) = nan(nsubj, 1);
+        %         scores.(curTaskIDName) = nan(nsubj, 1);
         indices.(curTaskIDName) = nan(nsubj, 1);
         taskstatRep.(curTaskIDName) = zeros(nsubj, 1);
         scoresRep.(curTaskIDName) = nan(nsubj, 1);
@@ -267,7 +269,7 @@ for imrgtask = 1:nTasks
                 else
                     taskstat{isubj, curTaskIDName} = (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
                 end
-                scores{isubj, curTaskIDName} = curSubTaskData.score(ind(1));
+                %                 scores{isubj, curTaskIDName} = curSubTaskData.score(ind(1));
                 indices{isubj, curTaskIDName} = curSubTaskData.index(ind(1));
                 mrgdata{isubj, curTaskOutVars} = curSubTaskData.res{ind(1), :};
             end
@@ -291,8 +293,8 @@ fclose(logfid);
 % get all the resulting structures.
 indicesStruct.indices = indices;
 indicesStruct.indicesRep = indicesRep;
-scoresStruct.scores = scores;
-scoresStruct.scoresRep = scoresRep;
+% scoresStruct.scores = scores;
+% scoresStruct.scoresRep = scoresRep;
 mrgdataStruct.mrgdata = mrgdata;
 mrgdataStruct.mrgdataRep = mrgdataRep;
 taskstatStruct.taskstat = taskstat;

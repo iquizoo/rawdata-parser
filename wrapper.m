@@ -8,9 +8,9 @@ function wrapper(varargin)
 
 par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
-parNames   = {            'Continue',                      'TaskNames',      'DisplayInfo', 'DebugEntry'};
-parDflts   = {               true   ,                          '',             'text',           []     };
-parValFuns = {@(x) islogical(x) | isnumeric(x), @(x) ischar(x) | iscellstr(x), @ischar,       @isnumeric};
+parNames   = {            'Continue',                      'TaskNames',      'DisplayInfo', 'DebugEntry',          'RemoveAbnormal',      'SaveAction', 'SaveVersion'};
+parDflts   = {               true   ,                          '',             'text',           [],                   false,                     2 ,        ''       };
+parValFuns = {@(x) islogical(x) | isnumeric(x), @(x) ischar(x) | iscellstr(x), @ischar,       @isnumeric, @(x) islogical(x) | isnumeric(x),  @isnumeric, @ischar     };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 s        = par.Results.s;
@@ -18,6 +18,12 @@ cntn     = par.Results.Continue;
 tasks    = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
+rmanml   = par.Results.RemoveAbnormal;
+saveIdx  = par.Results.SaveAction;
+saveVer  = par.Results.SaveVersion;
+if isempty(saveVer)
+    saveVer = '-v7';
+end
 
 % set environmental settings.
 dflts
@@ -29,7 +35,7 @@ warning('off', 'backtrace')
 % suffix is a major identifier for data set.
 suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
 tasks(cellfun(@isempty, tasks)) = [];
-if ~isempty(tasks) && s == 1
+if ~isempty(tasks)
     if length(tasks) == 1
         tasks = tasks{:};
         suffix = strcat(suffixOrig, tasks);
@@ -40,9 +46,11 @@ else
     suffix = suffixOrig;
 end
 fprintf('Will use suffix ''%s'' to store data.\n', suffix{:})
-rawdataFN  = fullfile(resdir, ['RawData', suffix{:}]);
-procdataFN = fullfile(resdir, ['ProcData', suffix{:}]);
-ccdresFN   = fullfile(resdir, ['CCDRes', suffix{:}]);
+svRawFileName  = fullfile(resdir, ['RawData', suffix{:}]);
+svProcFileName = fullfile(resdir, ['ProcData', suffix{:}]);
+svResFileName  = fullfile(resdir, ['CCDRes', suffix{:}]);
+ldRawFileName  = fullfile(resdir, ['RawData', suffixOrig{:}]);
+ldProcFileName = fullfile(resdir, ['ProcData', suffixOrig{:}]);
 
 if s < 2 % s = 1 only
     [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
@@ -53,15 +61,17 @@ if s < 2 % s = 1 only
         'TaskNames', tasks, ...
         'DisplayInfo', prompt, ...
         'DebugEntry', dbentry);
-    fprintf('Now saving raw data (dataExtract) as file %s...\n', rawdataFN)
-    save(rawdataFN, 'dataExtract', '-v7.3')
-    fprintf('Saving done.\n')
+    if saveIdx > 2 || ~cntn
+        fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
+        save(svRawFileName, 'dataExtract', saveVer)
+        fprintf('Saving done.\n')
+    end
     if ~cntn
         return
     end
 elseif s < 3 % s = 2 only
-    fprintf('Now reading raw data (dataExtract) from file %s...\n', rawdataFN)
-    load(rawdataFN, 'dataExtract')
+    fprintf('Now reading raw data (dataExtract) from file %s...\n', ldRawFileName)
+    load(ldRawFileName, 'dataExtract')
     fprintf('Reading done.\n')
 end
 if s < 3 % s = 1, 2
@@ -69,23 +79,25 @@ if s < 3 % s = 1, 2
     resdata = Proc(dataExtract, ...
         'TaskNames', tasks, ....
         'DisplayInfo', prompt, ...
-        'RemoveAbnormal', true, ...
+        'RemoveAbnormal', rmanml, ...
         'DebugEntry', dbentry);
-    fprintf('Now saving processed data (resdata) as file %s...\n', procdataFN)
-    save(procdataFN, 'resdata', '-v7.3')
-    fprintf('Saving done.\n')
+    if saveIdx > 1 || ~cntn
+        fprintf('Now saving processed data (resdata) as file %s...\n', svProcFileName)
+        save(svProcFileName, 'resdata', saveVer)
+        fprintf('Saving done.\n')
+    end
     if ~cntn
         return
     end
 elseif s < 4 % s = 3 only
-    fprintf('Now reading processed data (resdata) from file %s...\n', procdataFN)
-    load(procdataFN, 'resdata')
+    fprintf('Now reading processed data (resdata) from file %s...\n', ldProcFileName)
+    load(ldProcFileName, 'resdata')
     fprintf('Reading done.\n')
 end
 if s < 4 % s = 1, 2, 3
-    [indices, scores, mrgdata, taskstat, metavars] = Merges(resdata); %#ok<ASGLU>
-    fprintf('Now saving results data (mutiple variables) as file %s...\n', ccdresFN)
-    save(ccdresFN, 'mrgdata', 'scores', 'indices', 'taskstat', 'metavars', '-v7.3')
+    [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata); %#ok<ASGLU>
+    fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
+    save(svResFileName, 'indStruct', 'mrgStruct', 'statStruct', 'metavars', saveVer)
     fprintf('Saving done.\n')
 else % s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')

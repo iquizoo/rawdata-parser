@@ -51,10 +51,9 @@ end
 cpvars = strcat(repmat(varscat, 1, length(varscond)), delimiterVC, ...
     repelem(varscond, 1, length(varscat)));
 % further required variables.
-sngvars = [strsplit(tasksettings.SingletonVars{:}), strsplit(tasksettings.SingletonVarsCP{:})];
-spvars = strsplit(tasksettings.SpecialVars{:});
+sngvars = strsplit(tasksettings.VarsFull{:});
 % Out variables names are composed by three part.
-outvars = [cpvars, sngvars, spvars];
+outvars = [cpvars, sngvars];
 % Remove empty strings.
 outvars(cellfun(@isempty, outvars)) = [];
 % Preallocation.
@@ -70,9 +69,9 @@ task = tasksettings.TaskIDName{:};
 nonRTRecTasks = {...
     'Reading', ...
     'SusAtten', ...
-    'ForSpan', 'BackSpan', 'SpatialSpan', ...
+    'ForSpan', 'BackSpan', 'SpatialSpan', 'MemoryTail', ...
     'Jigsaw1', 'Jigsaw2', ...
-    'BART'};
+    'BART', 'TMT'};
 if ismember(task, nonRTRecTasks)
     switch task
         case {'SusAtten', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
@@ -89,6 +88,9 @@ if ismember(task, nonRTRecTasks)
             if ~exist('TotalTime', 'var')
                 TotalTime = 5 * 60 * 1000; % 5 min
             end
+        case 'TMT'
+            rec.SCat = cellfun(@length, rec.STIM);
+            rec.ACC  = 1 - rec.NWrong ./ rec.NAcc;
     end
 else
     % Unifying modification to some of the variables in RECORD.
@@ -104,7 +106,7 @@ else
     switch task
         case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
                 'GNGLure', 'GNGFruit', ...% GNG tasks
-                'Flanker', 'TaskSwitching', ...% Part of EF tasks
+                'Flanker', ...% Part of EF tasks
                 } % SCat modification required tasks.
             % left -> 1, right -> 2.
             assert(~isempty(taskSTIMMap), ...
@@ -165,10 +167,14 @@ else
             rec(rec.CResp == -1, :) = [];
             % All the trials require response.
             rec.SCat = ones(height(rec), 1);
+        case 'TaskSwitching'
+            rec.SCat(1) = 0;
+        case 'DCCS'
+            rec.SCat(1:12:48) = 0;
     end % switch
     % Set the ACC of abnormal trials (RT) as -1.
-    rec.ACC((rec.RT < 100 & rec.RT ~= 0) | ... % Too short RTs
-        (rec.RT > 2500 & rec.RT ~= tasksettings.NRRT)) = -1; % Too long RTs
+    rec.ACC((rec.RT < tasksettings.RTmin & rec.RT ~= 0) | ... % Too short RTs
+        (rec.RT > tasksettings.RTmax & rec.RT ~= tasksettings.NRRT)) = -1; % Too long RTs
     % Set the ACC of no response trials which require response as -1 for
     % those tasks which need a response for each trial.
     if tasksettings.RespRequired
@@ -230,21 +236,21 @@ if ~isempty(rec)
     end
     res = cat(2, comres, spres);
     % Caculate the scores of each task.
-    scorefunsuff = tasksettings.ScoringFun{:};
-    scorevars   = strsplit(tasksettings.ScoringVars{:});
-    score = nan;
-    if ~isempty(scorefunsuff)
-        scorefunstr = ['sngscore', scorefunsuff];
-        scorefun    = str2func(scorefunstr);
-        if ~isempty(tasksettings.ScoringPara{:})
-            scoreparas  = cellfun(@str2double, strsplit(tasksettings.ScoringPara{:}), 'UniformOutput', false);
-            score = rowfun(@(varargin) scorefun(varargin{:}, scoreparas{:}), res, ...
-                'InputVariables', scorevars, 'OutputFormat', 'uniform');
-        else
-            score = rowfun(@(varargin) scorefun(varargin{:}), res, ...
-                'InputVariables', scorevars, 'OutputFormat', 'uniform');
-        end
-    end
+    %     scorefunsuff = tasksettings.ScoringFun{:};
+    %     scorevars   = strsplit(tasksettings.ScoringVars{:});
+    %     score = nan;
+    %     if ~isempty(scorefunsuff)
+    %         scorefunstr = ['sngscore', scorefunsuff];
+    %         scorefun    = str2func(scorefunstr);
+    %         if ~isempty(tasksettings.ScoringPara{:})
+    %             scoreparas  = cellfun(@str2double, strsplit(tasksettings.ScoringPara{:}), 'UniformOutput', false);
+    %             score = rowfun(@(varargin) scorefun(varargin{:}, scoreparas{:}), res, ...
+    %                 'InputVariables', scorevars, 'OutputFormat', 'uniform');
+    %         else
+    %             score = rowfun(@(varargin) scorefun(varargin{:}), res, ...
+    %                 'InputVariables', scorevars, 'OutputFormat', 'uniform');
+    %         end
+    %     end
     % Get all the variable names of current res table.
     curTaskResVarNames = res.Properties.VariableNames;
     if rmanml
@@ -252,9 +258,9 @@ if ~isempty(rec)
         MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
             regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
         for irtvar = 1:length(MRTvars)
-            if res.(MRTvars{irtvar}) < 300 || res.(MRTvars{irtvar}) > 2500
+            if res.(MRTvars{irtvar}) < tasksettings.RTmin || res.(MRTvars{irtvar}) > tasksettings.RTmax
                 res{:, :} = nan;
-                score = nan;
+                %                 score = nan;
                 break
             end
         end
@@ -264,7 +270,7 @@ if ~isempty(rec)
         for iaccvar = 1:length(ACCvars)
             if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
                 res{:, :} = nan;
-                score = nan;
+                %                 score = nan;
                 break
             end
         end
@@ -276,9 +282,9 @@ if ~isempty(rec)
     end
 else
     res = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
-    score = nan;
+    %     score = nan;
 end % if ~isempty(RECORD)
-res.score = score;
+% res.score = score;
 % Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
     res.Properties.VariableNames = strcat(res.Properties.VariableNames, ...

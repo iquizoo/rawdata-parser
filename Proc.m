@@ -163,7 +163,7 @@ for itask = 1:ntasks4process
         switch curTaskIDName
             case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
                     'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
-                    'Flanker', 'TaskSwitching', ...%Conflict
+                    'Flanker', ...%Conflict
                     }
                 %Get curTaskSTIMMap (STIM->SCat) for these tasks.
                 curTaskEncode  = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
@@ -190,7 +190,7 @@ for itask = 1:ntasks4process
         %something tricky when nesting table type in a table; it treats the
         %rows of the nested table as integrated when using rowfun or
         %concatenating.
-        anares(:, ivar) = rowfun(@(varargin) sngproc(varargin{:}, procPara{:}), ...
+        anares(:, ivar) = rowfun(@(x) sngproc(x, varargin{:}, procPara{:}), ...
             curTaskData, 'InputVariables', curAnaVars, 'ExtractCellContents', true, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.

@@ -177,9 +177,8 @@ VariablesChar  = cellfun(@(x) strsplit(x, '\'), ...
 charVars = cell(size(VariablesChar));
 for icond = 1:ncond
     curCondVariablesChar = VariablesChar{icond};
-    tpCurVariablesChar   = cellfun(@transpose, curCondVariablesChar, 'UniformOutput', false);
-    ctpCurVariablesChar  = cellfun(@num2cell, tpCurVariablesChar, 'UniformOutput', false);
-    charVars{icond}      = cellfun(@str2double, ctpCurVariablesChar, 'UniformOutput', false);
+    charVars{icond}      = cellfun(@(char) eval(strcat('[', char, ']')), ...
+        curCondVariablesChar, 'UniformOutput', false);
 end
 %In case the lazy mode, in which one instance is presented for multiple
 %conditions or variable candidates.

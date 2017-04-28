@@ -21,6 +21,7 @@ ML = max(RECORD.SLen(RECORD.ACC == 1));
 if isempty(ML) % No correct trials found.
     ML = nan;
     MS = nan;
+    meanHit = 0;
 else
     %Mean span metric.
     baseLen = RECORD.SLen(1);
@@ -29,9 +30,18 @@ else
     %If the SLen is larger than baseLen, Mean Span is increased.
     increSLen = allSLen(allSLen >= baseLen);
     msIncre = 0;
+    % to check invalid data.
+    hitIncre = 0;
+    nIncre = 0;
     for iLen = 1:length(increSLen)
+        SLen = increSLen(iLen);
         %Incremented by hit rate of each SLen.
-        msIncre = msIncre + mean(RECORD.ACC(RECORD.SLen == increSLen(iLen)));
+        hit = mean(RECORD.ACC(RECORD.SLen == SLen));
+        if SLen >= 10
+            hitIncre = hitIncre + hit;
+            nIncre = nIncre + 1;
+        end
+        msIncre = msIncre + hit;
     end
     %If the SLen is larger than baseLen, Mean Span is decreased.
     decreSLen = allSLen(allSLen < baseLen);
@@ -40,10 +50,15 @@ else
         %Decreased by miss rate of each SLen.
         msDecre = msDecre + 1 - mean(RECORD.ACC(RECORD.SLen == decreSLen(iLen)));
     end
+    if nIncre > 0
+        meanHit = hitIncre / nIncre;
+    else
+        meanHit = 0;
+    end
     MS = msBase + msIncre - msDecre;
 end
 %For scoring.
 MLACC = mean(RECORD.ACC(RECORD.SLen == ML));
 MLNextACC = mean(RECORD.ACC(RECORD.SLen == ML - 1));
 %Wrap these output into a table.
-res = table(ML, MS, MLACC, MLNextACC);
+res = table(ML, MS, MLACC, MLNextACC, meanHit);
