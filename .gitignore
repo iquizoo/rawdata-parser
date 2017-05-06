@@ -21,6 +21,7 @@ R*/
 etc/
 tmp/
 _*/
+.vs/
 
 #For miscellaneous TEXT files.
 *~

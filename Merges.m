@@ -232,7 +232,6 @@ for imrgtask = 1:nTasks
     if ~isempty(curTaskResVars)
         %Generate the tasks status, scores and performance indices matrices.
         taskstat.(curTaskIDName) = zeros(nsubj, 1);
-        %         scores.(curTaskIDName) = nan(nsubj, 1);
         indices.(curTaskIDName) = nan(nsubj, 1);
         taskstatRep.(curTaskIDName) = zeros(nsubj, 1);
         scoresRep.(curTaskIDName) = nan(nsubj, 1);
@@ -269,19 +268,19 @@ for imrgtask = 1:nTasks
                 else
                     taskstat{isubj, curTaskIDName} = (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
                 end
-                %                 scores{isubj, curTaskIDName} = curSubTaskData.score(ind(1));
                 indices{isubj, curTaskIDName} = curSubTaskData.index(ind(1));
                 mrgdata{isubj, curTaskOutVars} = curSubTaskData.res{ind(1), :};
             end
             if curIDnPart > 1
                 if ismember(metavars, 'school')
                     %The logic here is the same as above.
-                    taskstatRep.(curTaskIDName)(isubj) = ~isundefined(taskstatRep(isubj, :).school) * ...
+                    taskstatRep.(curTaskIDName)(isubj) = ...
+                        ~isundefined(taskstatRep(isubj, :).school) * ...
                         (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
                 else
-                    taskstatRep.(curTaskIDName)(isubj) = (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
+                    taskstatRep.(curTaskIDName)(isubj) = ...
+                        (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
                 end
-                scoresRep.(curTaskIDName)(isubj) = curSubTaskData.score(ind(2));
                 indicesRep.(curTaskIDName)(isubj) = curSubTaskData.index(ind(2));
                 mrgdataRep{isubj, curTaskOutVars} = curSubTaskData.res{ind(2), :};
             end
@@ -293,8 +292,6 @@ fclose(logfid);
 % get all the resulting structures.
 indicesStruct.indices = indices;
 indicesStruct.indicesRep = indicesRep;
-% scoresStruct.scores = scores;
-% scoresStruct.scoresRep = scoresRep;
 mrgdataStruct.mrgdata = mrgdata;
 mrgdataStruct.mrgdataRep = mrgdataRep;
 taskstatStruct.taskstat = taskstat;

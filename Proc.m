@@ -209,9 +209,6 @@ for itask = 1:ntasks4process
     %Get the score in an independent field.
     restbl = cat(1, anaresmrg{:});
     allresvars = restbl.Properties.VariableNames;
-    scorevars = allresvars(~cellfun(@isempty, regexp(allresvars, '^score', 'once')));
-    score = rowfun(@(varargin) sum([varargin{:}]), restbl, ...
-        'InputVariables', scorevars, 'OutputFormat', 'uniform');
     %Get the ultimate index.
     ultIndexVar = curTaskSetting.UltimateIndex{:};
     ultIndex    = nan(height(restbl), 1);
@@ -240,7 +237,6 @@ for itask = 1:ntasks4process
     end
     %Wraper.
     curTaskData.res = anaresmrg;
-    curTaskData.score = score;
     curTaskData.index = ultIndex;
     dataExtract.Data{taskRange(itask)} = curTaskData;
     %Record the time used for each task.

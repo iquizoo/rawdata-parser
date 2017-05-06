@@ -90,7 +90,6 @@ if ismember(task, nonRTRecTasks)
             end
         case 'TMT'
             rec.SCat = cellfun(@length, rec.STIM);
-            rec.ACC  = 1 - rec.NWrong ./ rec.NAcc;
     end
 else
     % Unifying modification to some of the variables in RECORD.
@@ -194,10 +193,6 @@ if ~isempty(rec)
         end
         rec = rec(starttrl:2:end, :);
     end
-    % Record the total trials if required.
-    if ismember('CountTotalTrl', outvars)
-        spres.CountTotalTrl = height(rec);
-    end
     % Record the total time used if required.
     if ismember('TotalTime', outvars)
         spres.TotalTime = TotalTime;
@@ -208,11 +203,13 @@ if ~isempty(rec)
     end
     % Set the score.
     if ismember('ACC', rec.Properties.VariableNames)
-        % Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
-        % quadratic curve to transform.
-        rec.Score = 1.5 * rec.ACC .^ 2 + 0.5 * rec.ACC - 1;
+        % Record the total valid trials.
+        spres.CountTotalTrl = sum(rec.ACC ~= -1);
         % Total score and mean score (per minute).
-        if ismember('TotalScore', outvars)
+        if ismember('MeanScore', outvars)
+            % Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
+            % quadratic curve to transform.
+            rec.Score = 1.5 * rec.ACC .^ 2 + 0.5 * rec.ACC - 1;
             TotalScore = sum(rec.Score);
             spres.TotalScore = TotalScore;
             if ~exist('TotalTime', 'var') || TotalTime == 0 % TotalTime is unknown!
@@ -235,22 +232,6 @@ if ~isempty(rec)
         end
     end
     res = cat(2, comres, spres);
-    % Caculate the scores of each task.
-    %     scorefunsuff = tasksettings.ScoringFun{:};
-    %     scorevars   = strsplit(tasksettings.ScoringVars{:});
-    %     score = nan;
-    %     if ~isempty(scorefunsuff)
-    %         scorefunstr = ['sngscore', scorefunsuff];
-    %         scorefun    = str2func(scorefunstr);
-    %         if ~isempty(tasksettings.ScoringPara{:})
-    %             scoreparas  = cellfun(@str2double, strsplit(tasksettings.ScoringPara{:}), 'UniformOutput', false);
-    %             score = rowfun(@(varargin) scorefun(varargin{:}, scoreparas{:}), res, ...
-    %                 'InputVariables', scorevars, 'OutputFormat', 'uniform');
-    %         else
-    %             score = rowfun(@(varargin) scorefun(varargin{:}), res, ...
-    %                 'InputVariables', scorevars, 'OutputFormat', 'uniform');
-    %         end
-    %     end
     % Get all the variable names of current res table.
     curTaskResVarNames = res.Properties.VariableNames;
     if rmanml
@@ -260,7 +241,6 @@ if ~isempty(rec)
         for irtvar = 1:length(MRTvars)
             if res.(MRTvars{irtvar}) < tasksettings.RTmin || res.(MRTvars{irtvar}) > tasksettings.RTmax
                 res{:, :} = nan;
-                %                 score = nan;
                 break
             end
         end
@@ -270,21 +250,20 @@ if ~isempty(rec)
         for iaccvar = 1:length(ACCvars)
             if res.(ACCvars{iaccvar}) < tasksettings.ChanceACC
                 res{:, :} = nan;
-                %                 score = nan;
                 break
             end
         end
     end
-    res(:, ~ismember(curTaskResVarNames, outvars)) = [];
-    missVars = outvars(~ismember(outvars, curTaskResVarNames));
-    for imiss = 1:length(missVars)
-        res.(missVars{imiss}) = nan;
+    if ~isempty(outvars)
+        res(:, ~ismember(curTaskResVarNames, outvars)) = [];
+        missVars = outvars(~ismember(outvars, curTaskResVarNames));
+        for imiss = 1:length(missVars)
+            res.(missVars{imiss}) = nan;
+        end
     end
 else
     res = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
-    %     score = nan;
 end % if ~isempty(RECORD)
-% res.score = score;
 % Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
     res.Properties.VariableNames = strcat(res.Properties.VariableNames, ...

@@ -9,7 +9,7 @@ function wrapper(varargin)
 par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
 parNames   = {            'Continue',                      'TaskNames',      'DisplayInfo', 'DebugEntry',          'RemoveAbnormal',      'SaveAction', 'SaveVersion'};
-parDflts   = {               true   ,                          '',             'text',           [],                   false,                     2 ,        ''       };
+parDflts   = {               true   ,                          '',             'text',           [],                   false,                     2 ,        ''      };
 parValFuns = {@(x) islogical(x) | isnumeric(x), @(x) ischar(x) | iscellstr(x), @ischar,       @isnumeric, @(x) islogical(x) | isnumeric(x),  @isnumeric, @ischar     };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
