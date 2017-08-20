@@ -24,5 +24,5 @@ stats.Capacity = rowfun(@(x0, x1) x0 + x1 - 1, stats, ...
 cap22 = 2 * stats.Capacity(stats.SCat == 1);
 cap40 = 4 * stats.Capacity(stats.SCat == 2);
 cap20 = 2 * stats.Capacity(stats.SCat == 3);
-filt = cap20 - cap22;
-res = table(cap22, cap40, cap20, filt);
+filtcap = cap20 - cap22;
+res = table(cap22, cap40, cap20, filtcap);
