@@ -93,7 +93,9 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
                 end
             otherwise
                 lenTrial = cellfun(@length, curTrialRec);
-                if isempty(lenTrial) || length(nCurAltVars) == 1
+                if isempty(lenTrial) ... % empty entry
+                        || length(nCurAltVars) == 1 ... % only one possiblility
+                        || isempty(curTrialRec{1}{1}) % empty string
                     altChoice     = 1; %Use the first by default.
                 else
                     % Trial length of 1 denotes artificial data, esp. one ',' at the end.

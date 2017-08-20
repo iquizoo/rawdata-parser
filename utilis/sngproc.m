@@ -170,6 +170,21 @@ else
             rec.SCat(1) = 0;
         case 'DCCS'
             rec.SCat(1:12:48) = 0;
+        case {'Filtering', 'Filtering2'}
+            if ~all(ismember(rec.SCat, 1:3))
+                for row = 1:height(rec)
+                    ntar = rec.NTar(row);
+                    ndis = rec.NDis(row);
+                    if ntar == 2 && ndis == 2
+                        SCat = 1;
+                    elseif ntar == 4 && ndis == 0
+                        SCat = 2;
+                    else
+                        SCat = 3;
+                    end
+                    rec.SCat(row) = SCat;
+                end
+            end
     end % switch
     % Set the ACC of abnormal trials (RT) as -1.
     rec.ACC((rec.RT < tasksettings.RTmin & rec.RT ~= 0) | ... % Too short RTs

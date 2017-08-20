@@ -185,12 +185,13 @@ for itask = 1:ntasks4process
         end
         spAnaVar = strsplit(curTaskSetting.PreSpVar{:});
         curAnaVars = horzcat(curAnaVar, spAnaVar);
+        % note: removed empty strings, so the input vars are not invariable
         curAnaVars(cellfun(@isempty, curAnaVars)) = [];
-        %Table is wrapped into a cell. The table type of MATLAB has
-        %something tricky when nesting table type in a table; it treats the
-        %rows of the nested table as integrated when using rowfun or
-        %concatenating.
-        anares(:, ivar) = rowfun(@(x) sngproc(x, varargin{:}, procPara{:}), ...
+        % table is wrapped into a cell: the table type of MATLAB has
+        % something tricky when nesting table type in a table; it treats
+        % the rows of the nested table as integrated when using rowfun or
+        % concatenating.
+        anares(:, ivar) = rowfun(@(varargin) sngproc(varargin{:}, procPara{:}), ...
             curTaskData, 'InputVariables', curAnaVars, 'ExtractCellContents', true, 'OutputFormat', 'cell');
     end
     %% Post-computation jobs.

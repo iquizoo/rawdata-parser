@@ -45,3 +45,6 @@ figplot.m
 get_dat.m
 .Rproj.user
 .Rhistory
+*.Rproj
+*.R
+write*
