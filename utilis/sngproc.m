@@ -171,6 +171,8 @@ else
         case 'DCCS'
             rec.SCat(1:12:48) = 0;
         case {'Filtering', 'Filtering2'}
+            % set the ACC of no response trials as -1.
+            rec.ACC(rec.Resp == -1) = -1;
             if ~all(ismember(rec.SCat, 1:3))
                 for row = 1:height(rec)
                     ntar = rec.NTar(row);
