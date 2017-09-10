@@ -1,7 +1,7 @@
 function resdata = Proc(dataExtract, varargin)
 %PROC Does some basic computation on data.
-%   RESDATA = PROC(DATA) does some basic analysis to the
-%   output of function readsht. Including basic analysis.
+%   RESDATA = PROC(DATA) does some basic analysis to the output of function
+%   readsht. Including basic analysis.
 %
 %   See also PREPROC, SNGPROC.
 
@@ -11,37 +11,39 @@ function resdata = Proc(dataExtract, varargin)
 tic
 % open a log file
 logfid = fopen('proc(AutoGen).log', 'a');
-fprintf(logfid, '%s\n', datestr(now));
+fprintf(logfid, '[%s] Start processing.\n', datestr(now));
 % parse and check input arguments.
 par = inputParser;
-parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal',     'DebugEntry'   };
-parDflts   = {              '',              'text',       'full',                  true                 []        };
-parValFuns = {@(x) ischar(x) | iscellstr(x),  @ischar,    @ischar, @(x) islogical(x) | isnumeric(x),    @isnumeric };
-cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
+addParameter(par, 'DisplayInfo', 'text', @ischar)
+addParameter(par, 'DebugEntry', [], @isnumeric)
+addParameter(par, 'Method', 'full', @ischar)
+addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x))
 parse(par, varargin{:});
-tasks  = par.Results.TaskNames;
+tasks  = cellstr(par.Results.TaskNames);
 prompt = lower(par.Results.DisplayInfo);
+dbentry  = par.Results.DebugEntry;
 method = par.Results.Method;
 rmanml = par.Results.RemoveAbnormal;
-dbentry  = par.Results.DebugEntry;
-if isempty(tasks) && ~isempty(dbentry)
-    fprintf(logfid, 'error, not enough input parameters.\n');
+tasksNotSpecified = all(cellfun(@isempty, tasks));
+if tasksNotSpecified && ~isempty(dbentry)
+    fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
     fclose(logfid);
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
 % load settings and get the task names
 configpath = 'config';
 settings      = readtable(fullfile(configpath, 'settings.txt'));
-taskname      = readtable(fullfile(configpath, 'taskname.txt'));
-tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
-tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
+tasknames     = readtable(fullfile(configpath, 'taskname.txt'));
+tasknameMapO  = containers.Map(tasknames.TaskOrigName, tasknames.TaskName);
+tasknameMapC  = containers.Map(tasknames.TaskNameCN, tasknames.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
 % remove missing rows
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 % display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
 % set the tasks to all if not specified
-if isempty(tasks), tasks = dataExtract.TaskName; end
+if tasksNotSpecified, tasks = dataExtract.TaskName; end
 % when constructing table, only cell string is allowed.
 tasks = cellstr(tasks);
 %For better compatibility, we can specify taskname in Chinese or English.
@@ -67,8 +69,8 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
 dataExtract.Time2Proc = repmat(cellstr('TBE'), height(dataExtract), 1);
 TaskName = dataExtract.TaskName(taskRange);
 TaskNameTrans = TaskName;
-TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)));
-TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)));
+TaskNameTrans(ismember(TaskName, tasknames.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, tasknames.TaskOrigName)));
+TaskNameTrans(ismember(TaskName, tasknames.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, tasknames.TaskNameCN)));
 %Determine the prompt type and initialize for prompt.
 switch prompt
     case 'waitbar'
@@ -147,8 +149,10 @@ for itask = 1:ntasks4process
                 || ~ismember(curAnaVar, curTaskData.Properties.VariableNames) ...
                 || all(cellfun(@isempty, curTaskData.(curAnaVar)))
             fprintf(logfid, ...
-                'No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
-            warning('No correct recorded data is found in task %s. Will ignore this task. Aborting...', curTaskIDName);
+                '[%s] No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', ...
+                datestr(now), curTaskIDName);
+            warning('[%s] No correct recorded data is found in task %s. Will ignore this task. Aborting...', ...
+                datestr(now), curTaskIDName);
             %Increment of ignored number of tasks.
             nignored = nignored + 1;
             except   = true;
@@ -197,7 +201,8 @@ for itask = 1:ntasks4process
     %Remove score field in the res.
     if all(cellfun(@isempty, anaresmrg))
         fprintf(logfid, ...
-            'No valid results found in task %s. Will ignore this task. Aborting...\n', curTaskIDName);
+            '[%s] No valid results found in task %s. Will ignore this task. Aborting...\n', ...
+            datestr(now), curTaskIDName);
         warning('No valid results found in task %s. Will ignore this task. Aborting...', curTaskIDName);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;

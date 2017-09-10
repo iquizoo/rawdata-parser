@@ -6,62 +6,56 @@ function wrapper(varargin)
 
 %   By Zhang, Liang. E-mail:psychelzh@gmail.com
 
+% parse input arguments
 par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
-parNames   = {            'Continue',                      'TaskNames',      'DisplayInfo', 'DebugEntry',          'RemoveAbnormal',      'SaveAction', 'SaveVersion'};
-parDflts   = {               true   ,                          '',             'text',           [],                   false,                     2 ,        ''      };
-parValFuns = {@(x) islogical(x) | isnumeric(x), @(x) ischar(x) | iscellstr(x), @ischar,       @isnumeric, @(x) islogical(x) | isnumeric(x),  @isnumeric, @ischar     };
-cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+addParameter(par, 'DataPath', '', @ischar)
+addParameter(par, 'Continue', true, @(x) islogical(x) | isnumeric(x))
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
+addParameter(par, 'DisplayInfo', 'text', @ischar)
+addParameter(par, 'DebugEntry', [], @isnumeric)
+addParameter(par, 'Method', 'full', @ischar)
+addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x))
+addParameter(par, 'SaveAction', 2, @isnumeric)
+addParameter(par, 'SaveVersion', '', @ischar)
 parse(par, varargin{:});
 s        = par.Results.s;
+datapath = par.Results.DataPath;
 cntn     = par.Results.Continue;
 tasks    = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
+method   = par.Results.Method;
 rmanml   = par.Results.RemoveAbnormal;
 saveIdx  = par.Results.SaveAction;
 saveVer  = par.Results.SaveVersion;
-if isempty(saveVer)
-    saveVer = '-v7';
-end
-
-% set environmental settings.
+% load default settings
 dflts
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
-if ~exist(resdir, 'dir')
-    mkdir(resdir)
+rawdir = dfltSet.DATARAW_DIR;
+% check input values
+if isempty(saveVer), saveVer = '-v7'; end
+if isempty(datapath)
+    rawdataPath = uigetdir(rawdir, 'Select rawdata path');
+    datapath = rawdataPath(length(rawdir) + 2:end);
 end
-% suffix is a major identifier for data set.
-suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
-tasks(cellfun(@isempty, tasks)) = [];
-if ~isempty(tasks)
-    if length(tasks) == 1
-        tasks = tasks{:};
-        suffix = strcat(suffixOrig, tasks);
-    else
-        suffix = strcat(suffixOrig, matlab.lang.makeValidName(char(datetime)));
-    end
-else
-    suffix = suffixOrig;
-end
-fprintf('Will use suffix ''%s'' to store data.\n', suffix{:})
-svRawFileName  = fullfile(resdir, ['RawData', suffix{:}]);
-svProcFileName = fullfile(resdir, ['ProcData', suffix{:}]);
-svResFileName  = fullfile(resdir, ['CCDRes', suffix{:}]);
-ldRawFileName  = fullfile(resdir, ['RawData', suffixOrig{:}]);
-ldProcFileName = fullfile(resdir, ['ProcData', suffixOrig{:}]);
-
-% take the run
+% set environmental settings.
+suffix = matlab.lang.makeValidName(datapath);
+fprintf('Will use suffix ''%s'' to store data.\n', suffix)
+if ~exist(resdir, 'dir'), mkdir(resdir); end
+svRawFileName  = fullfile(resdir, ['RawData', suffix]);
+svProcFileName = fullfile(resdir, ['ProcData', suffix]);
+svResFileName  = fullfile(resdir, ['CCDRes', suffix]);
+ldRawDataPath  = fullfile(rawdir, datapath);
+ldRawFileName  = fullfile(resdir, ['RawData', suffix]);
+ldProcFileName = fullfile(resdir, ['ProcData', suffix]);
+% start by checking the starting point
 if s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')
 else
     warning('off', 'backtrace')
     if s < 2 % s = 1 only
-        [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
-            'Select the file containing the raw data', ...
-            ['DATA_RawData\splitted', suffixOrig{:}, '.xlsx']);
-        rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
-        dataExtract = Preproc(rawdataFullPath, ...
+        dataExtract = Preproc(ldRawDataPath, ...
             'TaskNames', tasks, ...
             'DisplayInfo', prompt, ...
             'DebugEntry', dbentry);
@@ -84,6 +78,7 @@ else
             'TaskNames', tasks, ....
             'DisplayInfo', prompt, ...
             'RemoveAbnormal', rmanml, ...
+            'Method', method, ...
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
             fprintf('Now saving processed data (resdata) as file %s...\n', svProcFileName)
@@ -99,7 +94,7 @@ else
         fprintf('Reading done.\n')
     end
     if s < 4 % s = 1, 2, 3
-        [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata); %#ok<ASGLU>
+        [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
         fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
         save(svResFileName, 'indStruct', 'mrgStruct', 'statStruct', 'metavars', saveVer)
         fprintf('Saving done.\n')

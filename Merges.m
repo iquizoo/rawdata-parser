@@ -19,28 +19,24 @@ function [indicesStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resda
 % start stopwatch.
 tic
 % open a log file
-logfid = fopen('merge(AutoGen).log', 'w');
+logfid = fopen('merge(AutoGen).log', 'a');
+fprintf(logfid, '[%s] Begin merging\n', datestr(now));
 % parse input arguments.
 par = inputParser;
-parNames   = {         'TaskNames'          };
-parDflts   = {              [],             };
-parValFuns = {@(x) ischar(x) | iscellstr(x) };
-cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
 parse(par, varargin{:});
-tasknames = par.Results.TaskNames;
+tasks = cellstr(par.Results.TaskNames);
 % set tasknames to all available tasks if not specified
-tasks = unique(resdata.TaskIDName, 'stable');
-if isempty(tasknames)
-    tasknames = tasks;
-end
-tasknames = cellstr(tasknames);
+tasknames = unique(resdata.TaskIDName, 'stable');
+if all(cellfun(@isempty, tasks)), tasks = tasknames; end
+tasks = cellstr(tasks);
 % check whether data of all the tasks specified exist or not
-taskExistence = ismember(tasknames, tasks);
+taskExistence = ismember(tasks, tasknames);
 if any(~taskExistence)
     fprintf('Oops! Data of these following tasks you specified are not found, will remove these tasks...\n');
-    disp(tasknames(~taskExistence))
+    disp(tasks(~taskExistence))
 end
-tasks4merge = tasknames(taskExistence);
+tasks4merge = tasks(taskExistence);
 nTasks = length(tasks4merge);
 configpath = 'config';
 % metadata transformation and merge
@@ -192,8 +188,10 @@ if nTasks > 0
         cvomd = chkVarsOfMetadata{ivomd};
         switch cvomd
             case {'name', 'school'}
-                % change name/school cell string to string array.
-                mrgdata.(cvomd) = string(mrgdata.(cvomd));
+                if ~verLessThan('matlab', '9.1')
+                    % change name/school cell string to string array.
+                    mrgdata.(cvomd) = string(mrgdata.(cvomd));
+                end
             case 'grade'
                 % it is ordinal for grades.
                 mrgdata.(cvomd) = categorical(mrgdata.(cvomd), 'ordinal', true);
@@ -256,8 +254,8 @@ for imrgtask = 1:nTasks
             createTimeVar = intersect(curSubTaskData.Properties.VariableNames, {'createDate', 'createTime'});
             [~, ind] = sort(curSubTaskData.(createTimeVar{:}));
             if curIDnPart > 2
-                fprintf(logfid, strcat('More than two (%d) test phases found for subject ID: %d, in task: %s. ', ...
-                    'Will try to remain the earlist two only.\n'), curIDnPart, curID, curTaskIDName);
+                fprintf(logfid, strcat('[%s] More than two (%d) test phases found for subject ID: %d, in task: %s. ', ...
+                    'Will try to remain the earlist two only.\n'), datestr(now), curIDnPart, curID, curTaskIDName);
             end
             if curIDnPart > 0
                 if ismember(metavars, 'school')
