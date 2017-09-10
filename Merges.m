@@ -42,13 +42,13 @@ configpath = 'config';
 % metadata transformation and merge
 if nTasks > 0
     %Set the school information.
-    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'));
+    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'), 'Encoding', 'UTF-8');
     schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
     %Set the grade information.
-    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'));
+    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'), 'Encoding', 'UTF-8');
     grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
     %Set the class information.
-    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'));
+    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'), 'Encoding', 'UTF-8');
     clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic
