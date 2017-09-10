@@ -41,10 +41,9 @@ _*/
 *.lnk
 
 #Special files.
-figplot.m
-get_dat.m
 .Rproj.user
 .Rhistory
 *.Rproj
 *.R
 write*
+xls2config.m

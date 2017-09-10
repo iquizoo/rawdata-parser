@@ -7,9 +7,12 @@ function resdata = Proc(dataExtract, varargin)
 
 %Zhang, Liang. 04/14/2016, E-mail:psychelzh@gmail.com.
 
-%Start stopwatch.
+% start stopwatch.
 tic
-%% Parse input arguments.
+% open a log file
+logfid = fopen('proc(AutoGen).log', 'a');
+fprintf(logfid, '%s\n', datestr(now));
+% parse and check input arguments.
 par = inputParser;
 parNames   = {         'TaskNames',        'DisplayInfo', 'Method',           'RemoveAbnormal',     'DebugEntry'   };
 parDflts   = {              '',              'text',       'full',                  true                 []        };
@@ -22,30 +25,24 @@ method = par.Results.Method;
 rmanml = par.Results.RemoveAbnormal;
 dbentry  = par.Results.DebugEntry;
 if isempty(tasks) && ~isempty(dbentry)
+    fprintf(logfid, 'error, not enough input parameters.\n');
+    fclose(logfid);
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
-%% Initialization jobs.
-%Folder contains all the analysis functions.
-anafunpath = 'utilis';
-addpath(anafunpath);
-%Log file.
-logfid = fopen('readlog(AutoGen).log', 'w');
-%Load basic parameters.
-fprintf('Please wait, now reading tasks settings...\n');
-settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
+% load settings and get the task names
+configpath = 'config';
+settings      = readtable(fullfile(configpath, 'settings.txt'));
+taskname      = readtable(fullfile(configpath, 'taskname.txt'));
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
-fprintf('Reading done!\n')
-%Remove rows without any data.
+% remove missing rows
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
-%Display notation message.
+% display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
-%When constructing table, only cell string is allowed.
-if isempty(tasks)
-    tasks = dataExtract.TaskName;
-end
+% set the tasks to all if not specified
+if isempty(tasks), tasks = dataExtract.TaskName; end
+% when constructing table, only cell string is allowed.
 tasks = cellstr(tasks);
 %For better compatibility, we can specify taskname in Chinese or English.
 tasks = dataExtract.TaskName(ismember(dataExtract.TaskName, tasks) | ...
@@ -72,7 +69,6 @@ TaskName = dataExtract.TaskName(taskRange);
 TaskNameTrans = TaskName;
 TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)) = values(tasknameMapO, TaskNameTrans(ismember(TaskName, taskname.TaskOrigName)));
 TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)) = values(tasknameMapC, TaskNameTrans(ismember(TaskName, taskname.TaskNameCN)));
-%% Task-wise computation.
 %Determine the prompt type and initialize for prompt.
 switch prompt
     case 'waitbar'
@@ -84,14 +80,16 @@ switch prompt
         except  = false;
         dispinfo = '';
 end
-%Useful for timing information.
+% timing information
 nprocessed = 0;
 nignored = 0;
 elapsedTime = toc;
+% add helper functions path
+anafunpath = 'utilis';
+addpath(anafunpath);
 %Begin computing.
 for itask = 1:ntasks4process
     initialVarsTask = who;
-    %% In loop initialzation tasks.
     curTaskData = dataExtract.Data{taskRange(itask)};
     if ~isempty(dbentry) % Read the debug entry only.
         curTaskData = curTaskData(dbentry, :);
@@ -105,7 +103,7 @@ for itask = 1:ntasks4process
     anaVars = strsplit(curTaskSetting.AnalysisVars{:});
     %Merge conditions. Useful when merging data.
     mrgCond = strsplit(curTaskSetting.MergeCond{:});
-    %% Update prompt information.
+    % Update prompt information.
     %Get the proportion of completion and the estimated time of arrival.
     completePercent = nprocessed / (ntasks4process - nignored);
     if nprocessed == 0
@@ -136,7 +134,6 @@ for itask = 1:ntasks4process
     end
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
-    %% Analysis for every subject.
     %Initialization tasks. Preallocation.
     nvar = length(anaVars);
     nsubj = height(curTaskData);
@@ -166,7 +163,7 @@ for itask = 1:ntasks4process
                     'Flanker', ...%Conflict
                     }
                 %Get curTaskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable('taskSettings.xlsx', 'Sheet', curTaskIDName);
+                curTaskEncode  = readtable(fullfile(configpath, [curTaskIDName, '.txt']));
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
             case {'SemanticMemory'}
@@ -194,7 +191,7 @@ for itask = 1:ntasks4process
         anares(:, ivar) = rowfun(@(varargin) sngproc(varargin{:}, procPara{:}), ...
             curTaskData, 'InputVariables', curAnaVars, 'ExtractCellContents', true, 'OutputFormat', 'cell');
     end
-    %% Post-computation jobs.
+    % Post-computation jobs.
     allsubids = (1:nsubj)'; %Column vector is used in order to form a table.
     anaresmrg = arrayfun(@(isubj) {horzcat(anares{isubj, :})}, allsubids);
     %Remove score field in the res.

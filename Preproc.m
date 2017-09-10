@@ -10,9 +10,12 @@ function dataExtract = Preproc(fname, varargin)
 %Modified to use in another problem.
 %Modification completed at 2016/04/13.
 
-%Start stopwatch.
+% start stopwatch.
 tic
-% Parse input arguments.
+% open a log file
+logfid = fopen('preproc(AutoGen).log', 'a');
+fprintf(logfid, '%s\n', datestr(now));
+% parse and check input arguments
 par = inputParser;
 parNames   = {         'TaskNames',       'DisplayInfo', 'DebugEntry'};
 parDflts   = {              '',              'text',         []      };
@@ -23,32 +26,30 @@ tasks = par.Results.TaskNames;
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
 if isempty(tasks) && ~isempty(dbentry)
+    fprintf(logfid, 'error, not enough input parameters.\n');
+    fclose(logfid);
     error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
 end
-%Get sheets' names.
 if ~exist(fname, 'file')
+    fprintf(logfid, 'error, specified data file %s not found.\n', fname);
+    fclose(logfid);
     error('UDF:PREPROC:DATAFILEWRONG', 'File %s not found, please check!', fname)
 end
+% get sheets' names, which specify the task names
 [~, sheets] = xlsfinfo(fname);
-%Check whether shtname is empty, if so, change it to denote all the sheets.
+% set the tasks to all if not specified
 if isempty(tasks)
-    sheets(~cellfun(@isempty, regexp(sheets, '^Sheet', 'once'))) = [];
+    sheets(~cellfun(@isempty, regexp(sheets, '^Sheet', 'once'))) = []; % remove 'Sheet#'
     tasks = sheets';
 end
-%Folder contains all the analysis and plots functions.
-anafunpath = 'utilis';
-addpath(anafunpath);
-%Log file.
-logfid = fopen('readlog(AutoGen).log', 'w');
-%Load parameters.
-fprintf('Please wait, now reading tasks settings...\n');
-settings      = readtable('taskSettings.xlsx', 'Sheet', 'settings');
-para          = readtable('taskSettings.xlsx', 'Sheet', 'para');
-taskname      = readtable('taskSettings.xlsx', 'Sheet', 'taskname');
+% load settings, parameters and task names.
+configpath = 'config';
+settings      = readtable(fullfile(configpath, 'settings.txt'));
+para          = readtable(fullfile(configpath, 'para.txt'));
+taskname      = readtable(fullfile(configpath, 'taskname.txt'));
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
-fprintf('Reading done!\n')
 %When constructing table, only cell string is allowed.
 tasks = cellstr(tasks);
 %Initializing works.
@@ -96,6 +97,9 @@ end
 nprocessed = 0;
 nignored = 0;
 elapsedTime = toc;
+% add helper functions folder
+anafunpath = 'utilis';
+addpath(anafunpath);
 %Sheet-wise processing.
 for itask = 1:ntasks4process
     initialVarsSht = who;

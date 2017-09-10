@@ -16,9 +16,11 @@ function [indicesStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resda
 %
 %   See also PREPROC, PROC.
 
-%Start stopwatch.
+% start stopwatch.
 tic
-% Parse input arguments.
+% open a log file
+logfid = fopen('merge(AutoGen).log', 'w');
+% parse input arguments.
 par = inputParser;
 parNames   = {         'TaskNames'          };
 parDflts   = {              [],             };
@@ -26,14 +28,13 @@ parValFuns = {@(x) ischar(x) | iscellstr(x) };
 cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
 parse(par, varargin{:});
 tasknames = par.Results.TaskNames;
-%Log file.
-logfid = fopen('mergeLog(AutoGen).log', 'w');
-% check tasks existence.
+% set tasknames to all available tasks if not specified
 tasks = unique(resdata.TaskIDName, 'stable');
 if isempty(tasknames)
     tasknames = tasks;
 end
 tasknames = cellstr(tasknames);
+% check whether data of all the tasks specified exist or not
 taskExistence = ismember(tasknames, tasks);
 if any(~taskExistence)
     fprintf('Oops! Data of these following tasks you specified are not found, will remove these tasks...\n');
@@ -41,18 +42,18 @@ if any(~taskExistence)
 end
 tasks4merge = tasknames(taskExistence);
 nTasks = length(tasks4merge);
+configpath = 'config';
+% metadata transformation and merge
 if nTasks > 0
-    fprintf('Please wait, now reading tasks settings...\n');
     %Set the school information.
-    schInfo = readtable('taskSettings.xlsx', 'Sheet', 'schoolinfo');
+    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'));
     schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
     %Set the grade information.
-    grdInfo = readtable('taskSettings.xlsx', 'Sheet', 'gradeinfo');
+    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'));
     grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
     %Set the class information.
-    clsInfo = readtable('taskSettings.xlsx', 'Sheet', 'clsinfo');
+    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'));
     clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
-    fprintf('Reading done!\n')
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic
     %transformation of meta data, e.g. school and grade.
@@ -213,10 +214,11 @@ indicesRep  = mrgdata;
 scoresRep   = mrgdata;
 taskstatRep = mrgdata;
 mrgdataRep  = mrgdata;
-%Merge data task by task.
+% notation message
 fprintf('\nNow trying to merge all the data task by task. Please wait...')
 dispInfo = '';
 subDispInfo = '';
+% data transformation and merge
 for imrgtask = 1:nTasks
     initialVars = who;
     curTaskIDName = tasks4merge{imrgtask};

@@ -31,7 +31,6 @@ resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
 if ~exist(resdir, 'dir')
     mkdir(resdir)
 end
-warning('off', 'backtrace')
 % suffix is a major identifier for data set.
 suffixOrig = inputdlg('Set the suffix of resdata:', 'Suffix settings', 1, {''});
 tasks(cellfun(@isempty, tasks)) = [];
@@ -52,54 +51,58 @@ svResFileName  = fullfile(resdir, ['CCDRes', suffix{:}]);
 ldRawFileName  = fullfile(resdir, ['RawData', suffixOrig{:}]);
 ldProcFileName = fullfile(resdir, ['ProcData', suffixOrig{:}]);
 
-if s < 2 % s = 1 only
-    [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
-        'Select the file containing the raw data', ...
-        ['DATA_RawData\splitted', suffixOrig{:}, '.xlsx']);
-    rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
-    dataExtract = Preproc(rawdataFullPath, ...
-        'TaskNames', tasks, ...
-        'DisplayInfo', prompt, ...
-        'DebugEntry', dbentry);
-    if saveIdx > 2 || ~cntn
-        fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
-        save(svRawFileName, 'dataExtract', saveVer)
-        fprintf('Saving done.\n')
-    end
-    if ~cntn
-        return
-    end
-elseif s < 3 % s = 2 only
-    fprintf('Now reading raw data (dataExtract) from file %s...\n', ldRawFileName)
-    load(ldRawFileName, 'dataExtract')
-    fprintf('Reading done.\n')
-end
-if s < 3 % s = 1, 2
-    if s == 1 && ~isempty(dbentry), dbentry = 1; end
-    resdata = Proc(dataExtract, ...
-        'TaskNames', tasks, ....
-        'DisplayInfo', prompt, ...
-        'RemoveAbnormal', rmanml, ...
-        'DebugEntry', dbentry);
-    if saveIdx > 1 || ~cntn
-        fprintf('Now saving processed data (resdata) as file %s...\n', svProcFileName)
-        save(svProcFileName, 'resdata', saveVer)
-        fprintf('Saving done.\n')
-    end
-    if ~cntn
-        return
-    end
-elseif s < 4 % s = 3 only
-    fprintf('Now reading processed data (resdata) from file %s...\n', ldProcFileName)
-    load(ldProcFileName, 'resdata')
-    fprintf('Reading done.\n')
-end
-if s < 4 % s = 1, 2, 3
-    [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata); %#ok<ASGLU>
-    fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
-    save(svResFileName, 'indStruct', 'mrgStruct', 'statStruct', 'metavars', saveVer)
-    fprintf('Saving done.\n')
-else % s >= 4
+% take the run
+if s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')
+else
+    warning('off', 'backtrace')
+    if s < 2 % s = 1 only
+        [rawdataFileName, rawdataFilePath] = uigetfile('*.xlsx', ...
+            'Select the file containing the raw data', ...
+            ['DATA_RawData\splitted', suffixOrig{:}, '.xlsx']);
+        rawdataFullPath = fullfile(rawdataFilePath, rawdataFileName);
+        dataExtract = Preproc(rawdataFullPath, ...
+            'TaskNames', tasks, ...
+            'DisplayInfo', prompt, ...
+            'DebugEntry', dbentry);
+        if saveIdx > 2 || ~cntn
+            fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
+            save(svRawFileName, 'dataExtract', saveVer)
+            fprintf('Saving done.\n')
+        end
+        if ~cntn
+            return
+        end
+    elseif s < 3 % s = 2 only
+        fprintf('Now reading raw data (dataExtract) from file %s...\n', ldRawFileName)
+        load(ldRawFileName, 'dataExtract')
+        fprintf('Reading done.\n')
+    end
+    if s < 3 % s = 1, 2
+        if s == 1 && ~isempty(dbentry), dbentry = 1; end
+        resdata = Proc(dataExtract, ...
+            'TaskNames', tasks, ....
+            'DisplayInfo', prompt, ...
+            'RemoveAbnormal', rmanml, ...
+            'DebugEntry', dbentry);
+        if saveIdx > 1 || ~cntn
+            fprintf('Now saving processed data (resdata) as file %s...\n', svProcFileName)
+            save(svProcFileName, 'resdata', saveVer)
+            fprintf('Saving done.\n')
+        end
+        if ~cntn
+            return
+        end
+    elseif s < 4 % s = 3 only
+        fprintf('Now reading processed data (resdata) from file %s...\n', ldProcFileName)
+        load(ldProcFileName, 'resdata')
+        fprintf('Reading done.\n')
+    end
+    if s < 4 % s = 1, 2, 3
+        [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata); %#ok<ASGLU>
+        fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
+        save(svResFileName, 'indStruct', 'mrgStruct', 'statStruct', 'metavars', saveVer)
+        fprintf('Saving done.\n')
+    end
 end
 warning('on', 'backtrace')
