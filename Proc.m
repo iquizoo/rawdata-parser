@@ -33,7 +33,7 @@ if tasksNotSpecified && ~isempty(dbentry)
 end
 % load settings and get the task names
 configpath = 'config';
-readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
 tasknames     = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
 tasknameMapO  = containers.Map(tasknames.TaskOrigName, tasknames.TaskName);

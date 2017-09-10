@@ -39,7 +39,7 @@ end
 tasks4merge = tasks(taskExistence);
 nTasks = length(tasks4merge);
 configpath = 'config';
-readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 % metadata transformation and merge
 if nTasks > 0
     %Set the school information.

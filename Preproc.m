@@ -45,7 +45,7 @@ tasknames = strrep(datafilenames, '.txt', '');
 if tasksNotSpecified, tasks = tasknames'; end
 % load settings, parameters and task names.
 configpath = 'config';
-readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
 para          = readtable(fullfile(configpath, 'para.txt'), readparas{:});
 taskname      = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
