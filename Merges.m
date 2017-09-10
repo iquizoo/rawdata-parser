@@ -39,16 +39,17 @@ end
 tasks4merge = tasks(taskExistence);
 nTasks = length(tasks4merge);
 configpath = 'config';
+readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
 % metadata transformation and merge
 if nTasks > 0
     %Set the school information.
-    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'), 'Encoding', 'UTF-8');
+    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'), readparas{:});
     schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
     %Set the grade information.
-    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'), 'Encoding', 'UTF-8');
+    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'), readparas{:});
     grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
     %Set the class information.
-    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'), 'Encoding', 'UTF-8');
+    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'), readparas{:});
     clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic

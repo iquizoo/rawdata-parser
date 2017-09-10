@@ -33,8 +33,9 @@ if tasksNotSpecified && ~isempty(dbentry)
 end
 % load settings and get the task names
 configpath = 'config';
-settings      = readtable(fullfile(configpath, 'settings.txt'), 'Encoding', 'UTF-8');
-tasknames     = readtable(fullfile(configpath, 'taskname.txt'), 'Encoding', 'UTF-8');
+readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
+tasknames     = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
 tasknameMapO  = containers.Map(tasknames.TaskOrigName, tasknames.TaskName);
 tasknameMapC  = containers.Map(tasknames.TaskNameCN, tasknames.TaskName);
 taskIDNameMap = containers.Map(settings.TaskName, settings.TaskIDName);
@@ -167,7 +168,7 @@ for itask = 1:ntasks4process
                     'Flanker', ...%Conflict
                     }
                 %Get curTaskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable(fullfile(configpath, [curTaskIDName, '.txt']), 'Encoding', 'UTF-8');
+                curTaskEncode  = readtable(fullfile(configpath, [curTaskIDName, '.txt']), readparas{:});
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
             case {'SemanticMemory'}

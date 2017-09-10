@@ -45,9 +45,10 @@ tasknames = strrep(datafilenames, '.txt', '');
 if tasksNotSpecified, tasks = tasknames'; end
 % load settings, parameters and task names.
 configpath = 'config';
-settings      = readtable(fullfile(configpath, 'settings.txt'), 'Encoding', 'UTF-8');
-para          = readtable(fullfile(configpath, 'para.txt'), 'Encoding', 'UTF-8');
-taskname      = readtable(fullfile(configpath, 'taskname.txt'), 'Encoding', 'UTF-8');
+readparas = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
+para          = readtable(fullfile(configpath, 'para.txt'), readparas{:});
+taskname      = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
 tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
 tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
 taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
@@ -148,7 +149,7 @@ for itask = 1:ntasks4process
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
     %Read in all the information from the specified file.
-    curTaskData = readtable(fullfile(path, [curTaskName, '.txt']), 'Encoding', 'UTF-8');
+    curTaskData = readtable(fullfile(path, [curTaskName, '.txt']), readparas{:});
     %Check if the data fields are in the correct type.
     % vars checking settings.
     varsOfChk = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
