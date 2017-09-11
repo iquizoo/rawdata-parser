@@ -9,18 +9,18 @@ function wrapper(varargin)
 % parse input arguments
 par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
-addParameter(par, 'DataPath', '', @ischar)
+addParameter(par, 'DataSuffix', '', @ischar) % required when s > 1
 addParameter(par, 'Continue', true, @(x) islogical(x) | isnumeric(x))
 addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
 addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x))
-addParameter(par, 'SaveAction', 2, @isnumeric)
-addParameter(par, 'SaveVersion', '', @ischar)
+addParameter(par, 'SaveAction', 3, @isnumeric)
+addParameter(par, 'SaveVersion', '-v7', @ischar)
 parse(par, varargin{:});
 s        = par.Results.s;
-datapath = par.Results.DataPath;
+rawsuff  = par.Results.DataSuffix;
 cntn     = par.Results.Continue;
 tasks    = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
@@ -34,19 +34,22 @@ dflts
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
 rawdir = dfltSet.DATARAW_DIR;
 % check input values
-if isempty(saveVer), saveVer = '-v7'; end
-if isempty(datapath)
-    rawdataPath = uigetdir(rawdir, 'Select rawdata path');
-    datapath = rawdataPath(length(rawdir) + 2:end);
+if isempty(rawsuff)
+    if s < 2
+        rawdataPath = uigetdir(rawdir, 'Select rawdata path');
+        rawsuff = rawdataPath(length(rawdir) + 2:end);
+    else
+        error('UDF:NOT_ENOUGH_INPUT', 'Please specify `DataSuffix` when start from step 2!')
+    end
 end
 % set environmental settings.
-suffix = matlab.lang.makeValidName(datapath);
+suffix = matlab.lang.makeValidName(rawsuff);
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
 if ~exist(resdir, 'dir'), mkdir(resdir); end
 svRawFileName  = fullfile(resdir, ['RawData', suffix]);
 svProcFileName = fullfile(resdir, ['ProcData', suffix]);
 svResFileName  = fullfile(resdir, ['CCDRes', suffix]);
-ldRawDataPath  = fullfile(rawdir, datapath);
+ldRawDataPath  = fullfile(rawdir, rawsuff);
 ldRawFileName  = fullfile(resdir, ['RawData', suffix]);
 ldProcFileName = fullfile(resdir, ['ProcData', suffix]);
 % start by checking the starting point

@@ -31,12 +31,12 @@ tasknames = unique(resdata.TaskIDName, 'stable');
 if all(cellfun(@isempty, tasks)), tasks = tasknames; end
 tasks = cellstr(tasks);
 % check whether data of all the tasks specified exist or not
-taskExistence = ismember(tasks, tasknames);
-if any(~taskExistence)
+dataExisted = ismember(tasks, tasknames);
+if any(~dataExisted)
     fprintf('Oops! Data of these following tasks you specified are not found, will remove these tasks...\n');
-    disp(tasks(~taskExistence))
+    disp(tasks(~dataExisted))
 end
-tasks4merge = tasks(taskExistence);
+tasks4merge = tasks(dataExisted);
 nTasks = length(tasks4merge);
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
@@ -225,13 +225,15 @@ for imrgtask = 1:nTasks
     fprintf(repmat('\b', 1, length(dispInfo)));
     dispInfo = sprintf('\nNow merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
     fprintf(dispInfo);
-    %Get the data of current task.
+    % extract the data of current task.
     curTaskData = resdata.Data(ismember(resdata.TaskIDName, curTaskIDName), :);
     curTaskData = cat(1, curTaskData{:});
+    % remove subjects without any results
+    curTaskData(cellfun(@isempty, curTaskData.res), :) = [];
     curTaskData.res = cat(1, curTaskData.res{:});
     curTaskResVars = curTaskData.res.Properties.VariableNames;
     if ~isempty(curTaskResVars)
-        %Generate the tasks status, scores and performance indices matrices.
+        % preallocate
         taskstat.(curTaskIDName) = zeros(nsubj, 1);
         indices.(curTaskIDName) = nan(nsubj, 1);
         taskstatRep.(curTaskIDName) = zeros(nsubj, 1);

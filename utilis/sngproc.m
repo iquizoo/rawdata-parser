@@ -1,12 +1,17 @@
 function res = sngproc(rec, varargin)
 %SNGPROC forms a wrapper function to compute those single task statistics.
-%     res = SNGPROC(rec, tasksettings) does basic computation job for
-%     most of the tasks when no SCat(have a look at the data to see what SCat
-%     is) modification is needed. Locally, RT cutoffs, NaN cleaning and other
-%     miscellaneous tasks to prepare data for processing.
+%   res = SNGPROC(rec, tasksettings) does basic computation job for most of
+%   the tasks when no SCat(have a look at the data to see what SCat is)
+%   modification is needed. Locally, RT cutoffs, NaN cleaning and other
+%   miscellaneous tasks to prepare data for processing.
 %
-%     res = SNGPROC(rec, tasksettings, Name, Value) provides parameters input
-%     by Name, Value pairs. Possible pairs are as follows:
+%   res = SNGPROC(rec, tasksettings, Name, Value) provides parameters input
+%   by Name, Value pairs.
+%
+%   res = SNGPROC(rec, tasksettings, totaltime, Name, Value) takes total
+%   time as input to do some special calculation.
+%
+%   Possible pairs are as follows:
 %             'Condition' - specifies the condition of the data, especially
 %                           for divided attention tasks, which have a left
 %                           and a right conditions.
@@ -28,10 +33,11 @@ function res = sngproc(rec, varargin)
 par = inputParser;
 par.KeepUnmatched = true;
 addOptional(par, 'TotalTime', NaN, @isnumeric);
-parNames   = {'TaskSetting', 'Condition',  'StimulusMap', 'Method',         'RemoveAbnormal'        };
-parDflts   = {  table,          [],            [],        'full',                true               };
-parValFuns = {   @istable,     @ischar,   @isobject,     @ischar, @(x) islogical(x) | isnumeric(x)  };
-cellfun(@(x, y, z) addParameter(par, x, y, z), parNames, parDflts, parValFuns);
+addParameter(par, 'TaskSetting', table, @istable);
+addParameter(par, 'Condition', [], @ischar);
+addParameter(par, 'StimulusMap', [], @isobject);
+addParameter(par, 'Method', 'full', @ischar);
+addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x));
 parse(par, varargin{:});
 TotalTime    = par.Results.TotalTime;
 tasksettings = par.Results.TaskSetting;

@@ -1,20 +1,23 @@
-function dataExtract = Preproc(path, varargin)
-%PREPROC preprocesses raw data of CCDPro.
-%   Raw data are originally stored in an Excel file. Input argument named
-%   SHTNAME is short of sheet name.
+function dataExtract = Preproc(datapath, varargin)
+%PREPROC calls sngproc to do some basic analysis.
 %
 %   See also SNGPREPROC.
 
-%Here is a method of question category based way to read in data.
-%By Zhang, Liang. 2015/11/27.
-%Modified to use in another problem.
-%Modification completed at 2016/04/13.
+% By Zhang, Liang. 2015/11/27.
+%
+% Modified to use in another problem.
+% Modification completed at 2016/04/13.
+%
+% 2017/09/10:
+%   Modified logic to store data in .txt files.
 
 % start stopwatch.
 tic
+
 % open a log file
 logfid = fopen('preproc(AutoGen).log', 'a');
-fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), path);
+fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), datapath);
+
 % parse and check input arguments
 par = inputParser;
 addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
@@ -24,50 +27,59 @@ parse(par, varargin{:});
 tasks    = cellstr(par.Results.TaskNames);
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
-tasksNotSpecified = all(cellfun(@isempty, tasks));
-if tasksNotSpecified && ~isempty(dbentry)
-    fprintf(logfid, '[%s] Error: not enough input parameters.\n', datestr(now));
-    fclose(logfid);
-    error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
-end
-if ~exist(path, 'dir')
+% throw an error when the specified path is not found
+if ~exist(datapath, 'dir')
     fprintf(logfid, '[%s] Error: specified data path %s does not exist.\n', ...
-        datestr(now),path);
+        datestr(now),datapath);
     fclose(logfid);
-    error('UDF:PREPROC:DATAFILEWRONG', 'Data path %s not found, please check!', path)
+    error('UDF:PREPROC:DATAFILEWRONG', 'Data path %s not found, please check!', datapath)
 end
-% get all the data file names, which store task names, too
-datafiles = dir(path);
-datafiles([datafiles.isdir]) = [];
-datafilenames = {datafiles.name}';
-tasknames = strrep(datafilenames, '.txt', '');
-% set the tasks to all if not specified
-if tasksNotSpecified, tasks = tasknames'; end
+% remove empty task names from input parameter `tasks`
+emptyTaskNameIdx = cellfun(@isempty, tasks);
+tasks(emptyTaskNameIdx) = [];
+% when debugging, only one task should be specified
+if (all(emptyTaskNameIdx) || length(tasks) > 1) && ~isempty(dbentry)
+    fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
+    fclose(logfid);
+    error('UDF:PREPROC:DEBUGWRONGPAR', '(Only one) task name must be set when using debug mode.');
+end
+
 % load settings, parameters and task names.
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
 para          = readtable(fullfile(configpath, 'para.txt'), readparas{:});
-taskname      = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
-tasknameMapO  = containers.Map(taskname.TaskOrigName, taskname.TaskName);
-tasknameMapC  = containers.Map(taskname.TaskNameCN, taskname.TaskName);
-taskIDNameMap = containers.Map(taskname.TaskName, taskname.TaskIDName);
-%When constructing table, only cell string is allowed.
-tasks = cellstr(tasks);
-%Initializing works.
-%Check the status of existence for the to-be-processed tasks (in shtname).
-% 1. Checking the existence in the original data (in the Excel file).
-dataExisted = ismember(tasks, tasknames) & ...
-    (ismember(tasks, taskname.TaskOrigName) | ismember(tasks, taskname.TaskNameCN));
+tasknames     = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
+% setting name (TaskName) -> name used for settings
+% original name (TaskOrigName) -> name used in raw data store
+% chinese name (TaskCNName) -> name used in iquizoo product (in CN)
+% ID name (taskIDName) -> name used for identifying the same task (in EN)
+tasknameMapO  = containers.Map(tasknames.TaskOrigName, tasknames.TaskName);
+tasknameMapC  = containers.Map(tasknames.TaskCNName, tasknames.TaskName);
+taskIDNameMap = containers.Map(tasknames.TaskName, tasknames.TaskIDName);
+
+% get all the task names to be preprocessed
+% get all the data file informations, which are named after task names
+datafiles = dir(datapath);
+datafiles([datafiles.isdir]) = []; % folder exclusion
+% get all the task names
+datafilenames = {datafiles.name}';
+datatasks = strrep(datafilenames, '.txt', '');
+% set to preprocess all the tasks if not specified
+if all(emptyTaskNameIdx), tasks = datatasks'; end
+% check the status of existence for the to-be-processed tasks
+%  1. Checking the existence in the original data.
+dataExisted = ismember(tasks, datatasks) & ...
+    (ismember(tasks, tasknames.TaskOrigName) | ismember(tasks, tasknames.TaskCNName));
 if ~all(dataExisted)
     fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n');
     disp(tasks(~dataExisted))
     tasks(~dataExisted) = []; %Remove not found tasks.
 end
-% 2. Checking the existence in the settings.
+%  2. Checking the existence in the settings.
 taskNameTrans = tasks;
-taskNameTrans(ismember(tasks, taskname.TaskOrigName)) = values(tasknameMapO, taskNameTrans(ismember(tasks, taskname.TaskOrigName)));
-taskNameTrans(ismember(tasks, taskname.TaskNameCN)) = values(tasknameMapC, taskNameTrans(ismember(tasks, taskname.TaskNameCN)));
+taskNameTrans(ismember(tasks, tasknames.TaskOrigName)) = values(tasknameMapO, taskNameTrans(ismember(tasks, tasknames.TaskOrigName)));
+taskNameTrans(ismember(tasks, tasknames.TaskCNName)) = values(tasknameMapC, taskNameTrans(ismember(tasks, tasknames.TaskCNName)));
 setExistence = ismember(taskNameTrans, settings.TaskName);
 if ~all(setExistence)
     fprintf('Oops! Settings of these tasks you specified are not found, will remove these tasks...\n');
@@ -75,7 +87,8 @@ if ~all(setExistence)
     tasks(~setExistence) = []; %Remove not found tasks.
     taskNameTrans(~setExistence) = [];
 end
-%Preallocating the results.
+
+% preallocation
 ntasks4process = length(tasks);
 TaskName       = reshape(tasks, ntasks4process, 1);
 TaskIDName     = cell(ntasks4process, 1);
@@ -149,7 +162,7 @@ for itask = 1:ntasks4process
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
     %Read in all the information from the specified file.
-    curTaskData = readtable(fullfile(path, [curTaskName, '.txt']), readparas{:});
+    curTaskData = readtable(fullfile(datapath, [curTaskName, '.txt']), readparas{:});
     %Check if the data fields are in the correct type.
     % vars checking settings.
     varsOfChk = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
