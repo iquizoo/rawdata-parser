@@ -23,7 +23,7 @@ logfid = fopen('merge(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Begin merging\n', datestr(now));
 % parse input arguments.
 par = inputParser;
-addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x))
 parse(par, varargin{:});
 tasks = cellstr(par.Results.TaskNames);
 % set tasknames to all available tasks if not specified

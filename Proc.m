@@ -16,7 +16,7 @@ fprintf(logfid, '[%s] Start processing.\n', datestr(now));
 
 % parse and check input arguments.
 par = inputParser;
-addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x))
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)

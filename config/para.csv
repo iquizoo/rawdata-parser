@@ -5,7 +5,7 @@ ID	Note	TemplateToken	Delimiters	VariablesNames	VariablesChar	ConditionInformati
 4	"面包大师"	"RTB"	",:"	"STime RT ACC\RT ACC Resp"	"0"	""	""
 5	"速算师"	"MC"	",:"	"RUN S1 S2 CResp NL NR Resp ACC RT"	"0"	""	""
 6	"数字大小比较"	"DC"	",:"	"S1 S2 Resp ACC RT"	"0"	""	""
-7	"数感"	"CC"	",:"	"S1 S2 CResp Resp ACC RT"	"0"	""	""
+7	"数感"	"CC"	";,"	"S1 S2 Resp ACC RT"	"0"	""	""
 8	"雷达追踪"	"MOT"	",:"	"SLen DLen NAcc ACC"	"0"	""	""
 9	"捉虫"	"CPT1"	",:"	"SCat RT ACC Resp\SCat CResp ACC RT Resp"	"0"	""	""
 10	"捉虫(高级版)"	"CPT2"	",:"	"STIM RT ACC Resp\STIM RT ACC Resp SCat\STIM RT ACC"	"1"	""	""

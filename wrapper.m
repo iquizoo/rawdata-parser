@@ -11,7 +11,7 @@ par = inputParser;
 addOptional(par, 's', 1, @isnumeric);
 addParameter(par, 'DataSuffix', '', @ischar) % required when s > 1
 addParameter(par, 'Continue', true, @(x) islogical(x) | isnumeric(x))
-addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x))
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) | isnumeric(x))
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
@@ -22,7 +22,7 @@ parse(par, varargin{:});
 s        = par.Results.s;
 rawsuff  = par.Results.DataSuffix;
 cntn     = par.Results.Continue;
-tasks    = cellstr(par.Results.TaskNames);
+tasks    = par.Results.TaskNames;
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
 method   = par.Results.Method;
