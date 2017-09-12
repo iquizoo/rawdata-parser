@@ -43,13 +43,13 @@ readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 % metadata transformation and merge
 if nTasks > 0
     %Set the school information.
-    schInfo = readtable(fullfile(configpath, 'schoolinfo.txt'), readparas{:});
+    schInfo = readtable(fullfile(configpath, 'schoolinfo.csv'), readparas{:});
     schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
     %Set the grade information.
-    grdInfo = readtable(fullfile(configpath, 'gradeinfo.txt'), readparas{:});
+    grdInfo = readtable(fullfile(configpath, 'gradeinfo.csv'), readparas{:});
     grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
     %Set the class information.
-    clsInfo = readtable(fullfile(configpath, 'clsinfo.txt'), readparas{:});
+    clsInfo = readtable(fullfile(configpath, 'clsinfo.csv'), readparas{:});
     clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic

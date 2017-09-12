@@ -47,9 +47,9 @@ end
 % load settings, parameters and task names.
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
-settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
-para          = readtable(fullfile(configpath, 'para.txt'), readparas{:});
-tasknames     = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
+settings      = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
+para          = readtable(fullfile(configpath, 'para.csv'), readparas{:});
+tasknames     = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
 % setting name (TaskName) -> name used for settings
 % original name (TaskOrigName) -> name used in raw data store
 % chinese name (TaskCNName) -> name used in iquizoo product (in CN)
@@ -64,7 +64,7 @@ datafiles = dir(datapath);
 datafiles([datafiles.isdir]) = []; % folder exclusion
 % get all the task names
 datafilenames = {datafiles.name}';
-datatasks = strrep(datafilenames, '.txt', '');
+datatasks = regexprep(datafilenames, '\.\w+', ''); % remove file extensions
 % set to preprocess all the tasks if not specified
 if all(emptyTaskNameIdx), tasks = datatasks'; end
 % check the status of existence for the to-be-processed tasks
@@ -162,7 +162,7 @@ for itask = 1:ntasks4process
     %Unpdate processed tasks number.
     nprocessed = nprocessed + 1;
     %Read in all the information from the specified file.
-    curTaskData = readtable(fullfile(datapath, [curTaskName, '.txt']), readparas{:});
+    curTaskData = readtable(fullfile(datapath, [curTaskName, '.csv']), readparas{:});
     %Check if the data fields are in the correct type.
     % vars checking settings.
     varsOfChk = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};

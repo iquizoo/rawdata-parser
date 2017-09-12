@@ -40,8 +40,8 @@ end
 % load settings and get the task name mappings
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
-settings      = readtable(fullfile(configpath, 'settings.txt'), readparas{:});
-tasknamestore = readtable(fullfile(configpath, 'taskname.txt'), readparas{:});
+settings      = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
+tasknamestore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
 % setting name (TaskName) -> name used for settings
 % original name (TaskOrigName) -> name used in raw data store
 % chinese name (TaskCNName) -> name used in iquizoo product (in CN)
@@ -206,7 +206,7 @@ for itask = 1:ntasks4process
                     'Flanker', ...%Conflict
                     }
                 % get taskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable(fullfile(configpath, [curTaskName, '.txt']), readparas{:});
+                curTaskEncode  = readtable(fullfile(configpath, [curTaskName, '.csv']), readparas{:});
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
             case {'SemanticMemory'}

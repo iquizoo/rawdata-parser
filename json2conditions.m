@@ -97,7 +97,7 @@ for itask = 1:length(taskIDs)
         taskOutVars = setdiff(taskOutVars, 'alltime');
     end
     outRecords = taskRec(:, ismember(taskRec.Properties.VariableNames, taskOutVars));
-    writetable(outRecords, fullfile(resfolder, [num2str(taskID), '.txt']), ...
+    writetable(outRecords, fullfile(resfolder, [num2str(taskID), '.csv']), ...
         'QuoteStrings', true, 'Delimiter', '\t', 'Encoding', 'UTF-8')
 end
 fprintf('Now move the old file to obsolete directory...\n')
