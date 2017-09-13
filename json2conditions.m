@@ -38,16 +38,17 @@ dataFieldNames = repmat({''}, size(taskIDs));
 dataTransNames = dataFieldNames;
 for iTask = 1:length(taskIDs)
     switch taskIDs(iTask)
-        case 97989 % '��ϵ���䣨�߼��棩'
+        case {99991, 97967} % 'AssocMemory'
             dataFieldNames{iTask} = 'tconditions';
-        case 99986 %'��������'
+        case 99986 % 'SemanticMemory'
             dataFieldNames{iTask} = 'sconditions&tconditions';
             dataTransNames{iTask} = 's&t';
-        case {100010, 100018, 97976} %{'����ע���м�', '����ע������'}
+        case {100010, 100018, 97976} % 'DivAten1', 'DivAtten2'
             dataFieldNames{iTask} = 'lconditions|leftconditions|leftConditions&rconditions|rightconditions|rightConditions';
             dataTransNames{iTask} = 'left&right';
         otherwise
-            dataFieldNames{iTask} = 'conditions|data|detail|datail|llog'; % Note '|' is used for special issue: modification occured.
+            % note '|' is used because all of these cases are possible
+            dataFieldNames{iTask} = 'conditions|data|detail|datail|llog';
     end
 end
 dataSettings = table(taskIDs, dataFieldNames, dataTransNames);
