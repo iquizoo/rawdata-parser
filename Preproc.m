@@ -39,17 +39,12 @@ tic
 logfid = fopen('preproc(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), datapath);
 
-% load settings, parameters, task names, etc.
-configpath = 'config';
-readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
-settings = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
-para = readtable(fullfile(configpath, 'para.csv'), readparas{:});
-tasknames = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
-% metavars options
-metavarsOfChk = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
-metavarsOfChkClass = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
-% taskname and conditions are thrown away when storing metadata
-outMetaVarsIdx = 2:9;
+% add helper functions folder
+helperFunPath = 'utilis';
+addpath(helperFunPath);
+
+% display notation message.
+fprintf('Now extract information from raw data.\n');
 
 % parse and check input arguments
 par = inputParser;
@@ -60,113 +55,61 @@ parse(par, varargin{:});
 taskInputNames = par.Results.TaskNames;
 prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
+
+% load settings, parameters, task names, etc.
+configpath = 'config';
+readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+settings = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
+para = readtable(fullfile(configpath, 'para.csv'), readparas{:});
+taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
+% metavars options
+metavarNames = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
+metavarClasses = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
+% taskname and conditions are thrown away when storing metadata
+outMetaVarsIdx = 2:9;
+
 % throw an error when the specified path is not found
 if ~exist(datapath, 'dir')
     fprintf(logfid, '[%s] Error: specified data path %s does not exist.\n', ...
         datestr(now),datapath);
     fclose(logfid);
+    rmpath(helperFunPath)
     error('UDF:PREPROC:DATAFILEWRONG', 'Data path %s not found, please check!', datapath)
 end
-% check input task names validity and get the required taskIDs and
-% taskIDNames
-if isnumeric(taskInputNames)
-    fprintf('Detected tasks are specified in numeric type. Checking validity.\n')
-    [isValid, loc] = ismember(taskInputNames, tasknames.TaskID);
-    if ~all(isValid)
-        warning('UDF:PREPROC:InvalidTaskID', ...
-            'Some task identifiers are invalid, and will not be preprocessed. Please check!')
-        fprintf('Invalid task identifier:\n')
-        disp(taskInputNames(~isValid))
-        taskInputNames(~isValid) = [];
-        loc(~isValid) = [];
-    end
-    taskIDs = taskInputNames;
-    taskIDNames = tasknames.TaskIDName(loc);
-else
-    fprintf('Detected tasks are specified in charater/string type. Checking validity.\n')
-    % change tasks to a row cellstr vector if necessary
-    taskInputNames = cellstr(taskInputNames);
-    taskInputNames = reshape(taskInputNames, numel(taskInputNames), 1);
-    % remove empty task name string
-    taskInputNames(ismissing(taskInputNames)) = [];
-    if all(ismember(taskInputNames, tasknames.TaskOrigName))
-        % the task names are specified by original names
-        [isValid, loc] = ismember(taskInputNames, tasknames.TaskOrigName);
-        % remove non-matching task names from input task names
-        if ~all(isValid)
-            warning('UDF:PREPROC:InvalidTaskNameString', ...
-                'Some task name strings are invalid, and will not be preprocessed. Please check!')
-            fprintf('Invalid task name strings:\n')
-            disp(taskInputNames(~isValid))
-            taskInputNames(~isValid) = [];
-            loc(~isValid) = [];
-        end
-        taskIDs = tasknames.TaskID(loc);
-        taskIDNames = tasknames.TaskIDName(loc);
-    else
-        % the task names are not specified by IDs and original names
-        % check the location for each kind of task names
-        [isvalidTaskName, locTaskName] = ismember(taskInputNames, tasknames.TaskName);
-        [isvalidTaskCNName, locTaskCNName] = ismember(taskInputNames, tasknames.TaskCNName);
-        [isvalidTaskIDName, locTaskIDName] = ismember(taskInputNames, tasknames.TaskIDName);
-        % task name is valid if any kind of task names matches
-        isValid = isvalidTaskName | isvalidTaskCNName | isvalidTaskIDName;
-        % remove non-matching task names from input task names
-        if ~all(isValid)
-            warning('UDF:PREPROC:InvalidTaskNameString', ...
-                'Some task name strings are invalid, and will not be preprocessed. Please check!')
-            fprintf('Invalid task name strings:\n')
-            disp(taskInputNames(~isValid))
-            taskInputNames(~isValid) = [];
-        end
-        % get the locations for each valid input task name
-        locstore = num2cell([locTaskName, locTaskCNName, locTaskIDName], 2);
-        loc = cellfun(@(x) unique(x(x ~= 0)), locstore);
-        % get the ID and IDName
-        taskIDs = tasknames.TaskID(loc);
-        taskIDNames = tasknames.TaskIDName(loc);
-    end
-end
-
-% when debugging, only one task should be specified
-if (isempty(taskIDNames) || length(taskIDNames) > 1) && ~isempty(dbentry)
-    fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
-    fclose(logfid);
-    error('UDF:PREPROC:DEBUGWRONGPAR', '(Only one) task name must be set when using debug mode.');
-end
-
-% get all the task names to be preprocessed
 % get all the data file informations, which are named after task IDs
 dataFiles = dir(datapath);
 dataFiles([dataFiles.isdir]) = []; % folder exclusion
-% get all the task names
+% get all the task ids
 [~, dataTaskIDs] = cellfun(@fileparts, {dataFiles.name}', 'UniformOutput', false);
 dataTaskIDs = str2double(dataTaskIDs);
-% set to preprocess all the tasks if not specified
-if isempty(taskIDNames)
-    taskInputNames = dataTaskIDs;
-    taskIDs = dataTaskIDs;
-    % suppose all the task IDs in the raw data are recorded in the settings
-    taskIDNames = tasknames.TaskIDName(ismember(tasknames.TaskID, taskIDs));
+
+% notice input name could be numeric array or cellstr type
+inputNameIsEmpty = isempty(taskInputNames) || all(ismissing(taskInputNames));
+% when debugging, only one task should be specified
+if (inputNameIsEmpty || length(taskInputNames) > 1) && ~isempty(dbentry)
+    fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
+    fclose(logfid);
+    rmpath(helperFunPath)
+    error('UDF:PREPROC:DEBUGWRONGPAR', '(Only one) task name must be set when using debug mode.');
 end
-% check whether data for the to-be-processed tasks exist or not
-dataIsExisted = ismember(taskIDs, dataTaskIDs);
-if ~all(dataIsExisted)
-    fprintf('Oops! Data of these tasks you specified are not found, will remove these tasks...\n')
-    disp(taskInputNames(~dataIsExisted))
-    taskInputNames(~dataIsExisted) = [];
-    taskIDs(~dataIsExisted) = [];
-    taskIDNames(~dataIsExisted) = [];
+% set to preprocess all the tasks if not specified and not in debug mode
+if inputNameIsEmpty
+    fprintf('Detected no valid tasks are specified, will continue to process all tasks.\n');
+    taskInputNames = dataTaskIDs;
 end
 
-% preallocation
+% input task name validation and name transformation
+[taskInputNames, taskIDs, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, dataTaskIDs);
+
+% variables for progressing statistics
 ntasks4process = length(taskInputNames);
+nprocessed = 0;
+nignored = 0;
+
+% preallocation
 dataExtract = table(taskIDs, taskIDNames, ...
     cell(ntasks4process, 1), repmat(cellstr('TBE'), ntasks4process, 1), ...
     'VariableNames', {'TaskID', 'TaskIDName', 'Data', 'Time2Preproc'});
-% display the information of processing.
-fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
-    ntasks4process);
 
 % rate of progress display initialization
 switch prompt
@@ -179,22 +122,30 @@ switch prompt
         except  = false;
         dispinfo = '';
 end
-nprocessed = 0;
-nignored = 0;
-elapsedTime = toc;
 
-% add helper functions folder
-anafunpath = 'utilis';
-addpath(anafunpath);
+% display the information of processing.
+fprintf('Here it goes! The total jobs are composed of %d task(s), though some may fail...\n', ...
+    ntasks4process);
+
+% record the time elapsed when preparation is done
+elapsedTime = toc;
 
 % preprocess task by task
 for itask = 1:ntasks4process
     initialVars = who;
+
+    % get current task names
+    if isnumeric(taskInputNames)
+        curTaskInputName = num2str(taskInputNames(itask));
+    else
+        curTaskInputName = taskInputNames{itask};
+    end
     curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};
+    curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
 
     % update prompt information.
-    completePercent = nprocessed / (ntasks4process - nignored);
+    completePercent = nprocessed / ntasks4process;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
@@ -217,10 +168,13 @@ for itask = 1:ntasks4process
                 fprintf(repmat('\b', 1, length(dispinfo)));
             end
             dispinfo = sprintf('Now processing %s (total: %d) task: %s. %s\n', ...
-                num2ord(nprocessed + 1), ntasks4process, curTaskIDName, msgSuff);
+                num2ord(nprocessed + 1), ntasks4process, ...
+                curTaskDispName, msgSuff);
             fprintf(dispinfo);
             except = false;
     end
+    % record progress in log file
+    fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % update processed tasks number.
     nprocessed = nprocessed + 1;
 
@@ -229,7 +183,7 @@ for itask = 1:ntasks4process
     if ~any(locset)
         fprintf(logfid, ...
             '[%s] No settings specified for task %s. Continue to the next task.\n', ...
-            datestr(now), curTaskIDName);
+            datestr(now), curTaskDispName);
         %Increment of ignored number of tasks.
         nignored = nignored + 1;
         continue
@@ -241,32 +195,37 @@ for itask = 1:ntasks4process
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
         curTaskData = curTaskData(dbentry, :);
+        fprintf(logfid, '[%s] Begin to debug, recording can be misleading.', datestr(now));
         dbstop in sngpreproc
     end
 
     % checking metadata type
     curTaskMetavarsRaw = curTaskData.Properties.VariableNames;
-    curTaskMetavars = metavarsOfChk;
-    for ivar = 1:length(curTaskMetavars)
-        curVarOpts = split(curTaskMetavars{ivar}, '|');
-        curVar = intersect(curVarOpts, curTaskMetavarsRaw);
-        curClass = metavarsOfChkClass{ivar};
-        if ~isempty(curVar) % for better compatibility.
-            curVar = curVar{:}; % get the data in the cell as a charater.
-            curTaskMetavars{ivar} = curVar;
-            if ~isa(curTaskData.(curVar), curClass)
-                switch curClass
+    curTaskMetavarsOpts = metavarNames;
+    for imetavar = 1:length(curTaskMetavarsOpts)
+        curMetavarOpts = split(curTaskMetavarsOpts{imetavar}, '|');
+        curMetavarName = intersect(curMetavarOpts, curTaskMetavarsRaw);
+        curMetavarClass = metavarClasses{imetavar};
+        % check existed metavars only, will transform data to expected type
+        if ~isempty(curMetavarName)
+            curTaskMetavarsOpts(imetavar) = curMetavarName;
+            curMetadataOrig = curTaskData.(curMetavarName{:});
+            curMetadataTrans = curMetadataOrig;
+            if ~isa(curMetadataOrig, curMetavarClass)
+                switch curMetavarClass
                     case 'cell'
-                        curTaskData.(curVar) = num2cell(curTaskData.(curVar));
+                        curMetadataTrans = num2cell(curMetadataOrig);
                     case 'double'
-                        curTaskData.(curVar) = str2double(curTaskData.(curVar));
+                        curMetadataTrans = str2double(curMetadataOrig);
                     case 'datetime'
-                        if isnumeric(curTaskData.(curVar))
-                            curTaskData.(curVar) = repmat({''}, size(curTaskData.(curVar)));
+                        if isnumeric(curMetadataOrig)
+                            % not very good implementation
+                            curMetadataOrig = repmat({''}, size(curMetadataOrig));
                         end
-                        curTaskData.(curVar) = datetime(curTaskData.(curVar));
+                        curMetadataTrans = datetime(curMetadataOrig);
                 end
             end
+            curTaskData.(curMetavarName{:}) = curMetadataTrans;
         end
     end
 
@@ -281,60 +240,60 @@ for itask = 1:ntasks4process
 
     % preprocessing the recorded data
     curTaskPreRes = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
+    % generate a table to store all the results
+    curTaskRes = curTaskData(:, ismember(curTaskMetavarsRaw, curTaskMetavarsOpts(outMetaVarsIdx)));
 
-    % check preprocessed results.
+    % check preprocessed results, warning if result is empty
     if isempty(curTaskPreRes)
-        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', curTaskIDName);
+        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', ...
+            curTaskDispName);
         fprintf(logfid, ...
-            '[%s] No data found for task %s.\r\n', datestr(now), curTaskIDName);
+            '[%s] No data found for task %s.\r\n', ...
+            datestr(now), curTaskDispName);
         except = true;
     else
-        %Generate some warning according to the status.
+        % generate some warning according to the status.
         if any(curTaskPreRes.status ~= 0)
             except = true;
-            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.', curTaskIDName);
+            warning('UDF:PREPROC:DATAMISMATCH', 'Oops! Data mismatch in task %s.', curTaskDispName);
             if any(curTaskPreRes.status == -1) %Data mismatch found.
                 fprintf(logfid, ...
                     '[%s] Data mismatch encountered in task %s. Normally, its format is ''%s''.\r\n', ...
-                    datestr(now), curTaskIDName, curTaskPara.VariablesNames{:});
+                    datestr(now), curTaskDispName, curTaskPara.VariablesNames{:});
             end
             if any(curTaskPreRes.status == -2) %Parameters for this task not found.
                 fprintf(logfid, ...
                     '[%s] No parameters specification found in task %s.\r\n', ...
-                    datestr(now), curTaskIDName);
+                    datestr(now), curTaskDispName);
             end
         end
 
-        % generate a table to store all the results
-        curTaskRes = curTaskData(:, ismember(curTaskMetavarsRaw, curTaskMetavars(outMetaVarsIdx)));
         % store the splitting results.
-        curTaskSplitRes = cat(1, curTaskPreRes.splitRes{:});
-        curTaskSplitResVars = curTaskSplitRes.Properties.VariableNames;
-        for ivar = 1:length(curTaskSplitResVars)
-            curTaskRes.(curTaskSplitResVars{ivar}) = curTaskSplitRes.(curTaskSplitResVars{ivar});
-        end
-        curTaskSpVarOpts = strsplit(curTaskSetting.PreSpVar{:});
-        curTaskSpecialVar = intersect(curTaskMetavarsRaw, curTaskSpVarOpts);
-        for ivar = 1:length(curTaskSpecialVar)
-            curTaskRes.(curTaskSpecialVar{ivar}) = curTaskData.(curTaskSpecialVar{ivar});
-        end
-        curTaskRes.status = curTaskPreRes.status;
+        curTaskRes = [curTaskRes, cat(1, curTaskPreRes.splitRes{:})]; %#ok<AGROW>
 
-        % store names and data.
-        dataExtract.TaskID(itask) = curTaskID;
-        dataExtract.TaskIDName{itask} = curTaskIDName;
-        dataExtract.Data{itask} = curTaskRes;
+        % store special variables, e.g., 'alltime'
+        curTaskSpVarOpts = strsplit(curTaskSetting.PreSpVar{:});
+        curTaskSpVarNames = intersect(curTaskMetavarsRaw, curTaskSpVarOpts);
+        curTaskRes = [curTaskRes, curTaskData(:, curTaskSpVarNames)]; %#ok<AGROW>
+
+        % store the status of preprocessing
+        curTaskRes.status = curTaskPreRes.status;
     end
-    %Record the time used for each task.
-    curTaskTimeUsed = toc - elapsedTime;
-    dataExtract.Time2Preproc{itask} = seconds2human(curTaskTimeUsed, 'full');
+
+    % store names, data and preprocess time
+    dataExtract.TaskID(itask) = curTaskID;
+    dataExtract.TaskIDName{itask} = curTaskIDName;
+    dataExtract.Data{itask} = curTaskRes;
+    dataExtract.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
+
+    % clear redundant variables to save storage
     clearvars('-except', initialVars{:});
 end
-%Display information of completion.
-usedTimeSecs = toc;
-usedTimeHuman = seconds2human(usedTimeSecs, 'full');
-fprintf('Congratulations! %d preprocessing task(s) completed this time.\n', nprocessed);
-fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
+% display information of completion.
+fprintf('Congratulations! %d (succeeded) /%d (in total) preprocessing task(s) completed this time.\n', nprocessed - nignored, ntasks4process);
+fprintf('Returning without error!\nTotal time used: %s\n', seconds2human(toc, 'full'));
+% log the success
+fprintf(logfid, '[%s] Completed preprocessing without error.\n', datestr(now));
 fclose(logfid);
 if strcmp(prompt, 'waitbar'), delete(hwb); end
-rmpath(anafunpath);
+rmpath(helperFunPath);

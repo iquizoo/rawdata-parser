@@ -20,37 +20,44 @@ function [indicesStruct, mrgdataStruct, taskstatStruct, metavars] = Merges(resda
 tic
 % open a log file
 logfid = fopen('merge(AutoGen).log', 'a');
-fprintf(logfid, '[%s] Begin merging\n', datestr(now));
-% parse input arguments.
-par = inputParser;
-addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x))
-parse(par, varargin{:});
-tasks = cellstr(par.Results.TaskNames);
-% set tasknames to all available tasks if not specified
-tasknames = unique(resdata.TaskIDName, 'stable');
-if all(cellfun(@isempty, tasks)), tasks = tasknames; end
-tasks = cellstr(tasks);
-% check whether data of all the tasks specified exist or not
-dataExisted = ismember(tasks, tasknames);
-if any(~dataExisted)
-    fprintf('Oops! Data of these following tasks you specified are not found, will remove these tasks...\n');
-    disp(tasks(~dataExisted))
-end
-tasks4merge = tasks(dataExisted);
-nTasks = length(tasks4merge);
+fprintf(logfid, '[%s] Begin merging.\n', datestr(now));
+
+% add helper functions folder
+helperFunPath = 'utilis';
+addpath(helperFunPath);
+
+% load settings, parameters, task names, etc.
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
+schInfo = readtable(fullfile(configpath, 'schoolinfo.csv'), readparas{:});
+grdInfo = readtable(fullfile(configpath, 'gradeinfo.csv'), readparas{:});
+clsInfo = readtable(fullfile(configpath, 'clsinfo.csv'), readparas{:});
+%Set the school information.
+schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
+%Set the grade information.
+grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
+%Set the class information.
+clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
+
+% parse input arguments.
+par = inputParser;
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) | isnumeric(x))
+parse(par, varargin{:});
+taskInputNames = par.Results.TaskNames;
+
+% set to merge all the tasks if not specified
+if isempty(taskInputNames) || all(ismissing(taskInputNames))
+    fprintf('Detected no valid tasks are specified, will continue to process all tasks.\n');
+    taskInputNames = resdata.TaskID;
+end
+
+% input task name validation and name transformation
+[taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
+
+nTasks = length(taskInputNames);
 % metadata transformation and merge
 if nTasks > 0
-    %Set the school information.
-    schInfo = readtable(fullfile(configpath, 'schoolinfo.csv'), readparas{:});
-    schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
-    %Set the grade information.
-    grdInfo = readtable(fullfile(configpath, 'gradeinfo.csv'), readparas{:});
-    grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
-    %Set the class information.
-    clsInfo = readtable(fullfile(configpath, 'clsinfo.csv'), readparas{:});
-    clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
     %Get the metadata. Not all of the variables in meta data block is
     %interested, so descard those of no interest. And then do some basic
     %transformation of meta data, e.g. school and grade.
@@ -220,7 +227,7 @@ subDispInfo = '';
 % data transformation and merge
 for imrgtask = 1:nTasks
     initialVars = who;
-    curTaskIDName = tasks4merge{imrgtask};
+    curTaskIDName = taskIDNames{imrgtask};
     fprintf(repmat('\b', 1, length(subDispInfo)));
     fprintf(repmat('\b', 1, length(dispInfo)));
     dispInfo = sprintf('\nNow merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
@@ -291,7 +298,6 @@ for imrgtask = 1:nTasks
     end
     clearvars('-except', initialVars{:});
 end
-fclose(logfid);
 % get all the resulting structures.
 indicesStruct.indices = indices;
 indicesStruct.indicesRep = indicesRep;
@@ -300,8 +306,9 @@ mrgdataStruct.mrgdataRep = mrgdataRep;
 taskstatStruct.taskstat = taskstat;
 taskstatStruct.taskstatRep = taskstatRep;
 usedTimeSecs = toc;
-addpath utilis
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
-rmpath utilis
 fprintf('\nCongratulations! Data of %d task(s) merged completely this time.\n', nTasks);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
+fprintf(logfid, '[%s] Completed merging without error.\n', datestr(now));
+fclose(logfid);
+rmpath(helperFunPath)

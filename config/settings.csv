@@ -38,7 +38,7 @@ ID	TaskName	TaskIDName	TemplateToken	PreSpVar	AnalysisFun	AnalysisVars	RespRequi
 37	"超级秒表"	"SRTWatch"	"RTW"	""	"SRT"	"RECORD"	1	100	2500	3000	NaN	"ACC MRT"	""	"VRT efficiency"	""	"efficiency"
 38	"面包大师"	"SRTBread"	"RTB"	""	"SRT"	"RECORD"	1	100	NaN	1000	NaN	"ACC MRT"	""	"VRT efficiency"	""	"efficiency"
 39	"思维转换"	"TaskSwitching"	"TS"	""	"Control"	"RECORD"	1	100	2500	3000	0.5	""	""	""	""	"NIHScore"
-40	"反应转换"	"TaskSwitching"	"TS"	""	"Control"	"RECORD"	1	100	2500	3000	0.5	""	""	""	""	"NIHScore"
+40	"反应转换"	"TaskSwitching2"	"TS"	""	"Control"	"RECORD"	1	100	2500	3000	0.5	""	""	""	""	"NIHScore"
 41	"卡片分类"	"DCCS"	"DCCS"	""	"Control"	"RECORD"	1	100	2500	3000	NaN	""	""	""	""	"NIHScore"
 42	"连线"	"TMT"	"TMT"	""	"TMT"	"RECORD"	1	NaN	NaN	NaN	NaN	""	""	""	""	"MedRT_BAdiff"
 43	"自由拼图（黑白版）"	"Jigsaw1"	"JS"	""	""	"RECORD"	1	NaN	NaN	NaN	NaN	""	""	""	""	""

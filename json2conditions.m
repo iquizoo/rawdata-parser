@@ -1,6 +1,11 @@
 function json2conditions(origfilename, resfolder)
 % Extract data from JSON formatted strings.
 
+% load default settings
+dflts
+% raw data base directory settings
+curpath = pwd;
+cd(dfltSet.DATARAW_DIR)
 % create log file.
 logfile = fopen('j2c.log', 'a');
 fprintf(logfile, ...
@@ -24,19 +29,21 @@ records.conditions = repmat({''}, height(records), 1);
 paraVar = 'params';
 spVar = 'allTime';
 % transform taskIDs to double type
+if iscellstr(records.(idvar))
+    records.(idvar) = str2double(records.(idvar));
+end
 taskIDs = unique(records.(idvar));
-if iscellstr(taskIDs), taskIDs = str2double(taskIDs); end
 % get the field names of data records and transform it
 dataFieldNames = repmat({''}, size(taskIDs));
 dataTransNames = dataFieldNames;
 for iTask = 1:length(taskIDs)
     switch taskIDs(iTask)
-        case 97989 % 'ÁªÏµ¼ÇÒä£¨¸ß¼¶°æ£©'
+        case 97989 % 'ï¿½ï¿½Ïµï¿½ï¿½ï¿½ä£¨ï¿½ß¼ï¿½ï¿½æ£©'
             dataFieldNames{iTask} = 'tconditions';
-        case 99986 %'ÓïÒå¼ÇÒä'
+        case 99986 %'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'
             dataFieldNames{iTask} = 'sconditions&tconditions';
             dataTransNames{iTask} = 's&t';
-        case {100010, 100018, 97976} %{'·ÖÅä×¢ÒâÖÐ¼¶', '·ÖÅä×¢Òâ³õ¼¶'}
+        case {100010, 100018, 97976} %{'ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½Ð¼ï¿½', 'ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'}
             dataFieldNames{iTask} = 'lconditions|leftconditions|leftConditions&rconditions|rightconditions|rightConditions';
             dataTransNames{iTask} = 'left&right';
         otherwise
@@ -106,3 +113,4 @@ if ~exist(obsolDir, 'dir'), mkdir(obsolDir); end
 movefile(origfilename, obsolDir)
 fprintf('Done!\n')
 fclose(logfile);
+cd(curpath)

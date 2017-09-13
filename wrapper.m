@@ -39,7 +39,8 @@ if isempty(rawsuff)
         rawdataPath = uigetdir(rawdir, 'Select rawdata path');
         rawsuff = rawdataPath(length(rawdir) + 2:end);
     else
-        error('UDF:NOT_ENOUGH_INPUT', 'Please specify `DataSuffix` when start from step 2!')
+        rawsuff = inputdlg('Input suffix for your raw data:', 'Data suffix input');
+        rawsuff = rawsuff{:};
     end
 end
 % set environmental settings.
