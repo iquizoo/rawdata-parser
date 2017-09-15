@@ -85,8 +85,10 @@ dataTaskIDs = str2double(dataTaskIDs);
 
 % notice input name could be numeric array or cellstr type
 inputNameIsEmpty = isempty(taskInputNames) || all(ismissing(taskInputNames));
+inputNameNotSingle = (isnumeric(taskInputNames) && length(taskInputNames) > 1) || ...
+    (~isnumeric(taskInputNames) && length(cellstr(taskInputNames)) > 1);
 % when debugging, only one task should be specified
-if (inputNameIsEmpty || length(taskInputNames) > 1) && ~isempty(dbentry)
+if (inputNameIsEmpty || inputNameNotSingle) && ~isempty(dbentry)
     fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
     fclose(logfid);
     rmpath(helperFunPath)

@@ -35,7 +35,7 @@ addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) |
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
-addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x))
+addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x))
 parse(par, varargin{:});
 taskInputNames = par.Results.TaskNames;
 prompt = lower(par.Results.DisplayInfo);
@@ -45,11 +45,13 @@ rmanml = par.Results.RemoveAbnormal;
 
 % notice input name could be numeric array or cellstr type
 inputNameIsEmpty = isempty(taskInputNames) || all(ismissing(taskInputNames));
+inputNameNotSingle = (isnumeric(taskInputNames) && length(taskInputNames) > 1) || ...
+    (~isnumeric(taskInputNames) && length(cellstr(taskInputNames)) > 1);
 % when debugging, only one task should be specified
-if (inputNameIsEmpty || length(taskInputNames) > 1) && ~isempty(dbentry)
+if (inputNameIsEmpty || inputNameNotSingle) && ~isempty(dbentry)
     fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
     fclose(logfid);
-    error('UDF:PREPROC:DEBUGWRONGPAR', 'Task name must be set when debugging.');
+    error('UDF:PREPROC:DEBUGWRONGPAR', '(Only one) task name must be set when debugging.');
 end
 % set to process all the tasks if not specified and not in debug mode
 if inputNameIsEmpty

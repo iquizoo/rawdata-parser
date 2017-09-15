@@ -37,7 +37,7 @@ addParameter(par, 'TaskSetting', table, @istable);
 addParameter(par, 'Condition', [], @ischar);
 addParameter(par, 'StimulusMap', [], @isobject);
 addParameter(par, 'Method', 'full', @ischar);
-addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x));
+addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x));
 parse(par, varargin{:});
 TotalTime    = par.Results.TotalTime;
 tasksettings = par.Results.TaskSetting;
@@ -260,7 +260,7 @@ if ~isempty(rec)
     if rmanml
         % Treat mean RT of less than 300ms/larger than 2500ms as missing.
         MRTvars = curTaskResVarNames(~cellfun(@isempty, ...
-            regexp(curTaskResVarNames, '^M?RT(?!_CongEffect|_SwitchCost|_FA)', 'once')));
+            regexp(curTaskResVarNames, '^M?RT(?!_Cond|_diff|_FA)', 'once')));
         for irtvar = 1:length(MRTvars)
             if res.(MRTvars{irtvar}) < tasksettings.RTmin || res.(MRTvars{irtvar}) > tasksettings.RTmax
                 res{:, :} = nan;

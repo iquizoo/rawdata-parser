@@ -15,7 +15,7 @@ addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) |
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
-addParameter(par, 'RemoveAbnormal', true, @(x) islogical(x) | isnumeric(x))
+addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x))
 addParameter(par, 'SaveAction', 3, @isnumeric)
 addParameter(par, 'SaveVersion', '-v7', @ischar)
 parse(par, varargin{:});
