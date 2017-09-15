@@ -25,11 +25,8 @@ RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
 RT_FA = mean(RECORD.RT(RECORD.SCat ~= 1 & RECORD.ACC == 0));
 %d' and c.
 [dprime, c] = sdt(Rate_hit, Rate_FA);
-% %Efficiency score, contrary to the inverse efficiency score (IES).
-% Effc = Rate_hit / RT_hit;
-%Efficiency.
-efficiency = asin(sqrt(Rate_hit / RT_hit));
-%Get these metrics into a table.
+% efficiency, see Kurtz et.al., 2001 (DOI: 10.1016/s0920-9964(00)00060-8)
+efficiency = asin(sqrt(Count_hit / RT_hit));
 res = table(Rate_Overall, RT_Overall, ...
     Count_hit, Count_FA, ...
     Rate_hit, Rate_FA, ...

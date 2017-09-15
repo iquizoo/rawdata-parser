@@ -4,5 +4,6 @@ function res = sngprocMT(RECORD)
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 res = table;
-allFeedBacks = strjoin(RECORD.Feedback, '');
-res.ACC = mean(allFeedBacks == '1');
+CSeries = strjoin(RECORD.CSeries, '');
+RSeries = strjoin(RECORD.RSeries, '');
+res.ACC = mean(CSeries == RSeries);
