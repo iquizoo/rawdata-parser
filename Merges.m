@@ -26,6 +26,17 @@ fprintf(logfid, '[%s] Begin merging.\n', datestr(now));
 helperFunPath = 'utilis';
 addpath(helperFunPath);
 
+% parse input arguments.
+par = inputParser;
+addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) | isnumeric(x))
+parse(par, varargin{:});
+taskInputNames = par.Results.TaskNames;
+% set to merge all the tasks if not specified
+if isempty(taskInputNames) || all(ismissing(taskInputNames))
+    fprintf('Detected no valid tasks are specified, will continue to process all tasks.\n');
+    taskInputNames = resdata.TaskID;
+end
+
 % load settings, parameters, task names, etc.
 configpath = 'config';
 readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
@@ -39,18 +50,6 @@ schMap = containers.Map(schInfo.SchoolName, schInfo.SchoolIDName);
 grdMap = containers.Map(grdInfo.GradeStr, grdInfo.Encode);
 %Set the class information.
 clsMap = containers.Map(clsInfo.ClsStr, clsInfo.Encode);
-
-% parse input arguments.
-par = inputParser;
-addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) | isnumeric(x))
-parse(par, varargin{:});
-taskInputNames = par.Results.TaskNames;
-
-% set to merge all the tasks if not specified
-if isempty(taskInputNames) || all(ismissing(taskInputNames))
-    fprintf('Detected no valid tasks are specified, will continue to process all tasks.\n');
-    taskInputNames = resdata.TaskID;
-end
 
 % input task name validation and name transformation
 [taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
@@ -128,12 +127,8 @@ if nTasks > 0
                 % remove all of the spaces in the name string.
                 resMetadata.name = regexprep(resMetadata.name, '\s+', '');
             case 'school'
-                %Set those schools of no interest into empty string, so as to
-                %be transformed into undefined.
+                % schools having several aliases will be joined together
                 schOIloc = ismember(resMetadata.school, schInfo.SchoolName);
-                if any(~schOIloc)
-                    resMetadata.school(~schOIloc) = {''};
-                end
                 resMetadata.school(schOIloc) = ...
                     values(schMap, resMetadata.school(schOIloc));
             case 'grade'
