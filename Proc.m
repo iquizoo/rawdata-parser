@@ -15,7 +15,7 @@ logfid = fopen('proc(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Start processing.\n', datestr(now));
 
 % add helper functions path
-helperFunPath = 'utilis';
+helperFunPath = 'scripts';
 addpath(helperFunPath);
 
 % display notation message.

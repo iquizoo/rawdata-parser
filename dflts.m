@@ -7,3 +7,4 @@ dfltSet.DATARAW_DIR     = fullfile(dfltSet.CCDPRO_BASE_DIR, 'DATA_RawData'); %Th
 dfltSet.DATARES_DIR     = fullfile(dfltSet.CCDPRO_BASE_DIR, 'DATA_RES'); %The directory to store results.
 dfltSet.UTILIS_DIR      = fullfile(dfltSet.CCDPRO_BASE_DIR, 'utilis'); %The directory to store all the utilis functions.
 dfltSet.REPORT_DIR      = fullfile(dfltSet.CCDPRO_BASE_DIR, 'Presentations'); % The directory to store reports.
+dfltSet.SCRIPTS_DIR     = 'scripts';

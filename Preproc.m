@@ -40,7 +40,7 @@ logfid = fopen('preproc(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), datapath);
 
 % add helper functions folder
-helperFunPath = 'utilis';
+helperFunPath = 'scripts';
 addpath(helperFunPath);
 
 % display notation message.

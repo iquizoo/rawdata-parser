@@ -23,7 +23,7 @@ logfid = fopen('merge(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Begin merging.\n', datestr(now));
 
 % add helper functions folder
-helperFunPath = 'utilis';
+helperFunPath = 'scripts';
 addpath(helperFunPath);
 
 % parse input arguments.
