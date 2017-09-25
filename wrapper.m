@@ -98,9 +98,9 @@ else
         fprintf('Reading done.\n')
     end
     if s < 4 % s = 1, 2, 3
-        [indStruct, mrgStruct, statStruct, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
+        [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
         fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
-        save(svResFileName, 'indStruct', 'mrgStruct', 'statStruct', 'metavars', saveVer)
+        save(svResFileName, 'indices', 'results', 'status', 'metavars', saveVer)
         fprintf('Saving done.\n')
     end
 end

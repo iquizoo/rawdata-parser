@@ -63,8 +63,9 @@ settings = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
 para = readtable(fullfile(configpath, 'para.csv'), readparas{:});
 taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
 % metavars options
-metavarNames = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
-metavarClasses = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
+metavarOpts = {'Taskname', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime', 'conditions'};
+metavarNames = {'Taskname', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime', 'conditions'};
+metavarClses = {'cell', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime', 'cell'};
 % taskname and conditions are thrown away when storing metadata
 outMetaVarsIdx = 2:9;
 
@@ -202,16 +203,18 @@ for itask = 1:ntasks4process
     end
 
     % checking metadata type
-    curTaskMetavarsRaw = curTaskData.Properties.VariableNames;
-    curTaskMetavarsOpts = metavarNames;
-    for imetavar = 1:length(curTaskMetavarsOpts)
-        curMetavarOpts = split(curTaskMetavarsOpts{imetavar}, '|');
-        curMetavarName = intersect(curMetavarOpts, curTaskMetavarsRaw);
-        curMetavarClass = metavarClasses{imetavar};
+    curTaskVarNamesRaw = curTaskData.Properties.VariableNames;
+    for imetavar = 1:length(metavarOpts)
+        curMetavarOpts = split(metavarOpts{imetavar}, '|');
+        curMetavarNameReal = intersect(curMetavarOpts, curTaskVarNamesRaw);
         % check existed metavars only, will transform data to expected type
-        if ~isempty(curMetavarName)
-            curTaskMetavarsOpts(imetavar) = curMetavarName;
-            curMetadataOrig = curTaskData.(curMetavarName{:});
+        if ~isempty(curMetavarNameReal)
+            % get the legal name and check its type
+            curMetavarNameLegal = metavarNames{imetavar};
+            curMetavarClass = metavarClses{imetavar};
+            % change meta varname to legal ones
+            curTaskData.Properties.VariableNames{curMetavarNameReal{:}} = curMetavarNameLegal;
+            curMetadataOrig = curTaskData.(curMetavarNameLegal);
             curMetadataTrans = curMetadataOrig;
             if ~isa(curMetadataOrig, curMetavarClass)
                 switch curMetavarClass
@@ -227,9 +230,11 @@ for itask = 1:ntasks4process
                         curMetadataTrans = datetime(curMetadataOrig);
                 end
             end
-            curTaskData.(curMetavarName{:}) = curMetadataTrans;
+            curTaskData.(curMetavarNameLegal) = curMetadataTrans;
         end
     end
+    % get the variable names after renaming
+    curTaskVarNames = curTaskData.Properties.VariableNames;
 
     % generate a table to combine two variables: conditions and para, which
     % are used in the function sngproc. See more in function sngproc.
@@ -243,7 +248,7 @@ for itask = 1:ntasks4process
     % preprocessing the recorded data
     curTaskPreRes = rowfun(@sngpreproc, curTaskCfg, 'OutputVariableNames', {'splitRes', 'status'});
     % generate a table to store all the results
-    curTaskRes = curTaskData(:, ismember(curTaskMetavarsRaw, curTaskMetavarsOpts(outMetaVarsIdx)));
+    curTaskRes = curTaskData(:, ismember(curTaskVarNames, metavarNames(outMetaVarsIdx)));
 
     % check preprocessed results, warning if result is empty
     if isempty(curTaskPreRes)
@@ -275,7 +280,7 @@ for itask = 1:ntasks4process
 
         % store special variables, e.g., 'alltime'
         curTaskSpVarOpts = strsplit(curTaskSetting.PreSpVar{:});
-        curTaskSpVarNames = intersect(curTaskMetavarsRaw, curTaskSpVarOpts);
+        curTaskSpVarNames = intersect(curTaskVarNames, curTaskSpVarOpts);
         curTaskRes = [curTaskRes, curTaskData(:, curTaskSpVarNames)]; %#ok<AGROW>
 
         % store the status of preprocessing

@@ -1,18 +1,18 @@
-function [indicesStruct, mrgdataStruct, taskstatStruct, realMetavarsName] = Merges(resdata, varargin)
+function [indices, results, status, realMetavarNames] = Merges(resdata, varargin)
 %MERGES merges all the results obtained data.
-%   MRGDATA = MERGES(RESDATA) merges the resdata according to userId, and
+%   INDICES = MERGES(RESDATA) merges the resdata according to userId, and
 %   some information, e.g., gender, school, grade, is also merged according
 %   to some arbitrary principle.
 %
-%   [MRGDATA, SCORES] = MERGES(RESDATA) also merges scores into the result,
-%   the regulation of which is from Prof. He.
+%   [INDICES, RESULTS] = MERGES(RESDATA) also merges all the analysis
+%   results.
 %
-%   [MRGDATA, SCORES, INDICES] = MERGES(RESDATA) also merges indices into
-%   the result, which are regulated by Prof. Xue.
+%   [INDICES, RESULTS, STATUS] = MERGES(RESDATA) also merges task status.
+%   Cheat sheet: 0 -> no data; 1 -> data valid; -1 -> data invalid (to be
+%   exact, meta information found, but data appears NaN).
 %
-%   [MRGDATA, SCORES, INDICES, TASKSTAT] = MERGES(RESDATA) gets the status
-%   of each task. Cheat sheet: 0 -> no data; 1 -> data valid; -1 -> data
-%   invalid (to be exact, meta information found, but data appears NaN).
+%   [INDICES, RESULTS, STATUS, METAVARS] = MERGES(RESDATA) adds metavar
+%   names as an output.
 %
 %   See also PREPROC, PROC.
 
@@ -43,13 +43,15 @@ readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
 taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
 % the unique key variable name
 keyMetavarName = 'userId';
+% participate time
+partTimeMetavarName = 'createTime';
+partTimeMetavarIsExisted = false;
 % all the possible metavars
-metavarsName = {'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay'};
-% some metadata variables could have aliases, use `|` to separate
-metavarsOpts = {'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay'};
+metavarNames = {'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay'};
+% % some metadata variables could have aliases, use `|` to separate
+% metavarOpts = {'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay'};
 % classes of metadata variables
-metavarsClass = {'numeric', 'cell', 'cell', 'cell', 'numeric', 'numeric', 'datetime'};
-
+metavarClses = {'numeric', 'cell', 'cell', 'cell', 'numeric', 'numeric', 'datetime'};
 
 % input task name validation and name transformation
 [taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
@@ -63,41 +65,26 @@ resdata(~ismember(resdata.TaskIDName, taskIDNames), :) = [];
 if nTasks > 0
     fprintf('Now trying to merge the metadata. Please wait...\n') 
     % check metadata variables and change them to legal ones
-    realMetavarsName = []; % store all the metavars used in any of the tasks
-    for iTask = 1:height(resdata)
-        curTaskData = resdata.Data{iTask};
-        curTaskVars = curTaskData.Properties.VariableNames;
-        for iMetavarOpts = 1:length(metavarsOpts)
-            % get the real metadata varname
-            curMetavarOpts = split(metavarsOpts{iMetavarOpts}, '|');
-            curMetavarName = metavarsName{iMetavarOpts};
-            % real location of current metadata variable
-            curMetavarRealLoc = ismember(curTaskVars, ...
-                intersect(curMetavarOpts, curTaskVars));
-            if any(curMetavarRealLoc)
-                % when the current metadata is included, name it legally
-                curTaskData.Properties.VariableNames{curMetavarRealLoc} = curMetavarName;
-            end
-        end
-        realMetavarsName = union(realMetavarsName, curTaskData.Properties.VariableNames);
-        resdata.Data{iTask} = curTaskData;
-    end
+    dataVarNames = cellfun(@(tbl) tbl.Properties.VariableNames, resdata.Data, ...
+        'UniformOutput', false);
+    dataVarNames = unique(cat(2, dataVarNames{:}));
+    partTimeMetavarIsExisted = ismember(partTimeMetavarName, dataVarNames);
     % change metavars and classes to real ones
-    [realMetavarsName, iMetavar] = intersect(metavarsName, realMetavarsName, 'stable');
-    realMetavarsClass = metavarsClass(iMetavar);
+    [realMetavarNames, iMetavar] = intersect(metavarNames, dataVarNames, 'stable');
+    realMetavarsClass = metavarClses(iMetavar);
 
     % impute missing real metadata and merge metadata from all tasks
     for iTask = 1:height(resdata)
         curTaskData = resdata.Data{iTask};
         curTaskVars = curTaskData.Properties.VariableNames;
-        curTaskMetaExisted = ismember(realMetavarsName, curTaskVars);
+        curTaskMetaExisted = ismember(realMetavarNames, curTaskVars);
         if ~all(curTaskMetaExisted)
             % get all the missing meta variables index as a row vector
             curTaskMetaMissIdx = find(~curTaskMetaExisted);
             curTaskMetaMissIdx = reshape(curTaskMetaMissIdx, 1, length(curTaskMetaMissIdx));
             for iMetavar = curTaskMetaMissIdx
                 % impute metadata as missing values
-                curMetavarName = realMetavarsName{iMetavar};
+                curMetavarName = realMetavarNames{iMetavar};
                 curMetavarClass = realMetavarsClass{iMetavar};
                 switch curMetavarClass
                     case 'numeric'
@@ -112,84 +99,35 @@ if nTasks > 0
         resdata.Data{iTask} = curTaskData;
     end
     % merge metadata from all the tasks
-    resMetadata = cellfun(@(tbl) tbl(:, realMetavarsName), resdata.Data, ...
+    resMetadata = cellfun(@(tbl) tbl(:, realMetavarNames), resdata.Data, ...
         'UniformOutput', false);
     resMetadata = cat(1, resMetadata{:});
 
     % check all the real metadata 
     fprintf('Now do some transformation to metadata, e.g., change Chinese numeric string to arabic.\n')
-    for iMetavar = 1:length(realMetavarsName)
+    for iMetavar = 1:length(realMetavarNames)
         initialVars = who;
-        curMetavarName = realMetavarsName{iMetavar};
-        curMetavarClass = realMetavarsClass{iMetavar};
+        curMetavarName = realMetavarNames{iMetavar};
         curMetadata = resMetadata.(curMetavarName);
-        curMetadataClass = class(curMetadata);
-        if ~isa(curMetadata, curMetavarClass)
-            warning('UDF:MERGES:MetaTypeMismatch', ...
-                'The type for metadata variable %s is %s, and mismatches the supposed type %s.', ...
-                curMetavarName, curMetadataClass, curMetavarClass);
-            fprintf(logfid, ...
-                '[%s] The type for metadata variable %s is %s, and mismatches the supposed type %s.\n', ...
-                datestr(now), curMetavarName, curMetadataClass, curMetavarClass);
-            fprintf('Try to transform mismatched metadata.\n')
-            metaTypeMismatch = true;
-        else
-            metaTypeMismatch = false;
-        end
         metaTypeWarnTransFailed = false;
-        metaTypeErrInvalid = false;
         switch curMetavarName
-            case 'userId'
-                if metaTypeMismatch
-                    % if stored as cellstr, transform to double
-                    if iscellstr(curMetadata)
-                        curMetadata = str2double(curMetadata);
-                        if any(isnan(curMetadata))
-                            metaTypeWarnTransFailed = true;
-                        end
-                    else % otherwise throw an error
-                        metaTypeErrInvalid = true;
-                    end
-                end
             case {'name', 'sex', 'school'}
-                if metaTypeMismatch
-                    if isnumeric(curMetadata)
-                        curMetadata = cellfun(@num2str, num2cell(curMetadata), ...
-                            'UniformOutput', false);
-                    elseif ischar(curMetadata)
-                        curMetadata = num2cell(curMetadata, 2);
-                    else
-                        metaTypeErrInvalid = true;
-                    end
-                end
                 % remove spaces in the names because they are in Chinese
                 curMetadata = regexprep(curMetadata, '\s+', '');
             case {'grade', 'cls'}
-                if metaTypeMismatch
-                    if iscellstr(curMetadata)
-                        cellMetadata = curMetadata;
-                        % arabic numeric string to arabic number
-                        matMetadata = str2double(cellMetadata);
-                        % Chinese numeic string to arabic number
-                        matMetadata(isnan(matMetadata)) = ...
-                            cellfun(@cn2digit, cellMetadata(isnan(matMetadata)));
-                        if any(isnan(matMetadata))
-                            metaTypeWarnTransFailed = true;
-                        end
-                        curMetadata = matMetadata;
-                    else
-                        metaTypeErrInvalid = true;
-                    end
+                cellMetadata = curMetadata;
+                cellstrLoc = cellfun(@ischar, cellMetadata);
+                cellstrMetadata = cellMetadata(cellstrLoc);
+                % arabic numeric string to arabic number
+                matMetadata = str2double(cellstrMetadata);
+                % Chinese numeic string to arabic number
+                matMetadata(isnan(matMetadata)) = ...
+                    cellfun(@cn2digit, cellstrMetadata(isnan(matMetadata)));
+                if any(isnan(matMetadata))
+                    metaTypeWarnTransFailed = true;
                 end
-            case 'datetime'
-                if metaTypeMismatch
-                    try
-                        curMetadata = datetime(curMetadata);
-                    catch
-                        metaTypeWarnTransFailed = true;
-                        curMetadata = NaT(size(curMetadata));
-                    end
-                end
+                curMetadata(cellstrLoc) = num2cell(matMetadata);
+                curMetadata = cell2mat(curMetadata);
         end
         % display warning/error message in case failed
         if metaTypeWarnTransFailed
@@ -200,13 +138,6 @@ if nTasks > 0
                 '[%s] Some cases of metadata variable %s failed to transform.\n', ...
                 datestr(now), curMetavarName);
         end
-        if metaTypeErrInvalid
-            fprintf(logfid, ...
-                '[%s] Not valid type for metadata variable %s, the program will terminate.\n', datestr(now), curMetavarName);
-            fclose(logfid);
-            error('UDF:MERGES:MetaTypeInvalid', ...
-                'Not a valid type for metadata variable %s', curMetavarName)
-        end
         resMetadata.(curMetavarName) = curMetadata;
         clearvars('-except', initialVars{:})
     end
@@ -215,10 +146,10 @@ if nTasks > 0
     fprintf('Now remove repetitions in the metadata. Probably will takes some time.\n')
     % remove complete missing metadata variables
     incompAllMetaColIdx = all(ismissing(resMetadata), 1);
-    realMetavarsName(incompAllMetaColIdx) = [];
+    realMetavarNames(incompAllMetaColIdx) = [];
     realMetavarsClass(incompAllMetaColIdx) = [];
     resMetadata(:, incompAllMetaColIdx) = [];
-    nRealMetavars = length(realMetavarsName);
+    nRealMetavars = length(realMetavarNames);
     % remove repetions not considering NaNs, NaTs
     resMetadata = unique(resMetadata);
     % will try to merge incomlete metadata
@@ -242,14 +173,14 @@ if nTasks > 0
                     incompMetaMrg(:, iMetavar) = {NaT};
             end
         end
-        incompMetaMrg = cell2table(incompMetaMrg, 'VariableNames', realMetavarsName);
+        incompMetaMrg = cell2table(incompMetaMrg, 'VariableNames', realMetavarNames);
         incompMetaMrg.(keyMetavarName) = incompKeys;
         % add existing info to the preallocated metadata
         for iIncomp = 1:length(incompKeys)
             curIncompKey = incompKeys(iIncomp);
             curKeyMetadata = incompMetadata(incompMetadata.userId == curIncompKey, :);
             for iMetavar = 1:nRealMetavars
-                curMetavarName = realMetavarsName{iMetavar};
+                curMetavarName = realMetavarNames{iMetavar};
                 if ~strcmp(curMetavarName, keyMetavarName)
                     curUsrSnglMetadata = curKeyMetadata.(curMetavarName);
                     curUsrSnglMetaMSPattern = ismissing(curUsrSnglMetadata);
@@ -262,12 +193,14 @@ if nTasks > 0
                 end
             end
         end
+    else
+        incompMetaMrg = incompMetadata;
     end
     mrgmeta = sortrows([compMetadata; incompMetaMrg], keyMetavarName);
     
     % transform metadata type.
-    for iMetavar = 1:length(realMetavarsName)
-        curMetavarName = realMetavarsName{iMetavar};
+    for iMetavar = 1:length(realMetavarNames)
+        curMetavarName = realMetavarNames{iMetavar};
         curMetavarData = mrgmeta.(curMetavarName);
         switch curMetavarName
             case {'name', 'school'}
@@ -284,104 +217,108 @@ if nTasks > 0
         mrgmeta.(curMetavarName) = curMetavarData;
     end
 else
-    realMetavarsName = {};
+    realMetavarNames = {};
     mrgmeta = table;
 end
 
-% preallocate for the output.
-testIndices = mrgmeta;
-testTaskstat = mrgmeta;
-testMrgdata = mrgmeta;
-% for the retest
-retestIndices = mrgmeta;
-retestTaskstat = mrgmeta;
-retestMrgdata = mrgmeta;
+% get all the test kinds, test and retest
+testKinds = {'test', 'retest'};
+testOccurs = 1:2;
+% save metadata to all the output variables
+% ultimate index
+indices.(testKinds{1}) = mrgmeta;
+indices.(testKinds{2}) = mrgmeta;
+% calculation status
+status.(testKinds{1}) = mrgmeta;
+status.(testKinds{2}) = mrgmeta;
+% calculation results
+results.(testKinds{1}) = mrgmeta;
+results.(testKinds{2}) = mrgmeta;
+% variables to merge
+indiceVarName = 'index';
+statusVarName = 'status';
 % notation message
 fprintf('Now trying to merge all the data task by task. Please wait...')
 dispInfo = '';
-subDispInfo = '';
-nsubj = height(mrgmeta);
 % data transformation and merge
 for imrgtask = 1:nTasks
     initialVars = who;
+    % get the current task name
     curTaskIDName = taskIDNames{imrgtask};
-    fprintf(repmat('\b', 1, length(subDispInfo)));
+    % display processing information
     fprintf(repmat('\b', 1, length(dispInfo)));
     dispInfo = sprintf('\nNow merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
     fprintf(dispInfo);
-    % extract the data of current task.
+
+    % extract the data of current task
     curTaskData = resdata.Data(ismember(resdata.TaskIDName, curTaskIDName), :);
+    % gather when multiple versions found
     curTaskData = cat(1, curTaskData{:});
-    curTaskData.res = cat(1, curTaskData.res{:});
-    curTaskResVars = curTaskData.res.Properties.VariableNames;
-    if ~isempty(curTaskResVars)
-        % preallocate
-        testTaskstat.(curTaskIDName) = zeros(nsubj, 1);
-        testIndices.(curTaskIDName) = nan(nsubj, 1);
-        retestTaskstat.(curTaskIDName) = zeros(nsubj, 1);
-        retestIndices.(curTaskIDName) = nan(nsubj, 1);
-        %Use the taskIDName as the variable name precedence.
-        curTaskOutVars = strcat(curTaskIDName, '_', curTaskResVars);
-        testMrgdata = [testMrgdata, array2table(nan(nsubj, length(curTaskOutVars)), 'VariableNames', curTaskOutVars)]; %#ok<*AGROW>
-        retestMrgdata = [retestMrgdata, array2table(nan(nsubj, length(curTaskOutVars)), 'VariableNames', curTaskOutVars)];
-        subDispInfo = '';
-        for isubj = 1:nsubj
-            fprintf(repmat('\b', 1, length(subDispInfo)));
-            subDispInfo = sprintf('Subject %d/%d.', isubj, nsubj);
-            fprintf(subDispInfo);
-            %Missing/not measured -> 0; OK -> 1; Measured but not valid -> -1.
-            curID      = testTaskstat.userId(isubj);
-            curIDloc   = find(ismember(curTaskData.userId, curID));
-            curIDnPart = length(curIDloc);
-            curSubTaskData = curTaskData(curIDloc, :);
-            % find the entry of earlier date.
-            createTimeVar = intersect(curSubTaskData.Properties.VariableNames, {'createDate', 'createTime'});
-            [~, ind] = sort(curSubTaskData.(createTimeVar{:}));
-            if curIDnPart > 2
-                fprintf(logfid, strcat('[%s] More than two (%d) test phases found for subject ID: %d, in task: %s. ', ...
-                    'Will try to remain the earlist two only.\n'), datestr(now), curIDnPart, curID, curTaskIDName);
-            end
-            if curIDnPart > 0
-                if ismember(realMetavarsName, 'school')
-                    %The logic here is, if there is no school information
-                    %for current observation, set the observation as
-                    %missing data; if there is school information, if there
-                    %is any invalid value, set the observation as invalid.
-                    testTaskstat{isubj, curTaskIDName} = ~isundefined(testTaskstat(isubj, :).school) * ...
-                        (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
+
+    % extract results from data
+    curTaskRes = cat(1, curTaskData.res{:});
+    % get the result variable names
+    curTaskResVarNames = curTaskRes.Properties.VariableNames;
+    % join results to the right of data
+    curTaskData = [curTaskData, curTaskRes]; %#ok<AGROW>
+
+    % get the occur time for all the subjects
+    if ~isempty(curTaskResVarNames)
+        % separte data according occurrences
+        occurrences = grpstats(curTaskData, keyMetavarName, 'numel', 'DataVars', keyMetavarName);
+        occurs = ones(height(curTaskData), 1);
+        if ~all(occurrences.GroupCount == 1)
+            curTaskSubIDs = curTaskData.(keyMetavarName);
+            repeatIDs = unique(occurrences.(keyMetavarName)(occurrences.GroupCount > 1));
+            for irepeat = 1:length(repeatIDs)
+                curRepeatID = repeatIDs(irepeat);
+                curIDLoc = curTaskSubIDs == curRepeatID;
+                if partTimeMetavarIsExisted
+                    % use participate time to set the occur time
+                    [~, ~, occurs(curIDLoc)] = unique(curTaskData.(partTimeMetavarName)(curIDLoc));
                 else
-                    testTaskstat{isubj, curTaskIDName} = (-2 * (any(isnan(curSubTaskData.res{ind(1), :}))) + 1);
+                    % use the raw occur order to set the occur time
+                    occurs(curIDLoc) = 1:sum(curIDLoc);
                 end
-                testIndices{isubj, curTaskIDName} = curSubTaskData.index(ind(1));
-                testMrgdata{isubj, curTaskOutVars} = curSubTaskData.res{ind(1), :};
             end
-            if curIDnPart > 1
-                if ismember(realMetavarsName, 'school')
-                    %The logic here is the same as above.
-                    retestTaskstat.(curTaskIDName)(isubj) = ...
-                        ~isundefined(retestTaskstat(isubj, :).school) * ...
-                        (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
-                else
-                    retestTaskstat.(curTaskIDName)(isubj) = ...
-                        (-2 * (any(isnan(curSubTaskData.res{ind(2), :}))) + 1);
-                end
-                retestIndices.(curTaskIDName)(isubj) = curSubTaskData.index(ind(2));
-                retestMrgdata{isubj, curTaskOutVars} = curSubTaskData.res{ind(2), :};
-            end
+        end
+        % separate data into corresponding test kind
+        for iTestKind = 1:length(testKinds)
+            testKind = testKinds{iTestKind};
+            testKindTaskData = curTaskData(occurs == testOccurs(iTestKind), :);
+
+            % get the indices by outer join
+            indices.(testKind) = outerjoin(indices.(testKind), testKindTaskData, ...
+                'Keys', keyMetavarName, ...
+                'MergeKeys', true, ...
+                'RightVariables', indiceVarName);
+            % rename `indice` variable as the task ID name
+            indices.(testKind).Properties.VariableNames{indiceVarName} = curTaskIDName;
+
+            % get the status by outer join
+            status.(testKind) = outerjoin(status.(testKind), testKindTaskData, ...
+                'Keys', keyMetavarName, ...
+                'MergeKeys', true, ...
+                'RightVariables', statusVarName);
+            % rename `status` variable as the task ID name
+            status.(testKind).Properties.VariableNames{statusVarName} = curTaskIDName;
+
+             % get the results by outer join
+            results.(testKind) = outerjoin(results.(testKind), testKindTaskData, ...
+                'Keys', keyMetavarName, ...
+                'MergeKeys', true, ...
+                'RightVariables', curTaskResVarNames);
+            % add the task ID name to  reults variable to separate
+            results.(testKind).Properties.VariableNames(curTaskResVarNames)= ...
+                strcat(curTaskIDName, '_', curTaskResVarNames);
         end
     end
     clearvars('-except', initialVars{:});
 end
 % get all the resulting structures.
-indicesStruct.test = testIndices;
-indicesStruct.retest = retestIndices;
-mrgdataStruct.test = testMrgdata;
-mrgdataStruct.retest = retestMrgdata;
-taskstatStruct.test = testTaskstat;
-taskstatStruct.retest = retestTaskstat;
 usedTimeSecs = toc;
 usedTimeHuman = seconds2human(usedTimeSecs, 'full');
-fprintf('\nCongratulations! Data of %d task(s) merged completely this time.\n', nTasks);
+fprintf('Congratulations! Data of %d task(s) merged completely this time.\n', nTasks);
 fprintf('Returning without error!\nTotal time used: %s\n', usedTimeHuman);
 fprintf(logfid, '[%s] Completed merging without error.\n', datestr(now));
 fclose(logfid);
