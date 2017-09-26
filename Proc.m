@@ -60,7 +60,7 @@ if inputNameIsEmpty
 end
 
 % input task name validation and name transformation
-[taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, dataExtract.TaskID);
+[taskInputNames, taskIDs, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, dataExtract.TaskID);
 
 % variables used for logging and rate of progress
 ntasks4process = length(taskInputNames);
@@ -100,9 +100,10 @@ for itask = 1:ntasks4process
     else
         curTaskInputName = taskInputNames{itask};
     end
+    curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-    curtaskidx = ismember(dataExtract.TaskIDName, curTaskIDName);
+    curtaskidx = ismember(dataExtract.TaskID, curTaskID);
 
     % get current task index in raw data and extract current task data
     curTaskData = dataExtract.Data{curtaskidx};

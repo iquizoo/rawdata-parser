@@ -52,12 +52,13 @@ metavarNames = {'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay'};
 metavarClses = {'numeric', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'datetime'};
 
 % input task name validation and name transformation
-[taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
+[~, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
 % count the number of tasks to merge
-nTasks = length(taskInputNames);
+taskIDNames4Merge = unique(taskIDNames, 'stable');
+nTasks = length(taskIDNames4Merge);
 
 % remove tasks not to merge
-resdata(~ismember(resdata.TaskIDName, taskIDNames), :) = [];
+resdata(~ismember(resdata.TaskIDName, taskIDNames4Merge), :) = [];
 
 % metadata transformation (type conversion) and merge (different tasks)
 if nTasks > 0
@@ -250,22 +251,24 @@ results.(testKinds{2}) = mrgmeta;
 indiceVarName = 'index';
 statusVarName = 'status';
 % notation message
-fprintf('Now trying to merge all the data task by task. Please wait...')
+fprintf('Now trying to merge all the data task by task. Please wait...\n')
 dispInfo = '';
 % data transformation and merge
 for imrgtask = 1:nTasks
     initialVars = who;
     % get the current task name
-    curTaskIDName = taskIDNames{imrgtask};
+    curTaskIDName = taskIDNames4Merge{imrgtask};
     % display processing information
     fprintf(repmat('\b', 1, length(dispInfo)));
-    dispInfo = sprintf('\nNow merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
+    dispInfo = sprintf('Now merging task: %s(%d/%d).\n', curTaskIDName, imrgtask, nTasks);
     fprintf(dispInfo);
 
     % extract the data of current task
     curTaskData = resdata.Data(ismember(resdata.TaskIDName, curTaskIDName), :);
     % gather when multiple versions found
     curTaskData = cat(1, curTaskData{:});
+    % remove empty entries
+    curTaskData(cellfun(@isempty, curTaskData.res), :) = [];
 
     % extract results from data
     curTaskRes = cat(1, curTaskData.res{:});

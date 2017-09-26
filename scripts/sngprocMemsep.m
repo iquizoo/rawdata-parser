@@ -1,4 +1,4 @@
-function res = sngprocMemsep(RECORD, varPref, delimiter, varSuff)
+function res = sngprocMemsep(RECORD)
 %SNGPROCMEMSEP Does some basic data transformation to memory task.
 %
 %   Basically, the supported tasks are as follows:
@@ -7,38 +7,54 @@ function res = sngprocMemsep(RECORD, varPref, delimiter, varSuff)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-res = table;
-res.MRT = mean(RECORD.RT(RECORD.ACC == 1));
-res.ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
-%Code for each category of stimuli.
-oldcode = 1;
-simcode = 2;
-newcode = 3;
-%Overall hit and false alarm rate.
-oldTrials = RECORD(RECORD.SCat == oldcode, :);
-res.([varPref{1}, delimiter, varSuff{1}]) = length(oldTrials.ACC(oldTrials.ACC == 1)) / length(oldTrials.ACC);
-simTrials = RECORD(RECORD.SCat == simcode, :);
-res.([varPref{1}, delimiter, varSuff{2}]) = 1 - length(simTrials.ACC(simTrials.ACC == 1)) / length(simTrials.ACC);
-newTrials = RECORD(RECORD.SCat == newcode, :);
-res.([varPref{1}, delimiter, varSuff{3}]) = 1 - length(newTrials.ACC(newTrials.ACC == 1)) / length(newTrials.ACC);
-allNewTrials = RECORD(RECORD.SCat ~= oldcode, :);
-res.([varPref{1}, delimiter, varSuff{4}]) = 1 - length(allNewTrials.ACC(allNewTrials.ACC == 1)) / length(allNewTrials.ACC);
-%Run-wise hit and false alarm rate.
-runs = 1:2;
-for run = runs
-    curRunOldTrials = oldTrials(oldTrials.REP == run, :);
-    res.([varPref{run + 1}, delimiter, varSuff{1}]) = ...
-        length(curRunOldTrials.ACC(curRunOldTrials.ACC == 1)) / length(curRunOldTrials.ACC);
-    curRunSimTrials = simTrials(simTrials.REP == run, :);
-    res.([varPref{run + 1}, delimiter, varSuff{2}]) = ...
-        1 - length(curRunSimTrials.ACC(curRunSimTrials.ACC == 1)) / length(curRunSimTrials.ACC);
-    curRunNewTrials = newTrials(newTrials.REP == run, :);
-    res.([varPref{run + 1}, delimiter, varSuff{3}]) = ...
-        1 - length(curRunNewTrials.ACC(curRunNewTrials.ACC == 1)) / length(curRunNewTrials.ACC);
-    curRunAllNewTrials = allNewTrials(allNewTrials.REP == run, :);
-    res.([varPref{run + 1}, delimiter, varSuff{4}]) = ...
-        1 - length(curRunAllNewTrials.ACC(curRunAllNewTrials.ACC == 1)) / length(curRunAllNewTrials.ACC);
+% set RT of incorrect trials as nan
+RECORD.RT(RECORD.ACC ~= 1) = nan;
+% set ACC of non-response trials as nan
+RECORD.ACC(~ismember(RECORD.ACC, [0, 1])) = nan;
+
+respVars = {'ACC', 'RT'};
+
+% calculate overall RT and ACC
+RT = nanmean(RECORD.RT);
+ACC = nanmean(RECORD.ACC);
+
+% stimuli type code map
+origCodes = 1:3;
+typeNames = {'old', 'lure', 'irrelated'};
+condNames = {'rold', 'rnew', 'rnew'};
+typeMap = containers.Map(origCodes, typeNames);
+condMap = containers.Map(origCodes, condNames);
+RECORD.type = values(typeMap, num2cell(RECORD.SCat));
+RECORD.cond = values(condMap, num2cell(RECORD.SCat));
+
+% summary ACC and RT for each type
+typeSummaries = unstack(RECORD(:, [respVars, {'type'}]), respVars, 'type', ...
+    'AggregationFunction', @nanmean);
+% check if the results for each type exist or not
+typeSumVarNames = typeSummaries.Properties.VariableNames;
+chkTypeSumVars = strcat(repelem(respVars, length(typeNames)), '_', repmat(typeNames, 1, length(respVars)));
+for chkvar = chkTypeSumVars
+    if ~ismember(chkvar, typeSumVarNames)
+        typeSummaries.(chkvar{:}) = nan;
+    end
 end
-res.dprimeTM = sdt(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{3}]));
-res.dprimeFM = sdt(res.([varPref{1}, delimiter, varSuff{2}]), res.([varPref{1}, delimiter, varSuff{3}]));
-res.dprime   = sdt(res.([varPref{1}, delimiter, varSuff{1}]), res.([varPref{1}, delimiter, varSuff{4}]));
+% get the dprime for two kinds of new stimuli
+typeSummaries.dprime_lure = sdt(typeSummaries.ACC_old, 1 - typeSummaries.ACC_lure);
+typeSummaries.dprime_irrelated = sdt(typeSummaries.ACC_old, 1 - typeSummaries.ACC_irrelated);
+
+% summary ACC and RT for each cond
+condSummaries = unstack(RECORD(:, [respVars, {'cond'}]), respVars, 'cond', ...
+    'AggregationFunction', @nanmean);
+% check if the results for each cond exist or not
+condSumVarNames = condSummaries.Properties.VariableNames;
+chkCondSumVars = strcat(repelem(respVars, length(condNames)), '_', repmat(condNames, 1, length(respVars)));
+for chkvar = chkCondSumVars
+    if ~ismember(chkvar, condSumVarNames)
+        condSummaries.(chkvar{:}) = nan;
+    end
+end
+% get the dprime of treating all new as one condition
+condSummaries.dprime = sdt(condSummaries.ACC_rold, 1 - condSummaries.ACC_rnew);
+
+% store all the results
+res = [table(RT, ACC), condSummaries, typeSummaries];

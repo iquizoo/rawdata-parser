@@ -102,10 +102,10 @@ if inputNameIsEmpty
 end
 
 % input task name validation and name transformation
-[taskInputNames, taskIDs, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, dataTaskIDs);
+[taskInputNamesFull, taskIDs, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, dataTaskIDs);
 
 % variables for progressing statistics
-ntasks4process = length(taskInputNames);
+ntasks4process = length(taskInputNamesFull);
 nprocessed = 0;
 nignored = 0;
 
@@ -138,10 +138,10 @@ for itask = 1:ntasks4process
     initialVars = who;
 
     % get current task names
-    if isnumeric(taskInputNames)
-        curTaskInputName = num2str(taskInputNames(itask));
+    if isnumeric(taskInputNamesFull)
+        curTaskInputName = num2str(taskInputNamesFull(itask));
     else
-        curTaskInputName = taskInputNames{itask};
+        curTaskInputName = taskInputNamesFull{itask};
     end
     curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};

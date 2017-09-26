@@ -39,7 +39,7 @@ dataTransNames = dataFieldNames;
 for iTask = 1:length(taskIDs)
     switch taskIDs(iTask)
         case {99991, 97967} % 'AssocMemory'
-            dataFieldNames{iTask} = 'tconditions';
+            dataFieldNames{iTask} = 'tconditions|data';
         case 99986 % 'SemanticMemory'
             dataFieldNames{iTask} = 'sconditions&tconditions';
             dataTransNames{iTask} = 's&t';

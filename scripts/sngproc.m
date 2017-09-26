@@ -45,23 +45,6 @@ resvarsuff   = par.Results.Condition;
 taskSTIMMap  = par.Results.StimulusMap;
 method       = par.Results.Method;
 rmanml       = par.Results.RemoveAbnormal;
-% Get all the output variable names.
-% coupleVars are formatted out variables.
-varscat = strsplit(tasksettings.VarsCat{:});
-varscond = strsplit(tasksettings.VarsCond{:});
-if all(cellfun(@isempty, varscond))
-    delimiterVC = '';
-else
-    delimiterVC = '_';
-end
-cpvars = strcat(repmat(varscat, 1, length(varscond)), delimiterVC, ...
-    repelem(varscond, 1, length(varscat)));
-% further required variables.
-sngvars = strsplit(tasksettings.VarsFull{:});
-% Out variables names are composed by three part.
-outvars = [cpvars, sngvars];
-% Remove empty strings.
-outvars(cellfun(@isempty, outvars)) = [];
 % Preallocation.
 comres = table; % Short of common results. Results calculated from analysis function, if existed.
 spres = table; % Short of special results. Results calculated in current function.
@@ -216,26 +199,21 @@ if ~isempty(rec)
         end
         rec = rec(starttrl:2:end, :);
     end
-    % Record the total time used if required.
-    if ismember('TotalTime', outvars)
-        spres.TotalTime = TotalTime;
-    end
-    % Record the number of correct trials if required.
-    if ismember('CountAccTrl', outvars)
-        spres.CountAccTrl = sum(rec.ACC == 1);
-    end
-    % Set the score.
+    % special result stores correct trials number and mean score
     if ismember('ACC', rec.Properties.VariableNames)
         % Record the total valid trials.
         spres.CountTotalTrl = sum(rec.ACC ~= -1);
+        % record correct trial numbers
+        spres.CountAccTrl = sum(rec.ACC == 1);
         % Total score and mean score (per minute).
-        if ismember('MeanScore', outvars)
+        if exist('TotalTime', 'var')
+            % stores total time used for the task
+            spres.TotalTime = TotalTime;
             % Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a
             % quadratic curve to transform.
-            rec.Score = 1.5 * rec.ACC .^ 2 + 0.5 * rec.ACC - 1;
-            TotalScore = sum(rec.Score);
-            spres.TotalScore = TotalScore;
-            if ~exist('TotalTime', 'var') || TotalTime == 0 % TotalTime is unknown!
+            scores = 1.5 * rec.ACC .^ 2 + 0.5 * rec.ACC - 1;
+            TotalScore = sum(scores);
+            if TotalTime == 0 % TotalTime is unknown!
                 spres.MeanScore = nan;
             else
                 spres.MeanScore = TotalScore / (TotalTime / (1000 * 60));
@@ -247,12 +225,7 @@ if ~isempty(rec)
         % Note: sngproc means 'single task processing'.
         anafunstr = ['sngproc', anafunsuff];
         anafun = str2func(anafunstr);
-        switch nargin(anafunstr)
-            case 1
-                comres = anafun(rec);
-            case 4
-                comres = anafun(rec, varscat, delimiterVC, varscond);
-        end
+        comres = anafun(rec);
     end
     res = cat(2, comres, spres);
     % Get all the variable names of current res table.
@@ -277,15 +250,9 @@ if ~isempty(rec)
             end
         end
     end
-    if ~isempty(outvars)
-        res(:, ~ismember(curTaskResVarNames, outvars)) = [];
-        missVars = outvars(~ismember(outvars, curTaskResVarNames));
-        for imiss = 1:length(missVars)
-            res.(missVars{imiss}) = nan;
-        end
-    end
 else
-    res = array2table(nan(1, length(outvars)), 'VariableNames', outvars);
+    % if no record found return an empty table
+    res = table;
 end % if ~isempty(RECORD)
 % Add the suffix to the results table variable names if not empty.
 if ~isempty(resvarsuff)
