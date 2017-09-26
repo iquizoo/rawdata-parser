@@ -15,8 +15,10 @@ unitMap = containers.Map(unitCNs, unitArabic);
 
 % invalid character appears
 if ~all(ismember(cn, strjoin([digitCNs; unitCNs])))
-    error('UDF:CN2DIGIT:NotSuppCharCN', ...
-        'The Chinese numeric string has one or more invalid character. Please check!')
+    warning('UDF:CN2DIGIT:NotSuppCharCN', ...
+        'The Chinese numeric string has one or more invalid character. Please check! NaN returned.')
+    num = NaN;
+    return
 end
 
 % preallocations and settings
@@ -53,7 +55,7 @@ for ichar = 1:nchar
         % one of two contiguous unit characters must be a modifer
         if lastIsUnit && ~lastIsModUnit
             writtenErr = true;
-            errMsg = 'One of two contiguous unit characters must be a modifer.';
+            warnMsg = 'One of two contiguous unit characters must be a modifer.';
             break
         end
         % update current unit info
@@ -70,14 +72,14 @@ for ichar = 1:nchar
             % modifier unit cannot be the first (ichar == nchar) character;
             if ichar == nchar
                 writtenErr = true;
-                errMsg = 'Modifier unit cannot be the first character.';
+                warnMsg = 'Modifier unit cannot be the first character.';
             end
             % when the modifier unit is not the last (ichar == 1)
             % character, there would be a unit check (see below)
             if ichar ~= 1 && ~lastIsZeroDigit && ...
                     (curUnit * curModUnit) / (lastUnit * lastModUnit) ~= 10
                 writtenErr = true;
-                errMsg = 'Two contiguous units are not 10 times difference.';
+                warnMsg = 'Two contiguous units are not 10 times difference.';
                 break
             end
         else
@@ -86,7 +88,7 @@ for ichar = 1:nchar
             % character denoting 0 should be placed
             if ~lastIsZeroDigit && ~lastIsModUnit && curUnit / lastUnit ~= 10
                 writtenErr = true;
-                errMsg = 'Two contiguous units are not 10 times difference.';
+                warnMsg = 'Two contiguous units are not 10 times difference.';
                 break
             end
             lastIsModUnit = false;
@@ -107,19 +109,19 @@ for ichar = 1:nchar
             % zero cannot appears before a unit character
             if lastIsUnit
                 writtenErr = true;
-                errMsg = 'Zero cannot appears before a unit character.';
+                warnMsg = 'Zero cannot appears before a unit character.';
                 break
             end
             if ichar == 1
                 writtenErr = true;
-                errMsg = 'Zero cnnot appears at the last.';
+                warnMsg = 'Zero cnnot appears at the last.';
             end
         else
             lastIsZeroDigit = false;
             % if two digit characters are next to each, one must denote 0
             if lastIsDigit
                 writtenErr = true;
-                errMsg = 'Two non-zero digit characters cannot be contiguous.';
+                warnMsg = 'Two non-zero digit characters cannot be contiguous.';
                 break
             end
         end
@@ -133,5 +135,6 @@ end
 
 % throw an exception when not correctly written
 if writtenErr
-    error('UDF:CN2DIGIT:WrongWritten', errMsg)
+    warning('UDF:CN2DIGIT:WrongWritten', '%s, NaN returned.', warnMsg)
+    num = NaN;
 end

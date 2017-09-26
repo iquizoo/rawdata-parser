@@ -48,10 +48,8 @@ partTimeMetavarName = 'createTime';
 partTimeMetavarIsExisted = false;
 % all the possible metavars
 metavarNames = {'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay'};
-% % some metadata variables could have aliases, use `|` to separate
-% metavarOpts = {'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay'};
 % classes of metadata variables
-metavarClses = {'numeric', 'cell', 'cell', 'cell', 'numeric', 'numeric', 'datetime'};
+metavarClses = {'numeric', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'datetime'};
 
 % input task name validation and name transformation
 [taskInputNames, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
@@ -115,28 +113,38 @@ if nTasks > 0
                 % remove spaces in the names because they are in Chinese
                 curMetadata = regexprep(curMetadata, '\s+', '');
             case {'grade', 'cls'}
-                cellMetadata = curMetadata;
-                cellstrLoc = cellfun(@ischar, cellMetadata);
-                cellstrMetadata = cellMetadata(cellstrLoc);
-                % arabic numeric string to arabic number
-                matMetadata = str2double(cellstrMetadata);
-                % Chinese numeic string to arabic number
-                matMetadata(isnan(matMetadata)) = ...
-                    cellfun(@cn2digit, cellstrMetadata(isnan(matMetadata)));
-                if any(isnan(matMetadata))
+                % find the string and numeric metadata locations
+                cellstrLoc = cellfun(@ischar, curMetadata);
+                cellnumLoc = cellfun(@isnumeric, curMetadata);
+                % transform numeric type to string type
+                curMetadata(cellnumLoc) = cellfun(@num2str, curMetadata(cellnumLoc), ...
+                    'UniformOutput', false);
+                % transform non-string/numeric metadata to empty string
+                curMetadata(~cellstrLoc & ~cellnumLoc) = {''};
+
+                % try to transform non-digit string to digit string
+                nondigitLoc = cellfun(@(str) ~all(isstrprop(str, 'digit')), curMetadata);
+                nondigitMetadata = curMetadata(nondigitLoc);
+                transMetadata = cellfun(@cn2digit, nondigitMetadata, 'UniformOutput', false);
+                nanTransLoc = cellfun(@isnan, transMetadata);
+                if any(nanTransLoc)
+                    % NaN returned, 
                     metaTypeWarnTransFailed = true;
+                    msg = 'Failing: string to numeric, will use raw string for NaN locations.';
                 end
-                curMetadata(cellstrLoc) = num2cell(matMetadata);
-                curMetadata = cell2mat(curMetadata);
+                transMetadata(nanTransLoc) = nondigitMetadata(nanTransLoc);
+                transMetadata(~nanTransLoc) = cellfun(@num2str, transMetadata(~nanTransLoc), ...
+                    'UniformOutput', false);
+                curMetadata(nondigitLoc) = transMetadata;
         end
         % display warning/error message in case failed
         if metaTypeWarnTransFailed
             warning('UDF:MERGES:MetaTransFailed', ...
-                'Some cases of metadata variable %s failed to transform.', ...
-                curMetavarName)
+                'Some cases of `%s` metadata failed to transform. %s', ...
+                curMetavarName, msg)
             fprintf(logfid, ...
-                '[%s] Some cases of metadata variable %s failed to transform.\n', ...
-                datestr(now), curMetavarName);
+                '[%s] Some cases of `%s` metadata failed to transform. %s\n', ...
+                datestr(now), curMetavarName, msg);
         end
         resMetadata.(curMetavarName) = curMetadata;
         clearvars('-except', initialVars{:})
@@ -167,7 +175,7 @@ if nTasks > 0
             switch curMetavarClass
                 case 'numeric'
                     incompMetaMrg(:, iMetavar) = {nan};
-                case 'cell'
+                case 'cellstr'
                     incompMetaMrg(:, iMetavar) = {{''}};
                 case 'datetime'
                     incompMetaMrg(:, iMetavar) = {NaT};
@@ -208,10 +216,14 @@ if nTasks > 0
                     % change name/school cell string to string array.
                     curMetavarData = string(curMetavarData);
                 end
-            case {'grade', 'cls'}
-                % it is ordinal for grades.
+            case 'grade'
+                % it is ordinal for grades
                 curMetavarData = categorical(curMetavarData, 'ordinal', true);
+            case 'cls'
+                % classes are not ordinal
+                curMetavarData = categorical(curMetavarData);
             case 'sex'
+                % sex is also a nominal variable
                 curMetavarData = categorical(curMetavarData);
         end
         mrgmeta.(curMetavarName) = curMetavarData;
