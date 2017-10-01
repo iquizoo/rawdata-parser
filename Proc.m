@@ -88,7 +88,7 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
     ntasks4process);
 
 % record the time elapsed when preparation is done
-elapsedTime = toc;
+prepartionTime = toc;
 
 % process extracted data task-wise
 for itask = 1:ntasks4process
@@ -126,7 +126,7 @@ for itask = 1:ntasks4process
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
-        elapsedTime = toc;
+        elapsedTime = toc - prepartionTime;
         eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
         msgSuff = strcat('TimeRem:', eta);
     end
@@ -275,7 +275,7 @@ for itask = 1:ntasks4process
     curTaskData.index(~emptySubIdx) = ultIndex;
     dataExtract.Data{curtaskidx} = curTaskData;
     % store the time used
-    dataExtract.Time2Proc{curtaskidx} = seconds2human(toc - elapsedTime, 'full');
+    dataExtract.Time2Proc{curtaskidx} = seconds2human(toc - elapsedTime - prepartionTime, 'full');
 
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
@@ -285,7 +285,7 @@ end
 resdata = dataExtract(ismember(dataExtract.TaskIDName, taskIDNames(processed)), :);
 
 % display information of completion.
-fprintf('Congratulations! %d (succeeded) /%d (in total) processing task(s) completed this time.\n', nprocessed - nignored, ntasks4process);
+fprintf('Congratulations! %d (succeeded) /%d (in total) processing task(s) completed this time.\n', nprocessed, ntasks4process);
 fprintf('Returning without error!\nTotal time used: %s\n', seconds2human(toc, 'full'));
 
 % log the success

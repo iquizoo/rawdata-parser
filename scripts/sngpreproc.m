@@ -1,4 +1,4 @@
-function [splitRes, status] = sngpreproc(conditions, para)
+function [trialrec, status] = sngpreproc(rec, para)
 %SNGPREPROC Preprocessing the data of one single subject.
 %   [SPLITRES, STATUS] = SNGPREPROC(CONDITIONS, PARA) does the splitting jobs
 %   to conditions according to the parameters specified in para. The two
@@ -27,9 +27,7 @@ function [splitRes, status] = sngpreproc(conditions, para)
 %          ##############################
 
 status = 0;
-%Extract useful information form parameters.
-para   = para{:};
-if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
+if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(rec)
     %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters  = para.Delimiters{:};
@@ -46,14 +44,14 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
         %conditions
         recons          = cell(1, ncond);
         for icond = 1:ncond
-            curRecon      = regexp(conditions{:}, ...
+            curRecon      = regexp(rec, ...
                 ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
             recons{icond} = curRecon;
         end
     else
         conditionsNames = {'RECORD'};
         %By default, use the original conditions string.
-        recons          = conditions;
+        recons          = cellstr(rec);
     end
     %Rearrange parameters condition-wise.
     ncond = length(conditionsNames); %We have completed the condition splitting task.
@@ -117,11 +115,11 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
     trans    = cellfun(@(loc, chv) ~ismember(loc, chv), allLocs, charVars, ...
         'UniformOutput', false);
     %Routine split.
-    reconsTrialApart = cellfun(@(str) strsplit(str, delimiters(1)), recons, ...
+    trialrec = cellfun(@(str) strsplit(str, delimiters(1)), recons, ...
         'UniformOutput', false);
-    reconsTrialApart = cell2table(reconsTrialApart, 'VariableNames', conditionsNames);
+    trialrec = cell2table(trialrec, 'VariableNames', conditionsNames);
     for icond = 1:ncond
-        curCondTrials = reconsTrialApart.(conditionsNames{icond});
+        curCondTrials = trialrec.(conditionsNames{icond});
         if ~all(cellfun(@isempty, curCondTrials))
             curCondTrialsSplit    = cellfun(@(x) strsplit(x, delimiters(2)), ...
                 curCondTrials, 'UniformOutput', false);
@@ -131,30 +129,25 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && iscellstr(conditions)
             curCondNVars          = nVars{icond};
             curCondTrialsSplit(curCondTrialsSplitLen ~= curCondNVars) = {num2cell(nan(1, curCondNVars))};
             if all(curCondTrialsSplitLen ~= curCondNVars)
-                warning('UDF:SNGPREPROC:NOFORMATDATA', ...
-                    'Recorded data not correctly formatted. Please check!');
-                status = -1;
+                status = -3;
             end
             curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
             curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
             %Here cell type is used, because the RECORD have multiple rows.
-            reconsTrialApart.(conditionsNames{icond}) = ...
+            trialrec.(conditionsNames{icond}) = ...
                 {cell2table(curCondTrialsSplit, 'VariableNames', VarNames{icond})};
         else
-            warning('UDF:SNGPREPROC:MODE1ABNORMAL', ...
-                'No data for condition of %s.', conditionsNames{icond});
-            status = -1;
-            reconsTrialApart.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
+            status = -2;
+            trialrec.(conditionsNames{icond}) = {cell2table(cell(0, nVars{icond}), ...
                 'VariableNames', VarNames{icond})};
         end
     end
 else
-    warning('UDF:SNGPREPROC:NOPARASETTINGS', ...
-        'No parameters specification found.')
-    status = -2;
-    reconsTrialApart = table;
+    status = -1;
+    trialrec = table;
 end
-splitRes = {reconsTrialApart};
+% wrapped the data to a cell for the catenation
+trialrec = {trialrec};
 end
 
 function [VariablesNames, charVars] = varNamesSplit(curTaskPara, ncond)
