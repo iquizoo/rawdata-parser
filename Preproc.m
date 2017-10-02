@@ -143,10 +143,10 @@ for itask = 1:ntasks4process
     
     % update prompt information.
     completePercent = nprocessed / ntasks4process;
+    elapsedTime = toc - prepartionTime;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
-        elapsedTime = toc - prepartionTime;
         eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
         msgSuff = strcat('TimeRem:', eta);
     end
@@ -239,7 +239,7 @@ for itask = 1:ntasks4process
     dataExtract.TaskID(itask) = curTaskID;
     dataExtract.TaskIDName{itask} = curTaskIDName;
     dataExtract.Data{itask} = curTaskData;
-    dataExtract.Time2Preproc{itask} = seconds2human(toc - elapsedTime - prepartionTime, 'full');
+    dataExtract.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
     
     % clear redundant variables to save storage
     clearvars('-except', initialVars{:});

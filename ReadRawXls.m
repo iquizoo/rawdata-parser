@@ -22,6 +22,7 @@ addpath(helperFunPath);
 METAVARSOPTS = {'Taskname', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
 METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARCLSES = {'cell', 'double', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime'};
+TASKKEYVARNAME = 'excerciseId';
 
 % check source and destination input
 if isempty(src)
@@ -108,12 +109,14 @@ for ifile = 1:nfiles
             fprintf(dispinfo);
             except = false;
     end
+    nprocessed = nprocessed + 1;
     
     % extract data from file
     [curFileExtract, status] = sngreadxls(curFileFullname);
     if any(status == -1)
         except = true;
-        warning('UDF:READRAWXLS:DATAMISSING', 'Data of some users lost in file %s.', curFileFullname);
+        warning('UDF:READRAWXLS:DATAMISSING', 'Data of some users (total: %d) lost in file %s.', ...
+            sum(status == -1), curFileFullname);
     end
     % checking metadata type
     curFileVarNamesRaw = curFileExtract.Properties.VariableNames;
@@ -162,13 +165,13 @@ for ifile = 1:nfiles
     extracted = [extracted; curFileExtract]; %#ok<AGROW>
     clearvars('-except', initialVars{:})
 end
-% remove those with NaN `excerciseId`
-extracted(isnan(extracted.excerciseId), :) = [];
-% write data to text files
-taskIDs = unique(extracted.excerciseId);
+% remove entries with NaN task ID
+extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
+% write data to .csv files
+taskIDs = unique(extracted.(TASKKEYVARNAME));
 for itask = 1:length(taskIDs)
     taskID = taskIDs(itask);
-    taskExtracted = extracted(ismember(extracted.excerciseId, taskID), :);
+    taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
     writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
         'QuoteStrings', true, 'Delimiter', '\t', 'Encoding', 'UTF-8')
 end

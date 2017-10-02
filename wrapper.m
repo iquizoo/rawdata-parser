@@ -1,8 +1,5 @@
 function wrapper(varargin)
 %WRAPPER shows a method to a batch job of processing of data.
-%
-%   Note: data were saved in v7.3 format, which is only supported by R2006b
-%   or later.
 
 %   By Zhang, Liang. E-mail:psychelzh@gmail.com
 
@@ -47,12 +44,15 @@ end
 suffix = matlab.lang.makeValidName(rawsuff);
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
 if ~exist(resdir, 'dir'), mkdir(resdir); end
-svRawFileName  = fullfile(resdir, ['RawData', suffix]);
-svProcFileName = fullfile(resdir, ['ProcData', suffix]);
-svResFileName  = fullfile(resdir, ['CCDRes', suffix]);
-ldRawDataPath  = fullfile(rawdir, rawsuff);
-ldRawFileName  = fullfile(resdir, ['RawData', suffix]);
-ldProcFileName = fullfile(resdir, ['ProcData', suffix]);
+rawFilePrefix = 'raw_';
+resFilePrefix = 'res_';
+mrgFilePrefix = 'mrg_'
+svRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
+svResFileName = fullfile(resdir, [resFilePrefix, suffix]);
+svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
+ldRawDataPath = fullfile(rawdir, rawsuff);
+ldRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
+ldResFileName = fullfile(resdir, [resFilePrefix, suffix]);
 % start by checking the starting point
 if s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')
@@ -85,22 +85,22 @@ else
             'Method', method, ...
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
-            fprintf('Now saving processed data (resdata) as file %s...\n', svProcFileName)
-            save(svProcFileName, 'resdata', saveVer)
+            fprintf('Now saving processed data (resdata) as file %s...\n', svResFileName)
+            save(svResFileName, 'resdata', saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
             return
         end
     elseif s < 4 % s = 3 only
-        fprintf('Now reading processed data (resdata) from file %s...\n', ldProcFileName)
-        load(ldProcFileName, 'resdata')
+        fprintf('Now reading processed data (resdata) from file %s...\n', ldResFileName)
+        load(ldResFileName, 'resdata')
         fprintf('Reading done.\n')
     end
     if s < 4 % s = 1, 2, 3
         [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
-        fprintf('Now saving results data (mutiple variables) as file %s...\n', svResFileName)
-        save(svResFileName, 'indices', 'results', 'status', 'metavars', saveVer)
+        fprintf('Now saving results data (mutiple variables) as file %s...\n', svMrgFileName)
+        save(svMrgFileName, 'indices', 'results', 'status', 'metavars', saveVer)
         fprintf('Saving done.\n')
     end
 end

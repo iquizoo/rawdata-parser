@@ -123,10 +123,10 @@ for itask = 1:ntasks4process
     % prompt setting
     %  1. get the proportion of completion and estimated time of arrival
     completePercent = nprocessed / ntasks4process;
+    elapsedTime = toc - prepartionTime;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
-        elapsedTime = toc - prepartionTime;
         eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
         msgSuff = strcat('TimeRem:', eta);
     end
@@ -275,7 +275,7 @@ for itask = 1:ntasks4process
     curTaskData.index(~emptySubIdx) = ultIndex;
     dataExtract.Data{curtaskidx} = curTaskData;
     % store the time used
-    dataExtract.Time2Proc{curtaskidx} = seconds2human(toc - elapsedTime - prepartionTime, 'full');
+    dataExtract.Time2Proc{curtaskidx} = seconds2human(toc - elapsedTime, 'full');
 
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
