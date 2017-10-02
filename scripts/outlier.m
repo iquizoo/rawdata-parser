@@ -4,7 +4,7 @@ function [idx, ci] = outlier(x, outliermode)
 %   [IDX, CI] = OUTLIER(X, mode) calculates the index of the outliers in
 %   the vector X, and uses two types of modes:
 %       'mild'    means the whisker 1.5 * IQR.
-%       'extreme' means the whisker 3 * IQR. 
+%       'extreme' means the whisker 3 * IQR.
 %
 %   Reference:
 %   http://www.itl.nist.gov/div898/handbook/prc/section1/prc16.htm

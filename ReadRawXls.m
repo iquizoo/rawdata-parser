@@ -15,8 +15,8 @@ dest = par.Results.Destination;
 prompt = lower(par.Results.DisplayInfo);
 
 % add helper functions folder
-helperFunPath = 'scripts';
-addpath(helperFunPath);
+HELPERFUNPATH = 'scripts';
+addpath(HELPERFUNPATH);
 
 % metavars options
 METAVARSOPTS = {'Taskname', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
@@ -36,7 +36,7 @@ if isempty(src)
             src = uigetdir('DATA_RawData', 'Please select the folder of source data.');
         case 'Cancel'
             fprintf('User canceled. Returning.\n')
-            rmpath(helperFunPath)
+            rmpath(HELPERFUNPATH)
             return
     end
 end
@@ -110,7 +110,7 @@ for ifile = 1:nfiles
             except = false;
     end
     nprocessed = nprocessed + 1;
-    
+
     % extract data from file
     [curFileExtract, status] = sngreadxls(curFileFullname);
     if any(status == -1)
@@ -175,4 +175,4 @@ for itask = 1:length(taskIDs)
     writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
         'QuoteStrings', true, 'Delimiter', '\t', 'Encoding', 'UTF-8')
 end
-rmpath(helperFunPath)
+rmpath(HELPERFUNPATH)

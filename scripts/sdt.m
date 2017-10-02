@@ -4,7 +4,7 @@ function [dprime, c] = sdt(HR, FAR, ntrial)
 %   detection theory. HR and FAR are respectively the hit rate and false
 %   alarm rate.
 %
-%   Reference: 
+%   Reference:
 %   Stanislaw H and Todorov N (1999) "Calculation of signal
 %   detection theory measures" Behavior Research Methods, Instruments, &
 %   Computers 31 (1), 137-149

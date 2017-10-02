@@ -40,8 +40,8 @@ logfid = fopen('preproc(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), datapath);
 
 % add helper functions folder
-helperFunPath = 'scripts';
-addpath(helperFunPath);
+HELPERFUNPATH = 'scripts';
+addpath(HELPERFUNPATH);
 
 % display notation message.
 fprintf('Now extract information from raw data.\n');
@@ -56,26 +56,29 @@ taskInputNames = par.Results.TaskNames;
 prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
 
-% load settings, parameters, task names, etc.
-configpath = 'config';
-readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
-settings = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
-para = readtable(fullfile(configpath, 'para.csv'), readparas{:});
-taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
-% metavars options
+% the data strings are stored in `DATAVARNAME`
 DATAVARNAME = 'rec';
+% the original data are stored in format `DATAFORMAT`
+DATAFORMAT = '.csv';
+% configuration path and reading arguments
+CONFIGPATH = 'config';
+READPARAS = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+
+% load settings
+settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
+para = readtable(fullfile(CONFIGPATH, 'para.csv'), READPARAS{:});
+taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
 
 % throw an error when the specified path is not found
 if ~exist(datapath, 'dir')
     fprintf(logfid, '[%s] Error: specified data path %s does not exist.\n', ...
         datestr(now),datapath);
     fclose(logfid);
-    rmpath(helperFunPath)
+    rmpath(HELPERFUNPATH)
     error('UDF:PREPROC:DATAFILEWRONG', 'Data path %s not found, please check!', datapath)
 end
 % get all the data file informations, which are named after task IDs
-dataformat = '.csv';
-dataFiles = dir(fullfile(datapath, ['*', dataformat]));
+dataFiles = dir(fullfile(datapath, ['*', DATAFORMAT]));
 % get all the task ids
 [~, dataTaskIDs] = cellfun(@fileparts, {dataFiles.name}', 'UniformOutput', false);
 dataTaskIDs = str2double(dataTaskIDs);
@@ -88,7 +91,7 @@ inputNameNotSingle = (isnumeric(taskInputNames) && length(taskInputNames) > 1) |
 if (inputNameIsEmpty || inputNameNotSingle) && ~isempty(dbentry)
     fprintf(logfid, '[%s] Error, not enough input parameters.\n', datestr(now));
     fclose(logfid);
-    rmpath(helperFunPath)
+    rmpath(HELPERFUNPATH)
     error('UDF:PREPROC:DEBUGWRONGPAR', '(Only one) task name must be set when using debug mode.');
 end
 % set to preprocess all the tasks if not specified and not in debug mode
@@ -130,7 +133,7 @@ prepartionTime = toc;
 % preprocess task by task
 for itask = 1:ntasks4process
     initialVars = who;
-    
+
     % get current task names
     if isnumeric(taskInputNamesFull)
         curTaskInputName = num2str(taskInputNamesFull(itask));
@@ -140,7 +143,7 @@ for itask = 1:ntasks4process
     curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-    
+
     % update prompt information.
     completePercent = nprocessed / ntasks4process;
     elapsedTime = toc - prepartionTime;
@@ -174,7 +177,7 @@ for itask = 1:ntasks4process
     fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % update processed tasks number.
     nprocessed = nprocessed + 1;
-    
+
     % find out the setting of current task.
     locset = ismember(settings.TaskIDName, curTaskIDName);
     if ~any(locset)
@@ -184,16 +187,16 @@ for itask = 1:ntasks4process
         continue
     end
     curTaskSetting = settings(locset, :);
-    
+
     % read raw data file.
-    curTaskData = readtable(fullfile(datapath, [num2str(curTaskID), '.csv']), readparas{:});
+    curTaskData = readtable(fullfile(datapath, [num2str(curTaskID), '.csv']), READPARAS{:});
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
         curTaskData = curTaskData(dbentry, :);
         fprintf(logfid, '[%s] Begin to debug, recording can be misleading.', datestr(now));
         dbstop in sngpreproc
     end
-    
+
     % extract data string and replace it with the generated one
     curTaskDatastr = curTaskData.(DATAVARNAME);
     curTaskData.(DATAVARNAME) = [];
@@ -234,13 +237,13 @@ for itask = 1:ntasks4process
         end
         curTaskData.status = status;
     end
-    
+
     % store names, data and preprocess time
     dataExtract.TaskID(itask) = curTaskID;
     dataExtract.TaskIDName{itask} = curTaskIDName;
     dataExtract.Data{itask} = curTaskData;
     dataExtract.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
-    
+
     % clear redundant variables to save storage
     clearvars('-except', initialVars{:});
 end
@@ -251,4 +254,4 @@ fprintf('Returning without error!\nTotal time used: %s\n', seconds2human(toc, 'f
 fprintf(logfid, '[%s] Completed preprocessing without error.\n', datestr(now));
 fclose(logfid);
 if strcmp(prompt, 'waitbar'), delete(hwb); end
-rmpath(helperFunPath);
+rmpath(HELPERFUNPATH);

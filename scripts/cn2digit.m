@@ -2,14 +2,14 @@ function num = cn2digit(cn)
 
 % digit character mapping
 digitCNs = {...
-    '©–'; 'Ò»'; '¶þ'; 'Èý'; 'ËÄ'; 'Îå'; 'Áù'; 'Æß'; '°Ë'; '¾Å'; ...
-    'Áã'; 'Ò¼'; '·¡'; 'Èþ'; 'ËÁ'; 'Îé'; 'Â½'; 'Æâ'; '°Æ'; '¾Á'; ...
+    'ï¿½ï¿½'; 'Ò»'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; ...
+    'ï¿½ï¿½'; 'Ò¼'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'Â½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; 'ï¿½ï¿½'; ...
     };
 digitArabic = repmat((0:9)', 2, 1);
 digitMap = containers.Map(digitCNs, digitArabic);
 
 % unit character mapping
-unitCNs = {'Ê®'; '°Ù'; 'Ç§'; 'Ê°'; '°Û'; 'Çª'; 'Íò'; 'ÒÚ';};
+unitCNs = {'Ê®'; 'ï¿½ï¿½'; 'Ç§'; 'Ê°'; 'ï¿½ï¿½'; 'Çª'; 'ï¿½ï¿½'; 'ï¿½ï¿½';};
 unitArabic = [repmat(10 .^ [1, 2, 3]', 2, 1); 10000; 100000000];
 unitMap = containers.Map(unitCNs, unitArabic);
 
@@ -49,7 +49,7 @@ cnRev = cn(nchar:-1:1);
 % begin transforming
 for ichar = 1:nchar
     curChar = cnRev(ichar);
-    
+
     % unit character
     if ismember(curChar, unitCNs)
         % one of two contiguous unit characters must be a modifer
@@ -61,7 +61,7 @@ for ichar = 1:nchar
         % update current unit info
         lastUnit = curUnit;
         curUnit = unitMap(curChar);
-        
+
         % when modifier unit appears
         if curUnit == 10000 || curUnit == 100000000
             % update modifier unit

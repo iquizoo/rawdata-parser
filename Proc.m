@@ -15,8 +15,8 @@ logfid = fopen('proc(AutoGen).log', 'a');
 fprintf(logfid, '[%s] Start processing.\n', datestr(now));
 
 % add helper functions path
-helperFunPath = 'scripts';
-addpath(helperFunPath);
+HELPERFUNPATH = 'scripts';
+addpath(HELPERFUNPATH);
 
 % display notation message.
 fprintf('Now do some basic computation and transformation to the extracted data.\n');
@@ -24,10 +24,10 @@ fprintf('Now do some basic computation and transformation to the extracted data.
 dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 
 % load settings, task names.
-configpath = 'config';
-readparas = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
-settings = readtable(fullfile(configpath, 'settings.csv'), readparas{:});
-taskNameStore = readtable(fullfile(configpath, 'taskname.csv'), readparas{:});
+CONFIGPATH = 'config';
+READPARAS = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
+taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
 
 % parse and check input arguments.
 par = inputParser;
@@ -197,7 +197,7 @@ for itask = 1:ntasks4process
                     'Flanker', ...%Conflict
                     }
                 % get taskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable(fullfile(configpath, [curTaskIDName, '.csv']), readparas{:});
+                curTaskEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
                 curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
             case {'SemanticMemory'}
@@ -292,4 +292,4 @@ fprintf('Returning without error!\nTotal time used: %s\n', seconds2human(toc, 'f
 fprintf(logfid, '[%s] Completed processing without error.\n', datestr(now));
 fclose(logfid);
 if strcmp(prompt, 'waitbar'), delete(hwb); end
-rmpath(helperFunPath);
+rmpath(HELPERFUNPATH);
