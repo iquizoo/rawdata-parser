@@ -25,6 +25,6 @@ else
 end
 
 % transform data json string
-[data, status] = cellfun(@json2data, records.(DATA_KEY), num2cell(records.(TASK_KEY)));
+[rec, status] = cellfun(@json2rec, records.(DATA_KEY), num2cell(records.(TASK_KEY)));
 % horzcat to get form extracted
-extracted = [records(:, setdiff(recvars, DATA_KEY, 'stable')), cat(1, data{:})];
+extracted = [records(:, setdiff(recvars, DATA_KEY, 'stable')), cat(1, rec{:})];

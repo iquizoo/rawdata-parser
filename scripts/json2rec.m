@@ -1,11 +1,11 @@
-function [data, status] = json2data(jstr, id)
-%JSON2DATA transforms old-formatted json data.
+function [rec, status] = json2rec(jstr, id)
+%JSON2REC transforms old-formatted json data.
 
 % status is 0 (everything is okay) by default
 status = 0;
 % preallocate output
-VARS = {'rec', 'alltime', 'unitScore', 'computeJson'};
-data = cell2table({{''}, 0, -99, {''}}, ...
+VARS = {'data', 'alltime', 'unitScore', 'computeJson'};
+rec = cell2table({{''}, 0, -99, {''}}, ...
     'VariableNames', VARS);
 % decode json string
 extracted = jsondecode(jstr);
@@ -37,32 +37,32 @@ else
     end
 end
 
-% extract `rec` from json string
-% `recvarname` is the varible name of data in params
-% `recprefix` is not empty when there are more than one data string
+% extract `data` from json string
+% `datavarname` is the varible name of data in params
+% `dataprefix` is not empty when there are more than one data string
 switch id
     case {99991, 97967} % 'AssocMemory'
         % note '|' is used because all of these cases are possible
-        recvaropts = 'tconditions|data';
-        recprefix = '';
+        datavaropts = 'tconditions|data';
+        dataprefix = '';
     case 99986 % 'SemanticMemory'
-        recvaropts = 'sconditions&tconditions';
-        recprefix = 's&t';
+        datavaropts = 'sconditions&tconditions';
+        dataprefix = 's&t';
     case {100010, 100018, 97976} % 'DivAten1', 'DivAtten2'
-        recvaropts = 'lconditions|leftconditions|leftConditions&rconditions|rightconditions|rightConditions';
-        recprefix = 'left&right';
+        datavaropts = 'lconditions|leftconditions|leftConditions&rconditions|rightconditions|rightConditions';
+        dataprefix = 'left&right';
     otherwise
-        recvaropts = 'conditions|data|detail|datail|llog';
-        recprefix = '';
+        datavaropts = 'conditions|data|detail|datail|llog';
+        dataprefix = '';
 end
 % separate all the data conditions
-dataconds = cellfun(@(str) strsplit(str, '|'), strsplit(recvaropts, '&'), ...
+dataconds = cellfun(@(str) strsplit(str, '|'), strsplit(datavaropts, '&'), ...
     'UniformOutput', false);
 % found out the real variable names of all the conditions
 datavarnames = cellfun(@(strs) varnames(ismember(varnames, strs)), dataconds, ...
     'UniformOutput', false);
 % split prefixes
-prefixes = strsplit(recprefix, '&');
+prefixes = strsplit(dataprefix, '&');
 % extract data when data vars found
 if ~any(cellfun(@isempty, datavarnames))
     rawstr = cellfun(@(field) extracted.(field{:}), datavarnames, 'UniformOutput', false);
@@ -76,17 +76,17 @@ if ~any(cellfun(@isempty, prefixes))
 else
     datastr = rawstr;
 end
-data.(VARS{1}) = datastr;
+rec.(VARS{1}) = datastr;
 
 % store `alltime`
 if ismember('allTime', varnames)
-    data.(VARS{2}) = extracted.allTime;
+    rec.(VARS{2}) = extracted.allTime;
 end
 
 % store unite score
 realscoreVar = intersect({'unitScore', 'score'}, varnames);
 if ~isempty(realscoreVar)
-    data.(VARS{3}) = extracted.(realscoreVar{:});
+    rec.(VARS{3}) = extracted.(realscoreVar{:});
 else
     status = -2;
 end
@@ -94,11 +94,11 @@ end
 % store computation json
 realcompVar = intersect({'computeJson', 'sdk'}, varnames);
 if ~isempty(realcompVar)
-    data.(VARS{4}) = cellstr(extracted.(realcompVar{:}));
+    rec.(VARS{4}) = cellstr(extracted.(realcompVar{:}));
 else
     status = -3;
 end
 
 % wrapped the data to a cell for the catenation (hope a better version in
 % future)
-data = {data};
+rec = {rec};

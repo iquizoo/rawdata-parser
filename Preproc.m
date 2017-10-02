@@ -57,7 +57,7 @@ prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
 
 % the data strings are stored in `DATAVARNAME`
-DATAVARNAME = 'rec';
+DATAVARNAME = 'data';
 % the original data are stored in format `DATAFORMAT`
 DATAFORMAT = '.csv';
 % configuration path and reading arguments
