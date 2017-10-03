@@ -39,7 +39,7 @@ end
 
 % load settings, parameters, task names, etc.
 CONFIGPATH = 'config';
-READPARAS = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
 taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
 % the unique key variable name
 KEYMETAVARNAME = 'userId';
@@ -48,7 +48,7 @@ TIMEMETAVARNAME = 'createTime';
 % all the possible metavars
 METAVARNAMES = {'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay'};
 % classes of metadata variables
-METAVARCLSES = {'numeric', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'cellstr', 'datetime'};
+METAVARTYPES = {'double', 'string', 'categorical', 'string', 'categorical', 'categorical', 'datetime'};
 
 % input task name validation and name transformation
 [~, ~, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, resdata.TaskID);
@@ -68,7 +68,7 @@ if nTasks > 0
     dataVarNames = unique(cat(2, dataVarNames{:}));
     % change metavars and classes to real ones
     [realMetavarNames, iMetavar] = intersect(METAVARNAMES, dataVarNames, 'stable');
-    realMetavarsClass = METAVARCLSES(iMetavar);
+    realMetavarsType = METAVARTYPES(iMetavar);
 
     % impute missing real metadata and merge metadata from all tasks
     for iTask = 1:height(resdata)
@@ -77,84 +77,25 @@ if nTasks > 0
         curTaskMetaExisted = ismember(realMetavarNames, curTaskVars);
         if ~all(curTaskMetaExisted)
             % get all the missing meta variables index as a row vector
-            curTaskMetaMissIdx = find(~curTaskMetaExisted);
-            curTaskMetaMissIdx = reshape(curTaskMetaMissIdx, 1, length(curTaskMetaMissIdx));
-            for iMetavar = curTaskMetaMissIdx
-                % impute metadata as missing values
-                curMetavarName = realMetavarNames{iMetavar};
-                curMetavarClass = realMetavarsClass{iMetavar};
-                switch curMetavarClass
-                    case 'numeric'
-                        curTaskData.(curMetavarName) = nan(height(curTaskData), 1);
-                    case 'cellstr'
-                        curTaskData.(curMetavarName) = repmat({''}, height(curTaskData), 1);
-                    case 'datetime'
-                        curTaskData.(curMetavarName) = NaT(height(curTaskData), 1);
-                end
+            curTaskMissMetavars = realMetavarNames(~curTaskMetaExisted);
+            for iMetavar = 1:length(curTaskMissMetavars)
+                % replace missing metadata as `missing`
+                curTaskData.(curTaskMissMetavars{iMetavar}) = repmat(missing, height(curTaskData), 1);
             end
+            resdata.Data{iTask} = curTaskData;
         end
-        resdata.Data{iTask} = curTaskData;
     end
     % merge metadata from all the tasks
     resMetadata = cellfun(@(tbl) tbl(:, realMetavarNames), resdata.Data, ...
         'UniformOutput', false);
     resMetadata = cat(1, resMetadata{:});
 
-    % check all the real metadata
-    fprintf('Now do some transformation to metadata, e.g., change Chinese numeric string to arabic.\n')
-    for iMetavar = 1:length(realMetavarNames)
-        initialVars = who;
-        curMetavarName = realMetavarNames{iMetavar};
-        curMetadata = resMetadata.(curMetavarName);
-        metaTypeWarnTransFailed = false;
-        switch curMetavarName
-            case {'name', 'sex', 'school'}
-                % remove spaces in the names because they are in Chinese
-                curMetadata = regexprep(curMetadata, '\s+', '');
-            case {'grade', 'cls'}
-                % find the string and numeric metadata locations
-                cellstrLoc = cellfun(@ischar, curMetadata);
-                cellnumLoc = cellfun(@isnumeric, curMetadata);
-                % transform numeric type to string type
-                curMetadata(cellnumLoc) = cellfun(@num2str, curMetadata(cellnumLoc), ...
-                    'UniformOutput', false);
-                % transform non-string/numeric metadata to empty string
-                curMetadata(~cellstrLoc & ~cellnumLoc) = {''};
-
-                % try to transform non-digit string to digit string
-                nondigitLoc = cellfun(@(str) ~all(isstrprop(str, 'digit')), curMetadata);
-                nondigitMetadata = curMetadata(nondigitLoc);
-                transMetadata = cellfun(@cn2digit, nondigitMetadata, 'UniformOutput', false);
-                nanTransLoc = cellfun(@isnan, transMetadata);
-                if any(nanTransLoc)
-                    % some entries cannot be correctly transformed
-                    metaTypeWarnTransFailed = true;
-                    msg = 'Failing: string to numeric, will use raw string for NaN locations.';
-                end
-                transMetadata(nanTransLoc) = nondigitMetadata(nanTransLoc);
-                transMetadata(~nanTransLoc) = cellfun(@num2str, transMetadata(~nanTransLoc), ...
-                    'UniformOutput', false);
-                curMetadata(nondigitLoc) = transMetadata;
-        end
-        % display warning/error message in case failed
-        if metaTypeWarnTransFailed
-            warning('UDF:MERGES:MetaTransFailed', ...
-                'Some cases of `%s` metadata failed to transform. %s', ...
-                curMetavarName, msg)
-            fprintf(logfid, ...
-                '[%s] Some cases of `%s` metadata failed to transform. %s\n', ...
-                datestr(now), curMetavarName, msg);
-        end
-        resMetadata.(curMetavarName) = curMetadata;
-        clearvars('-except', initialVars{:})
-    end
-
     % remove repetitions in the merged metadata
     fprintf('Now remove repetitions in the metadata. Probably will takes some time.\n')
     % remove complete missing metadata variables
     incompAllMetaColIdx = all(ismissing(resMetadata), 1);
     realMetavarNames(incompAllMetaColIdx) = [];
-    realMetavarsClass(incompAllMetaColIdx) = [];
+    realMetavarsType(incompAllMetaColIdx) = [];
     resMetadata(:, incompAllMetaColIdx) = [];
     nRealMetavars = length(realMetavarNames);
     % remove repetions not considering NaNs, NaTs
@@ -162,31 +103,39 @@ if nTasks > 0
     % will try to merge incomlete metadata
     incompAnyMetaRowIdx = any(ismissing(resMetadata), 2);
     compMetadata = resMetadata(~incompAnyMetaRowIdx, :);
+    compKeys = compMetadata.(KEYMETAVARNAME);
     incompMetadata = resMetadata(incompAnyMetaRowIdx, :);
+    incompKeys = incompMetadata.(KEYMETAVARNAME);
+    incompExKeys = setdiff(incompKeys, compKeys);
     % if there are incomplete meta data, merge them by key variable
-    if ~isempty(incompMetadata)
-        % preallocate a table for all the incomplete metadata cases
-        incompKeys = unique(incompMetadata.(KEYMETAVARNAME));
-        nIncmpKeys = length(incompKeys);
-        incompMetaMrg = cell(nIncmpKeys, nRealMetavars);
+    if ~isempty(incompExKeys)
+        % preallocate with missing
+        incompMetaMrg = table;
+        nIncompExKeys = length(incompExKeys);
         for iMetavar = 1:nRealMetavars
-            curMetavarClass = realMetavarsClass{iMetavar};
-            switch curMetavarClass
-                case 'numeric'
-                    incompMetaMrg(:, iMetavar) = {nan};
-                case 'cellstr'
-                    incompMetaMrg(:, iMetavar) = {{''}};
-                case 'datetime'
-                    incompMetaMrg(:, iMetavar) = {NaT};
+            curMetavarName = realMetavarNames{iMetavar};
+            % assign key data to the preallocated data
+            if strcmp(curMetavarName, KEYMETAVARNAME)
+                incompMetaMrg.(curMetavarName) = incompExKeys;
+            else
+                curMetavarType = realMetavarsType{iMetavar};
+                switch curMetavarType
+                    case 'double'
+                        incompMetaMrg.(curMetavarName) = NaN(nIncompExKeys, 1);
+                    case 'string'
+                        incompMetaMrg.(curMetavarName) = strings(nIncompExKeys, 1);
+                    case 'datetime'
+                        incompMetaMrg.(curMetavarName) = NaT(nIncompExKeys, 1);
+                    case 'categorical'
+                        incompMetaMrg.(curMetavarName) = categorical(repmat(missing, nIncompExKeys, 1));
+                end
             end
         end
-        incompMetaMrg = cell2table(incompMetaMrg, 'VariableNames', realMetavarNames);
-        incompMetaMrg.(KEYMETAVARNAME) = incompKeys;
         % incomplete data missed in one task, recovered from another task
-        for iIncomp = 1:length(incompKeys)
+        for iIncomp = 1:nIncompExKeys
             % try to recover each piece of metadate for each user
-            curIncompKey = incompKeys(iIncomp);
-            curKeyMetadata = incompMetadata(incompMetadata.userId == curIncompKey, :);
+            curIncompExKey = incompExKeys(iIncomp);
+            curKeyMetadata = incompMetadata(incompMetadata.(KEYMETAVARNAME) == curIncompExKey, :);
             for iMetavar = 1:nRealMetavars
                 curMetavarName = realMetavarNames{iMetavar};
                 % do not need to care about key meta here
@@ -201,9 +150,9 @@ if nTasks > 0
                             warning('UDF:MERGES:INCONSISTENTMETADATA', ...
                                 ['Mutiple inconsistent metadata found for user %d on variable %s.', ...
                                 'Will use the first only.'], ...
-                                curIncompKey, curMetavarName);
+                                curIncompExKey, curMetavarName);
                             fprintf(logfid, '[%s] Mutiple inconsistent metadata found for user %d on variable %s.\n', ...
-                                datestr(now), curIncompKey, curMetavarName);
+                                datestr(now), curIncompExKey, curMetavarName);
                             curUsrSnglMetaExtract = curUsrSnglMetaExtract(1);
                         end
                         incompMetaMrg{iIncomp, curMetavarName} = curUsrSnglMetaExtract;
@@ -211,33 +160,9 @@ if nTasks > 0
                 end
             end
         end
-    else
-        incompMetaMrg = incompMetadata;
+        incompMetadata = incompMetaMrg;
     end
-    mrgmeta = sortrows([compMetadata; incompMetaMrg], KEYMETAVARNAME);
-
-    % transform metadata type.
-    for iMetavar = 1:length(realMetavarNames)
-        curMetavarName = realMetavarNames{iMetavar};
-        curMetavarData = mrgmeta.(curMetavarName);
-        switch curMetavarName
-            case {'name', 'school'}
-                if ~verLessThan('matlab', '9.1')
-                    % change name/school cell string to string array.
-                    curMetavarData = string(curMetavarData);
-                end
-            case 'grade'
-                % it is ordinal for grades
-                curMetavarData = categorical(curMetavarData, 'ordinal', true);
-            case 'cls'
-                % classes are not ordinal
-                curMetavarData = categorical(curMetavarData);
-            case 'sex'
-                % sex is also a nominal variable
-                curMetavarData = categorical(curMetavarData);
-        end
-        mrgmeta.(curMetavarName) = curMetavarData;
-    end
+    mrgmeta = sortrows([compMetadata; incompMetadata], KEYMETAVARNAME);
 else
     realMetavarNames = {};
     mrgmeta = table;

@@ -14,7 +14,7 @@ addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
 addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x))
 addParameter(par, 'SaveAction', 3, @isnumeric)
-addParameter(par, 'SaveVersion', '-v7', @ischar)
+addParameter(par, 'SaveVersion', 'auto', @ischar)
 parse(par, varargin{:});
 s        = par.Results.s;
 rawsuff  = par.Results.DataSuffix;
@@ -26,6 +26,7 @@ method   = par.Results.Method;
 rmanml   = par.Results.RemoveAbnormal;
 saveIdx  = par.Results.SaveAction;
 saveVer  = par.Results.SaveVersion;
+saveVerAuto = strcmp(saveVer, 'auto');
 % load default settings
 dflts
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
@@ -46,7 +47,7 @@ fprintf('Will use suffix ''%s'' to store data.\n', suffix)
 if ~exist(resdir, 'dir'), mkdir(resdir); end
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
-mrgFilePrefix = 'mrg_'
+mrgFilePrefix = 'mrg_';
 svRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
 svResFileName = fullfile(resdir, [resFilePrefix, suffix]);
 svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
@@ -65,10 +66,20 @@ else
             'DebugEntry', dbentry);
         if saveIdx > 2 || ~cntn
             fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
+            if saveVerAuto
+                svVarInfo = whos('dataExtract');
+                if svVarInfo.bytes < 2 ^ 31
+                    saveVer = '-v7';
+                else
+                    saveVer = '-v7.3';
+                end
+                fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
+            end
             save(svRawFileName, 'dataExtract', saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
+            warning('on', 'backtrace')
             return
         end
     elseif s < 3 % s = 2 only
@@ -86,10 +97,20 @@ else
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
             fprintf('Now saving processed data (resdata) as file %s...\n', svResFileName)
+            if saveVerAuto
+                svVarInfo = whos('resdata');
+                if svVarInfo.bytes < 2 ^ 31
+                    saveVer = '-v7';
+                else
+                    saveVer = '-v7.3';
+                end
+                fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
+            end
             save(svResFileName, 'resdata', saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
+            warning('on', 'backtrace')
             return
         end
     elseif s < 4 % s = 3 only
@@ -100,7 +121,17 @@ else
     if s < 4 % s = 1, 2, 3
         [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
         fprintf('Now saving results data (mutiple variables) as file %s...\n', svMrgFileName)
-        save(svMrgFileName, 'indices', 'results', 'status', 'metavars', saveVer)
+        mrgVars = {'indices', 'results', 'status', 'metavars'};
+        if saveVerAuto
+            svVarInfo = whos(mrgVars{:});
+            if sum([svVarInfo.bytes]) < 2 ^ 31
+                saveVer = '-v7';
+            else
+                saveVer = '-v7.3';
+            end
+            fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
+        end
+        save(svMrgFileName, mrgVars{:}, saveVer)
         fprintf('Saving done.\n')
     end
 end

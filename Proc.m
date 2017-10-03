@@ -25,7 +25,7 @@ dataExtract(cellfun(@isempty, dataExtract.Data), :) = [];
 
 % load settings, task names.
 CONFIGPATH = 'config';
-READPARAS = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
 settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
 taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
 

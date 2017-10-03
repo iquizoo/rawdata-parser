@@ -62,7 +62,10 @@ DATAVARNAME = 'data';
 DATAFORMAT = '.csv';
 % configuration path and reading arguments
 CONFIGPATH = 'config';
-READPARAS = {'FileEncoding', 'UTF-8', 'Delimiter', '\t'};
+READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+% metavartype settings
+METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
+METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
 
 % load settings
 settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
@@ -189,7 +192,10 @@ for itask = 1:ntasks4process
     curTaskSetting = settings(locset, :);
 
     % read raw data file.
-    curTaskData = readtable(fullfile(datapath, [num2str(curTaskID), '.csv']), READPARAS{:});
+    curTaskFile = fullfile(datapath, [num2str(curTaskID), '.csv']);
+    opts = detectImportOptions(curTaskFile, READPARAS{:});
+    opts = setvartype(opts, METAVARNAMES, METAVARTYPES);
+    curTaskData = readtable(curTaskFile, opts);
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
         curTaskData = curTaskData(dbentry, :);
@@ -236,6 +242,41 @@ for itask = 1:ntasks4process
             end
         end
         curTaskData.status = status;
+    end
+    
+    % check all the real metadata
+    for iMetavar = 1:length(METAVARNAMES)
+        curMetavarName = METAVARNAMES{iMetavar};
+        curMetadata = curTaskData.(curMetavarName);
+        metaTypeTransFailed = false;
+        switch curMetavarName
+            case {'name', 'school'}
+                % remove spaces in the names because they are in Chinese
+                curMetadata = regexprep(curMetadata, '\s+', '');
+            case {'grade', 'cls'}
+                % try to transform non-digit string to digit string
+                nondigitLoc = ~cellfun(@all, isstrprop(curMetadata, 'digit'));
+                nondigitMetadata = curMetadata(nondigitLoc);
+                transMetadata = cellfun(@cn2digit, nondigitMetadata);
+                nanTransLoc = isnan(transMetadata);
+                if any(nanTransLoc)
+                    % some entries cannot be correctly transformed
+                    metaTypeTransFailed = true;
+                    msg = 'Failing: string to numeric, will use raw string for NaN locations.';
+                end
+                transMetadata(nanTransLoc) = nondigitMetadata(nanTransLoc);
+                transMetadata(~nanTransLoc) = string(transMetadata(~nanTransLoc));
+                curMetadata(nondigitLoc) = transMetadata;
+                % change grade and cls data to categorical type
+                curMetadata = categorical(curMetadata);
+        end
+        % display warning/error message in case failed
+        if metaTypeTransFailed
+            fprintf(logfid, ...
+                '[%s] Some cases of `%s` metadata failed to transform. %s\n', ...
+                datestr(now), curMetavarName, msg);
+        end
+        curTaskData.(curMetavarName) = curMetadata;
     end
 
     % store names, data and preprocess time
