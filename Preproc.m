@@ -66,6 +66,10 @@ READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
 % metavartype settings
 METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
+% valid 'sex' characters
+SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ÄÐ'};
+SEXFEMALE = {'female', 'Female', 'FEMALE', 'f', 'F', 'Å®'};
+SEXES = {'male', 'female'};
 
 % load settings
 settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
@@ -269,6 +273,12 @@ for itask = 1:ntasks4process
                 curMetadata(nondigitLoc) = transMetadata;
                 % change grade and cls data to categorical type
                 curMetadata = categorical(curMetadata);
+            case 'sex'
+                % merge certain sex categories
+                curMetadata = mergecats(curMetadata, SEXMALE);
+                curMetadata = mergecats(curMetadata, SEXFEMALE);
+                % remove all categories not in 'SEXES'
+                curMetadata = setcats(curMetadata, SEXES);
         end
         % display warning/error message in case failed
         if metaTypeTransFailed
