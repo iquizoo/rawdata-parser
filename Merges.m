@@ -170,17 +170,17 @@ end
 
 % get all the test kinds, test and retest
 testKinds = {'test', 'retest'};
-testOccurs = 1:2;
-% save metadata to all the output variables
-% ultimate index
-indices.(testKinds{1}) = mrgmeta;
-indices.(testKinds{2}) = mrgmeta;
-% calculation status
-status.(testKinds{1}) = mrgmeta;
-status.(testKinds{2}) = mrgmeta;
-% calculation results
-results.(testKinds{1}) = mrgmeta;
-results.(testKinds{2}) = mrgmeta;
+testOrders = 1:2;
+% store metadata to the output first
+for iTestKind = 1:length(testKinds)
+    testKind = testKinds{iTestKind};
+    % ultimate index
+    indices.(testKind) = mrgmeta;
+    % calculation status
+    status.(testKind) = mrgmeta;
+    % calculation results
+    results.(testKind) = mrgmeta;
+end
 % variables to merge
 indiceVarName = 'index';
 statusVarName = 'status';
@@ -211,30 +211,33 @@ for imrgtask = 1:nTasks
     % join results to the right of data
     curTaskData = [curTaskData, curTaskRes]; %#ok<AGROW>
 
-    % get the occur time for all the subjects
+    % get the order of occurrence for all the users
     if ~isempty(curTaskResVarNames)
-        % separte data according occurrences
+        % for each user, get the occurrence times
         occurrences = grpstats(curTaskData, KEYMETAVARNAME, 'numel', 'DataVars', KEYMETAVARNAME);
-        occurs = ones(height(curTaskData), 1);
+        % set the order to 1st by default
+        orders = ones(height(curTaskData), 1);
+        % change the order if users partipated more than once
         if ~all(occurrences.GroupCount == 1)
-            curTaskSubIDs = curTaskData.(KEYMETAVARNAME);
-            repeatIDs = unique(occurrences.(KEYMETAVARNAME)(occurrences.GroupCount > 1));
-            for irepeat = 1:length(repeatIDs)
-                curRepeatID = repeatIDs(irepeat);
-                curIDLoc = curTaskSubIDs == curRepeatID;
+            curTaskKeys = curTaskData.(KEYMETAVARNAME);
+            % change order for repeated ones only
+            repeatKeys = unique(occurrences.(KEYMETAVARNAME)(occurrences.GroupCount > 1));
+            for irepeat = 1:length(repeatKeys)
+                curRepeatKey = repeatKeys(irepeat);
+                curKeyLoc = curTaskKeys == curRepeatKey;
                 if ismember(TIMEMETAVARNAME, dataVarNames)
                     % use participate time to set the occur time
-                    [~, ~, occurs(curIDLoc)] = unique(curTaskData.(TIMEMETAVARNAME)(curIDLoc));
+                    [~, ~, orders(curKeyLoc)] = unique(curTaskData.(TIMEMETAVARNAME)(curKeyLoc));
                 else
                     % use the raw occur order to set the occur time
-                    occurs(curIDLoc) = 1:sum(curIDLoc);
+                    orders(curKeyLoc) = 1:sum(curKeyLoc);
                 end
             end
         end
         % separate data into corresponding test kind
         for iTestKind = 1:length(testKinds)
             testKind = testKinds{iTestKind};
-            testKindTaskData = curTaskData(occurs == testOccurs(iTestKind), :);
+            testKindTaskData = curTaskData(orders == testOrders(iTestKind), :);
 
             % get the indices by outer join
             indices.(testKind) = outerjoin(indices.(testKind), testKindTaskData, ...

@@ -255,7 +255,7 @@ for itask = 1:ntasks4process
                 curMetadata = regexprep(curMetadata, '\s+', '');
             case {'grade', 'cls'}
                 % try to transform non-digit string to digit string
-                nondigitLoc = ~cellfun(@all, isstrprop(curMetadata, 'digit'));
+                nondigitLoc = ~cellfun(@all, isstrprop(curMetadata, 'digit', 'ForceCellOutput', true));
                 nondigitMetadata = curMetadata(nondigitLoc);
                 transMetadata = cellfun(@cn2digit, nondigitMetadata);
                 nanTransLoc = isnan(transMetadata);
