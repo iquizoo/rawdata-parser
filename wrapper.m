@@ -30,6 +30,8 @@ saveVerAuto = strcmp(saveVer, 'auto');
 % load default settings
 dflts
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
+if ~exist(resdir, 'dir'), mkdir(resdir); end
+
 rawdir = dfltSet.DATARAW_DIR;
 % check input values
 if isempty(rawsuff)
@@ -44,38 +46,52 @@ end
 % set environmental settings.
 suffix = matlab.lang.makeValidName(rawsuff);
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
-if ~exist(resdir, 'dir'), mkdir(resdir); end
+svRawCsvDataPath = fullfile(dfltSet.DATARES_DIR, suffix, 'data');
+svRawCsvMetaPath = fullfile(dfltSet.DATARES_DIR, suffix, 'meta');
+if ~exist(svRawCsvDataPath, 'dir'), mkdir(svRawCsvDataPath); end
+if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
-mrgFilePrefix = 'mrg_';
+% mrgFilePrefix = 'mrg_';
 svRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
 svResFileName = fullfile(resdir, [resFilePrefix, suffix]);
-svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
+% svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
 ldRawDataPath = fullfile(rawdir, rawsuff);
 ldRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
-ldResFileName = fullfile(resdir, [resFilePrefix, suffix]);
+% ldResFileName = fullfile(resdir, [resFilePrefix, suffix]);
 % start by checking the starting point
 if s >= 4
     error('UDF:INPUTPARERR', 'Start number larger than 3 is not supported now.\n')
 else
     warning('off', 'backtrace')
     if s < 2 % s = 1 only
-        dataExtract = Preproc(ldRawDataPath, ...
+        data = Preproc(ldRawDataPath, ...
             'TaskNames', tasks, ...
             'DisplayInfo', prompt, ...
             'DebugEntry', dbentry);
         if saveIdx > 2 || ~cntn
             fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
+            svVars = {'data'};
             if saveVerAuto
-                svVarInfo = whos('dataExtract');
-                if svVarInfo.bytes < 2 ^ 31
+                svVarInfo = whos(svVars{:});
+                if sum([svVarInfo.bytes]) < 2 ^ 31
                     saveVer = '-v7';
                 else
                     saveVer = '-v7.3';
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svRawFileName, 'dataExtract', saveVer)
+            save(svRawFileName, svVars{:}, saveVer)
+            ntasks = height(data);
+            for itask = 1:ntasks
+                taskID = data.TaskID(itask);
+                taskData = data.Data{itask};
+                taskMeta = data.Meta{itask};
+                writetable(taskData, fullfile(svRawCsvDataPath, [num2str(taskID), '.csv']), ...
+                    'QuoteStrings', true, 'Encoding', 'UTF-8')
+                writetable(taskMeta, fullfile(svRawCsvMetaPath, [num2str(taskID), '.csv']), ...
+                    'QuoteStrings', true, 'Encoding', 'UTF-8')
+            end
             fprintf('Saving done.\n')
         end
         if ~cntn
@@ -83,13 +99,13 @@ else
             return
         end
     elseif s < 3 % s = 2 only
-        fprintf('Now reading raw data (dataExtract) from file %s...\n', ldRawFileName)
-        load(ldRawFileName, 'dataExtract')
+        fprintf('Now reading raw data (data) from file %s...\n', ldRawFileName)
+        load(ldRawFileName, 'data')
         fprintf('Reading done.\n')
     end
     if s < 3 % s = 1, 2
         if s == 1 && ~isempty(dbentry), dbentry = 1; end
-        resdata = Proc(dataExtract, ...
+        res = Proc(data, ...
             'TaskNames', tasks, ....
             'DisplayInfo', prompt, ...
             'RemoveAbnormal', rmanml, ...
@@ -97,42 +113,43 @@ else
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
             fprintf('Now saving processed data (resdata) as file %s...\n', svResFileName)
+            svVars = {'res'};
             if saveVerAuto
-                svVarInfo = whos('resdata');
-                if svVarInfo.bytes < 2 ^ 31
+                svVarInfo = whos(svVars{:});
+                if sum([svVarInfo.bytes]) < 2 ^ 31
                     saveVer = '-v7';
                 else
                     saveVer = '-v7.3';
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svResFileName, 'resdata', saveVer)
+            save(svRawFileName, svVars{:}, saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
             warning('on', 'backtrace')
             return
         end
-    elseif s < 4 % s = 3 only
-        fprintf('Now reading processed data (resdata) from file %s...\n', ldResFileName)
-        load(ldResFileName, 'resdata')
-        fprintf('Reading done.\n')
-    end
-    if s < 4 % s = 1, 2, 3
-        [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
-        fprintf('Now saving results data (mutiple variables) as file %s...\n', svMrgFileName)
-        mrgVars = {'indices', 'results', 'status', 'metavars'};
-        if saveVerAuto
-            svVarInfo = whos(mrgVars{:});
-            if sum([svVarInfo.bytes]) < 2 ^ 31
-                saveVer = '-v7';
-            else
-                saveVer = '-v7.3';
-            end
-            fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
-        end
-        save(svMrgFileName, mrgVars{:}, saveVer)
-        fprintf('Saving done.\n')
+%     elseif s < 4 % s = 3 only
+%         fprintf('Now reading processed data (resdata) from file %s...\n', ldResFileName)
+%         load(ldResFileName, 'resdata')
+%         fprintf('Reading done.\n')
+%     end
+%     if s < 4 % s = 1, 2, 3
+%         [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
+%         fprintf('Now saving results data (mutiple variables) as file %s...\n', svMrgFileName)
+%         mrgVars = {'indices', 'results', 'status', 'metavars'};
+%         if saveVerAuto
+%             svVarInfo = whos(mrgVars{:});
+%             if sum([svVarInfo.bytes]) < 2 ^ 31
+%                 saveVer = '-v7';
+%             else
+%                 saveVer = '-v7.3';
+%             end
+%             fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
+%         end
+%         save(svMrgFileName, mrgVars{:}, saveVer)
+%         fprintf('Saving done.\n')
     end
 end
 warning('on', 'backtrace')

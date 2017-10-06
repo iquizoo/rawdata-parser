@@ -1,5 +1,5 @@
-STIM	Category	SCat
-1	"Congruent"	1
-2	"Incongruent"	2
-3	"Congruent"	1
-4	"Incongruent"	2
+STIM,Category,SCat
+1,"Congruent",1
+2,"Incongruent",2
+3,"Congruent",1
+4,"Incongruent",2

@@ -206,7 +206,7 @@ if ~isempty(rec)
         % record correct trial numbers
         spres.CountAccTrl = sum(rec.ACC == 1);
         % Total score and mean score (per minute).
-        if exist('TotalTime', 'var')
+        if ~isnan(TotalTime)
             % stores total time used for the task
             spres.TotalTime = TotalTime;
             % Set field Score from ACC: 1 -> 1, 0 -> -1, -1 -> 0, use a

@@ -1,4 +1,3 @@
-#A list of ignore files.
 #For matlab non-script/function files.
 *.mat
 *.fig
@@ -43,6 +42,5 @@ _*/
 .Rproj.user
 .Rhistory
 *.Rproj
-*.R
 write*
 xls2config.m

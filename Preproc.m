@@ -1,4 +1,4 @@
-function dataExtract = Preproc(datapath, varargin)
+function dataWrapper = Preproc(datapath, varargin)
 %PREPROC calls sngproc to do some basic analysis.
 %   dataExtract = Preproc(datapath) preprocesses all the tasks in the
 %   directory specified by datapath.
@@ -70,6 +70,8 @@ METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string',
 SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ÄÐ'};
 SEXFEMALE = {'female', 'Female', 'FEMALE', 'f', 'F', 'Å®'};
 SEXES = {'male', 'female'};
+% key metavars
+KEYMETAVARS = {'userId', 'createTime'};
 
 % load settings
 settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
@@ -130,9 +132,11 @@ fprintf('Here it goes! The total jobs are composed of %d task(s), though some ma
     ntasks4process);
 
 % preallocation
-dataExtract = table(taskIDs, taskIDNames, ...
-    cell(ntasks4process, 1), repmat(cellstr('TBE'), ntasks4process, 1), ...
-    'VariableNames', {'TaskID', 'TaskIDName', 'Data', 'Time2Preproc'});
+dataWrapper = table(taskIDs, taskIDNames, ...
+    cell(ntasks4process, 1), cell(ntasks4process, 1), ...
+    repmat(cellstr('TBE'), ntasks4process, 1), ...
+    'VariableNames', ...
+    {'TaskID', 'TaskIDName', 'Data', 'Meta', 'Time2Preproc'});
 
 % record the time elapsed when preparation is done
 prepartionTime = toc;
@@ -199,59 +203,20 @@ for itask = 1:ntasks4process
     curTaskFile = fullfile(datapath, [num2str(curTaskID), '.csv']);
     opts = detectImportOptions(curTaskFile, READPARAS{:});
     opts = setvartype(opts, METAVARNAMES, METAVARTYPES);
-    curTaskData = readtable(curTaskFile, opts);
+    curTaskRawData = readtable(curTaskFile, opts);
+    rawdataVars = curTaskRawData.Properties.VariableNames;
+
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
-        curTaskData = curTaskData(dbentry, :);
+        curTaskRawData = curTaskRawData(dbentry, :);
         fprintf(logfid, '[%s] Begin to debug, recording can be misleading.', datestr(now));
         dbstop in sngpreproc
-    end
-
-    % extract data string and replace it with the generated one
-    curTaskDatastr = curTaskData.(DATAVARNAME);
-    curTaskData.(DATAVARNAME) = [];
-    % check data string, warning if it is empty
-    if all(cellfun(@isempty, curTaskDatastr))
-        warning('UDF:PREPROC:DATAMISMATCH', 'No data found for task %s. Will keep it empty.', ...
-            curTaskDispName);
-        fprintf(logfid, ...
-            '[%s] No data found for task %s.\n', ...
-            datestr(now), curTaskDispName);
-        except = true;
-    else
-        curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
-        [trialrec, status] = cellfun(@(datastr) sngpreproc(datastr, curTaskPara), curTaskDatastr);
-        curTaskData = [curTaskData, cat(1, trialrec{:})]; %#ok<AGROW>
-        % generate some warning and logs according to the status.
-        if any(status ~= 0)
-            except = true;
-            warning('UDF:PREPROC:DATAMISMATCH', 'Data mismatch encountered in task %s.', curTaskDispName);
-            % parameter settings for this task not found.
-            if any(status == -1)
-                fprintf(logfid, ...
-                    '[%s] No parameter settings specification found in task %s.\n', ...
-                    datestr(now), curTaskDispName);
-            end
-            % data missing for some subjects
-            if any(status == -2)
-                fprintf(logfid, ...
-                    '[%s] Data for some users lost in task %s.\n', ...
-                    datestr(now), curTaskDispName);
-            end
-            % data ill-formatted
-            if any(status == -3)
-                fprintf(logfid, ...
-                    '[%s] Data are ill-formatted for some users in task %s.\n', ...
-                    datestr(now), curTaskDispName);
-            end
-        end
-        curTaskData.status = status;
     end
     
     % check all the real metadata
     for iMetavar = 1:length(METAVARNAMES)
         curMetavarName = METAVARNAMES{iMetavar};
-        curMetadata = curTaskData.(curMetavarName);
+        curMetadata = curTaskRawData.(curMetavarName);
         metaTypeTransFailed = false;
         switch curMetavarName
             case {'name', 'school'}
@@ -286,14 +251,82 @@ for itask = 1:ntasks4process
                 '[%s] Some cases of `%s` metadata failed to transform. %s\n', ...
                 datestr(now), curMetavarName, msg);
         end
-        curTaskData.(curMetavarName) = curMetadata;
+        curTaskRawData.(curMetavarName) = curMetadata;
     end
 
-    % store names, data and preprocess time
-    dataExtract.TaskID(itask) = curTaskID;
-    dataExtract.TaskIDName{itask} = curTaskIDName;
-    dataExtract.Data{itask} = curTaskData;
-    dataExtract.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
+    % extract data string
+    curTaskDatastr = curTaskRawData.(DATAVARNAME);
+    % separate metadata (contains iqmethod results) and extracted data
+    curTaskMeta = curTaskRawData(:, setdiff(rawdataVars, DATAVARNAME, 'stable'));
+    curTaskData = table;
+    % separate data to trials
+    curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
+    [curTaskTrialRec, status] = cellfun(@(datastr) sngpreproc(datastr, curTaskPara), curTaskDatastr);
+    % generate some warning and logs according to the status.
+    if any(status ~= 0)
+        except = true;
+        warning('UDF:PREPROC:DATAMISMATCH', 'Data mismatch encountered in task %s.', curTaskDispName);
+        % parameter settings for this task not found.
+        if any(status == -1)
+            fprintf(logfid, ...
+                '[%s] No parameter settings specification/no data string found in task %s. Will remove those invalid entries\n', ...
+                datestr(now), curTaskDispName);
+        end
+        % data missing for some subjects
+        if any(status == -2)
+            fprintf(logfid, ...
+                '[%s] Data for some users lost in task %s.\n', ...
+                datestr(now), curTaskDispName);
+        end
+        % data ill-formatted
+        if any(status == -3)
+            fprintf(logfid, ...
+                '[%s] Data are ill-formatted for some users in task %s.\n', ...
+                datestr(now), curTaskDispName);
+        end
+    end
+    % check the integrity of data and remove invalid/empty entries
+    curTaskDataMissedLoc = cellfun(@isempty, curTaskTrialRec);
+    if any(curTaskDataMissedLoc)
+        % remove from original data
+        curTaskRawData(curTaskDataMissedLoc, :) = [];
+        curTaskTrialRec(curTaskDataMissedLoc) = [];
+        except = true;
+    end
+
+    % add user KEY meta information into the trials records
+    % extract the content from cell
+    curTaskTrialRec = cat(1, curTaskTrialRec{:});
+    curTaskConditions = curTaskTrialRec.Properties.VariableNames;
+    curTaskMrgCond = strsplit(curTaskSetting.MergeCond{:});
+    curTaskKeyMeta = curTaskRawData(:, KEYMETAVARS);
+    % assume the records are same for one task
+    try
+        for iCond = 1:length(curTaskConditions)
+            curCondition = curTaskConditions{iCond};
+            curMrgCond = curTaskMrgCond{iCond};
+            curCondRecs = curTaskTrialRec.(curCondition);
+            curCondNTrial = cellfun(@height, curCondRecs);
+            curCondKeyMeta = repelem(curTaskKeyMeta, curCondNTrial, 1);
+            if isempty(curMrgCond)
+                curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
+            else
+                curCondKeyMeta.Condition = repmat(curMrgCond, height(curCondKeyMeta), 1);
+                curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
+            end
+            curTaskData = [curTaskData; curCondRecs]; %#ok<AGROW>
+        end
+    catch ME
+        fprintf(logfid, ...
+            '[%s] !! Error occured when stacking raw data for %s. Error: %s, %s.\n', ...
+            datestr(now), curTaskDispName, ME.identifier, ME.message);
+        curTaskData = table;
+    end
+
+    % preprocess time
+    dataWrapper.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
+    dataWrapper.Data{itask} = curTaskData;
+    dataWrapper.Meta{itask} = curTaskMeta;
 
     % clear redundant variables to save storage
     clearvars('-except', initialVars{:});

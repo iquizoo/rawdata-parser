@@ -1,4 +1,4 @@
-function [trialrec, status] = sngpreproc(rec, para)
+function [trialrec, status] = sngpreproc(datastr, para)
 %SNGPREPROC Preprocessing the data of one single subject.
 %   [SPLITRES, STATUS] = SNGPREPROC(CONDITIONS, PARA) does the splitting jobs
 %   to conditions according to the parameters specified in para. The two
@@ -27,7 +27,7 @@ function [trialrec, status] = sngpreproc(rec, para)
 %          ##############################
 
 status = 0;
-if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(rec)
+if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(datastr)
     %Split the conditions into recons, get the settings of each condition.
     %Delimiters.
     delimiters  = para.Delimiters{:};
@@ -44,14 +44,14 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(rec)
         %conditions
         recons          = cell(1, ncond);
         for icond = 1:ncond
-            curRecon      = regexp(rec, ...
+            curRecon      = regexp(datastr, ...
                 ['(?<=', conditionsPre{icond}, '\().*?(?=\))'], 'match', 'once');
             recons{icond} = curRecon;
         end
     else
         conditionsNames = {'RECORD'};
         %By default, use the original conditions string.
-        recons          = cellstr(rec);
+        recons          = cellstr(datastr);
     end
     %Rearrange parameters condition-wise.
     ncond = length(conditionsNames); %We have completed the condition splitting task.
@@ -120,6 +120,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(rec)
     trialrec = cell2table(trialrec, 'VariableNames', conditionsNames);
     for icond = 1:ncond
         curCondTrials = trialrec.(conditionsNames{icond});
+        curCondTrials(cellfun(@isempty, curCondTrials)) = [];
         if ~all(cellfun(@isempty, curCondTrials))
             curCondTrialsSplit    = cellfun(@(x) strsplit(x, delimiters(2)), ...
                 curCondTrials, 'UniformOutput', false);
