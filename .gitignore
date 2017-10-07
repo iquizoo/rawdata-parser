@@ -27,7 +27,6 @@ _*/
 *.bak2
 *.log
 *.pmd
-*.csv
 
 #For miscellaneous BINARY files.
 *.jpg
