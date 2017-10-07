@@ -1,8 +1,8 @@
-function [extracted, status] = sngreadxls(filename)
+function [extracted, status] = sngreadxls(filename, opts)
 % SNGREADXLS read data from a single excel file.
 
 % read data set
-records = readtable(filename);
+records = readtable(filename, opts);
 recvars = records.Properties.VariableNames;
 
 % change type of two key variables

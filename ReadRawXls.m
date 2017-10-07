@@ -9,10 +9,17 @@ par = inputParser;
 addParameter(par, 'Source', '', @ischar)
 addParameter(par, 'Destination', '', @ischar)
 addParameter(par, 'DisplayInfo', 'text', @ischar)
+addParameter(par, 'NumSamples', 0, @isnumeric)
 parse(par, varargin{:})
 src = par.Results.Source;
 dest = par.Results.Destination;
 prompt = lower(par.Results.DisplayInfo);
+nspl = par.Results.NumSamples;
+% checking number of samples
+MAXROWS = 2 ^ 20;
+if nspl <= 0
+    nspl = nspl + MAXROWS - 1;
+end
 
 % add helper functions folder
 HELPERFUNPATH = 'scripts';
@@ -111,8 +118,11 @@ for ifile = 1:nfiles
     end
     nprocessed = nprocessed + 1;
 
+    % set read options
+    readRange = ['1:', num2str(nspl + 1)];
+    opts = detectImportOptions(curFileFullname, 'Range', readRange);
     % extract data from file
-    [curFileExtract, status] = sngreadxls(curFileFullname);
+    [curFileExtract, status] = sngreadxls(curFileFullname, opts);
     if any(status == -1)
         except = true;
         warning('UDF:READRAWXLS:DATAMISSING', 'Data of some users (total: %d) lost in file %s.', ...
@@ -173,6 +183,6 @@ for itask = 1:length(taskIDs)
     taskID = taskIDs(itask);
     taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
     writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
-        'QuoteStrings', true, 'Delimiter', '\t', 'Encoding', 'UTF-8')
+        'QuoteStrings', true, 'Encoding', 'UTF-8')
 end
 rmpath(HELPERFUNPATH)
