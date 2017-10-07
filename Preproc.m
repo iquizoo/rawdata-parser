@@ -62,7 +62,7 @@ DATAVARNAME = 'data';
 DATAFORMAT = '.csv';
 % configuration path and reading arguments
 CONFIGPATH = 'config';
-READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+READPARAS = {'Encoding', 'UTF-8'};
 % metavartype settings
 METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
