@@ -1,47 +1,83 @@
 # load required packages ----
 library(tidyverse)
+library(feather)
 
 # the directory of data ----
-data_dir <- file.path(getwd(), "DATA_RES")
+data_base <- file.path(getwd(), "DATA_RES")
 config_dir <- file.path(getwd(), "config")
 
+# load settings ----
+configs <- read_csv(file.path(config_dir, 'config.csv'))
+
 # function used to get all the data file names ----
-file_name_get <- function(tag){
+file_name_get <- function(tag, task){
   # note the value will be assigned to global environment
-  data_dir <<- file.path(data_dir, tag, "data")
+  data_dir <- file.path(data_base, tag, "data")
+
+  # choose a directory for the data directory
   if (!dir.exists(data_dir)){
-    warning("Specified tag data directory ", data_dir, " does not exist!",
+    warning("Default tag: '", tag, "' directory '", data_dir, "' not exist!",
             immediate. = TRUE)
-    resp <- tolower(readline("Will you continue? [y]/n:"))
-    if (nchar(resp) == 0)
-      resp <- "y"
-    if (resp == "y")
-      data_dir <<- choose.dir(default = data_dir)
+    resp <- winDialog(type = "yesno", "Will you still continue?")
+    if (resp == "YES")
+      data_dir <- choose.dir(default = data_base)
     else
       return()
   }
-  data_files <- list.files("*.csv", path = data_dir)
+
+  # change data_base to the new directory
+  data_base <<- data_dir
+
+  # if task name is empty, set to match all
+  if (nchar(task) == 0)
+    task = '*'
+  # get the task file names
+  data_files <- list.files(paste0(task, ".csv"), path = data_dir)
 }
 
 process <- function(file){
-  source("utils.R", local = TRUE)
+  # load functions for processing data
+  source('utils.R', local = TRUE)
+
   # load dataset
-  records <- read_csv(file.path(data_dir, file))
-  # load names settings
-  tasknames <- read_csv(file.path(config_dir))
-  # get the task ID
+  rec <- read_csv(file.path(data_base, file))
+
+  # get the task ID and settings
   task_id <- parse_number(file, "\\d+")
-  # get the analysis function name
-  analysis <- get(anafun)
-  # process
-  indices <- records %>%
+  task_config <- filter(configs, taskID == task_id)
+
+  # get the analysis function and task_id_name
+  analysis <- get(task_config$anafun)
+  task_id_name <- task_config$taskIDName
+
+  # do some pre analysis work
+  rec <- prepare(rec, task_id_name)
+
+  # process user by user
+  indices <- rec %>%
     group_by(userId, createTime) %>%
     do(analysis(.))
+
+}
+
+# prepare data for analysis
+prepare <- function(rec, task_id_name){
+  switch(
+    task_id_name,
+    Flanker = {
+      # Need comfirmation: congruent=1,4; incongruent=2,3
+      condtypes <- factor(c("con", "incon", "incon", "con"),
+                          levels = c("con", "incon"))
+      rec <- rec %>%
+        mutate(SCat = condtypes[STIM])
+    })
+  rec
 }
 
 # main script
 tag <- readline("Please specify data tag: ")
-file_names <- file_name_get(tag)
+task <- readline("Please specify task id (leave empty if all): ")
+file_names <- file_name_get(tag, task)
 if (is.null(file_names))
   stop("User canceled!")
-lst <- lapply(file_names, process)
+results <- lapply(file_names, process)

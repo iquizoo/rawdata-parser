@@ -42,4 +42,4 @@ _*/
 .Rhistory
 *.Rproj
 write*
-xls2config.m
+xls2config*
