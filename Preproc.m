@@ -144,7 +144,7 @@ prepartionTime = toc;
 % preprocess task by task
 for itask = 1:ntasks4process
     initialVars = who;
-
+    
     % get current task names
     if isnumeric(taskInputNamesFull)
         curTaskInputName = num2str(taskInputNamesFull(itask));
@@ -154,7 +154,7 @@ for itask = 1:ntasks4process
     curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-
+    
     % update prompt information.
     completePercent = nprocessed / ntasks4process;
     elapsedTime = toc - prepartionTime;
@@ -188,7 +188,7 @@ for itask = 1:ntasks4process
     fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % update processed tasks number.
     nprocessed = nprocessed + 1;
-
+    
     % find out the setting of current task.
     locset = ismember(settings.TaskIDName, curTaskIDName);
     if ~any(locset)
@@ -198,14 +198,14 @@ for itask = 1:ntasks4process
         continue
     end
     curTaskSetting = settings(locset, :);
-
+    
     % read raw data file.
     curTaskFile = fullfile(datapath, [num2str(curTaskID), '.csv']);
     opts = detectImportOptions(curTaskFile, READPARAS{:});
     opts = setvartype(opts, METAVARNAMES, METAVARTYPES);
     curTaskRawData = readtable(curTaskFile, opts);
     rawdataVars = curTaskRawData.Properties.VariableNames;
-
+    
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
         curTaskRawData = curTaskRawData(dbentry, :);
@@ -253,7 +253,7 @@ for itask = 1:ntasks4process
         end
         curTaskRawData.(curMetavarName) = curMetadata;
     end
-
+    
     % extract data string
     curTaskDatastr = curTaskRawData.(DATAVARNAME);
     % separate metadata (contains iqmethod results) and extracted data
@@ -287,13 +287,10 @@ for itask = 1:ntasks4process
     end
     % check the integrity of data and remove invalid/empty entries
     curTaskDataMissedLoc = cellfun(@isempty, curTaskTrialRec);
-    if any(curTaskDataMissedLoc)
-        % remove from original data
-        curTaskRawData(curTaskDataMissedLoc, :) = [];
-        curTaskTrialRec(curTaskDataMissedLoc) = [];
-        except = true;
-    end
-
+    % remove from original data
+    curTaskRawData(curTaskDataMissedLoc, :) = [];
+    curTaskTrialRec(curTaskDataMissedLoc) = [];
+    
     % add user KEY meta information into the trials records
     % extract the content from cell
     curTaskTrialRec = cat(1, curTaskTrialRec{:});
@@ -322,12 +319,12 @@ for itask = 1:ntasks4process
             datestr(now), curTaskDispName, ME.identifier, ME.message);
         curTaskData = table;
     end
-
+    
     % preprocess time
     dataWrapper.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
     dataWrapper.Data{itask} = curTaskData;
     dataWrapper.Meta{itask} = curTaskMeta;
-
+    
     % clear redundant variables to save storage
     clearvars('-except', initialVars{:});
 end

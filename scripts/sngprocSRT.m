@@ -15,8 +15,15 @@ function [stats, labels] = sngprocSRT(RT, ACC)
 % record total and responded trials numbers
 NTrial = length(RT);
 NResp = sum(ACC ~= -1);
+% set the RT for no response trials as missing
+RT(ACC == -1) = NaN;
+% two-step protocol to remove RT outliers
+% 1. lower cut-off: 100
+RT(RT < 100) = NaN;
+% 2. iqr-based cut-off
+RT(out4iqr(RT)) = NaN;
 % set ACC of outlier and -1 trials as NaN (not included)
-ACC(outlier(RT) | ACC == -1) = NaN;
+ACC(isnan(RT) | ACC == -1) = NaN;
 % record included trials number
 NInclude = sum(~isnan(ACC));
 PE = 1 - nanmean(ACC);

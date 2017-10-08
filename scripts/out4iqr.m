@@ -1,4 +1,4 @@
-function [idx, ci] = outlier(x, outliermode)
+function [idx, ci] = out4iqr(x, mode)
 %OUTLIER gets the index of outliers.
 %
 %   [IDX, CI] = OUTLIER(X, mode) calculates the index of the outliers in
@@ -10,14 +10,14 @@ function [idx, ci] = outlier(x, outliermode)
 %   http://www.itl.nist.gov/div898/handbook/prc/section1/prc16.htm
 
 if nargin <= 1
-    outliermode = 'mild';
+    mode = 'mild';
 end
 %Get the first quartile and the third quartile.
 Q = quantile(x, [0.25, 0.75]);
 %Interquantile range.
 IQR = Q(2) - Q(1);
 %For mild outliers, w = 1.5; for extreme outliers, w = 3.
-switch outliermode
+switch mode
     case 'mild'
         w = 1.5;
     case 'extreme'

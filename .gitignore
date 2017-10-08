@@ -42,5 +42,6 @@ _*/
 .Rproj.user
 .Rhistory
 *.Rproj
+.RData
 write*
 xls2config*
