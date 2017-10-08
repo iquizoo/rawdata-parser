@@ -12,7 +12,6 @@ addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) |
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
-addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x))
 addParameter(par, 'SaveAction', 3, @isnumeric)
 addParameter(par, 'SaveVersion', 'auto', @ischar)
 parse(par, varargin{:});
@@ -23,7 +22,6 @@ tasks    = par.Results.TaskNames;
 prompt   = lower(par.Results.DisplayInfo);
 dbentry  = par.Results.DebugEntry;
 method   = par.Results.Method;
-rmanml   = par.Results.RemoveAbnormal;
 saveIdx  = par.Results.SaveAction;
 saveVer  = par.Results.SaveVersion;
 saveVerAuto = strcmp(saveVer, 'auto');
@@ -108,7 +106,6 @@ else
         res = Proc(data, ...
             'TaskNames', tasks, ....
             'DisplayInfo', prompt, ...
-            'RemoveAbnormal', rmanml, ...
             'Method', method, ...
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
@@ -123,7 +120,7 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svRawFileName, svVars{:}, saveVer)
+            save(svResFileName, svVars{:}, saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn

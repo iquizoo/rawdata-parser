@@ -25,7 +25,7 @@ data(cellfun(@isempty, data.Data), :) = [];
 
 % load settings, task names.
 CONFIGPATH = 'config';
-READPARAS = {'Encoding', 'UTF-8', 'Delimiter', '\t'};
+READPARAS = {'Encoding', 'UTF-8'};
 settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
 taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
 % key metavars
@@ -37,13 +37,11 @@ addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) |
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
-addParameter(par, 'RemoveAbnormal', false, @(x) islogical(x) | isnumeric(x))
 parse(par, varargin{:});
 taskInputNames = par.Results.TaskNames;
 prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
 method = par.Results.Method;
-rmanml = par.Results.RemoveAbnormal;
 
 % notice input name could be numeric array or cellstr type
 inputNameIsEmpty = isempty(taskInputNames) || all(ismissing(taskInputNames));
@@ -64,14 +62,17 @@ end
 % input task name validation and name transformation
 [taskInputNames, taskIDs, taskIDNames] = tasknamechk(taskInputNames, taskNameStore, data.TaskID);
 
+% remove not-to-be-processed tasks
+data(~ismember(data.TaskID, taskIDs), :) = [];
 % variables used for logging and rate of progress
-ntasks4process = length(taskInputNames);
+ntasks4process = height(data);
 nprocessed = 0;
 nignored = 0;
 processed = true(ntasks4process, 1);
 
 % add a field to record time used to process each task
-data.Time2Proc = repmat(cellstr('TBE'), height(data), 1);
+data.Results = cell(ntasks4process, 1);
+data.Time2Proc = repmat(cellstr('TBE'), ntasks4process, 1);
 
 %Determine the prompt type and initialize for prompt.
 switch prompt
@@ -102,25 +103,30 @@ for itask = 1:ntasks4process
     else
         curTaskInputName = taskInputNames{itask};
     end
-    curTaskID = taskIDs(itask);
-    curTaskIDName = taskIDNames{itask};
+    curTaskIDName = data.TaskIDName{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-    curtaskidx = ismember(data.TaskID, curTaskID);
 
     % get current task index in raw data and extract current task data
-    curTaskData = data.Data{curtaskidx};
+    curTaskData = data.Data{itask};
     if ~isempty(dbentry)
         % DEBUG MODE: read the debug entry only
         curTaskData = curTaskData(dbentry, :);
         dbstop in sngproc
     end
 
+    % continue to next task if no data found
+    if isempty(curTaskData)
+        warning('UDF:PROC:DATAMISSING', ...
+            'No data found for task %s. Skipping,,,', curTaskDispName)
+        fprintf(logfid, ...
+            '[%s] No data found for task %s. Skipping,,,', ...
+            datestr(now), curTaskDispName);
+        except = true;
+        continue
+    end
+
     % name setting and analysis preparation
     curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
-    % get all the analysis variables.
-    anaVars = strsplit(curTaskSetting.AnalysisVars{:});
-    % merge conditions
-    mrgCond = strsplit(curTaskSetting.MergeCond{:});
 
     % prompt setting
     %  1. get the proportion of completion and estimated time of arrival
@@ -224,7 +230,10 @@ for itask = 1:ntasks4process
                 curTaskData.SCat = ones(height(curTaskData), 1);
                 % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
                 curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
-                curTaskData.ACC = curTaskData.STIM == curTaskData.Resp;
+                % note that 0 means no response detected
+                curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
+                curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
+                curTaskData.ACC(curTaskData.Resp == 0) = -1;
             case {'SRTWatch', 'SRTBread', ... % Two alternative SRT task.
                     'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
                     }
@@ -292,134 +301,21 @@ for itask = 1:ntasks4process
         end
     end
 
-    %% FIX ME: adapt to the new flattening structure
     % get the number of conditions and subjects for future use
-    nanavar = length(anaVars);
-    nuser = height(curTaskData);
+    curTaskAnaFun = str2func(['sngproc', curTaskSetting.AnalysisFun{:}]);
+    curTaskAnaVars = split(curTaskSetting.AnalysisVars);
+    [grps, keys] = findgroups(curTaskData(:, KEYMETAVARS));
+    [stats, labels] = splitapply(curTaskAnaFun, ...
+        curTaskData(:, curTaskAnaVars), grps);
+    labels = labels(1, :);
+    curTaskIndexLoc = ismember(labels, curTaskSetting.Index{:});
+    keys.index = stats(:, curTaskIndexLoc);
+    results = [keys, array2table(stats, 'VariableNames', labels)];
 
-    % preallocation
-    anares = cell(nuser, nanavar);
-
-    % some tasks (e.g., divAtten) have data of multiple conditions stored
-    % in multiple variables, it is useful to process them condition
-    % (variable) by condition
-    for ianavar = 1:nanavar
-        initialVarsCond = who;
-        curAnaVars = anaVars{ianavar};
-        curMrgCond = mrgCond{ianavar};
-
-        % skip when data not correct recorded
-        if isempty(curAnaVars) ...
-                || ~ismember(curAnaVars, curTaskData.Properties.VariableNames) ...
-                || all(cellfun(@isempty, curTaskData.(curAnaVars)))
-            fprintf(logfid, ...
-                '[%s] No correct recorded data is found in task %s. Will ignore this task. Aborting...\n', ...
-                datestr(now), curTaskDispName);
-            warning('No correct recorded data is found in task %s. Will ignore this task. Aborting...', ...
-                curTaskDispName);
-            nignored = nignored + 1;
-            processed(itask) = false;
-            except   = true;
-            continue
-        end
-
-        % preparation: construct input arguments for sngproc
-        %  1. parameters
-        %   1.1 common parameters
-        procPara = {'TaskSetting', curTaskSetting, 'Condition', curMrgCond, 'Method', method, 'RemoveAbnormal', rmanml};
-        %   1.2 specific parameters
-        switch curTaskIDName
-            case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...%langTasks
-                    'GNGLure', 'GNGFruit', ...%some of otherTasks in NSN.
-                    'Flanker', ...%Conflict
-                    }
-                % get taskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
-                curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
-                procPara       = [procPara, {'StimulusMap', curTaskSTIMMap}]; %#ok<AGROW>
-            case {'SemanticMemory'}
-                % set stimulus category for each trial of this task
-                if strcmp(curAnaVars, 'TEST')
-                    oldStims = cellfun(@(tbl) tbl.STIM, curTaskData.STUDY, 'UniformOutput', false);
-                    testStims = cellfun(@(tbl) tbl.STIM, curTaskData.TEST, 'UniformOutput', false);
-                    for iuser = 1:nuser
-                        SCat = double(ismember(testStims{iuser}, oldStims{iuser}));
-                        if isempty(SCat)
-                            curTaskData.TEST{iuser}.SCat = zeros(0, 1);
-                        else
-                            curTaskData.TEST{iuser}.SCat = SCat;
-                        end
-                    end
-                end
-        end
-        %  2. analysis variables in which data is stored
-        spAnaVar = strsplit(curTaskSetting.PreSpVar{:});
-        if ~isempty(spAnaVar{:})
-            curAnaVars = horzcat(curAnaVars, spAnaVar); %#ok<AGROW>
-        end
-
-        % begin processing not by a for loop but `rowfun`
-        anares(:, ianavar) = rowfun(@(varargin) sngproc(varargin{:}, procPara{:}), ...
-            curTaskData, 'InputVariables', curAnaVars, ...
-            'ExtractCellContents', true, 'OutputFormat', 'cell');
-
-        % clear the vars in the loop only
-        clearvars('-except', initialVarsCond{:})
-    end
-    % remove raw records and status (it is for the raw record only)
-    curTaskData(:, horzcat(anaVars, 'status')) = [];
-    % in case of multiple conditions, merge multiple conditions
-    if nanavar > 1
-        anares = arrayfun(@(isubj) {horzcat(anares{isubj, :})}, 1:nuser);
-    end
-
-    % deal with empty results
-    emptyUserIdx = cellfun(@isempty, anares);
-    % skip if all the results are empty
-    if all(emptyUserIdx)
-        fprintf(logfid, ...
-            '[%s] No valid results found in task %s. Will ignore this task. Aborting...\n', ...
-            datestr(now), curTaskDispName);
-        warning('No valid results found in task %s. Will ignore this task. Aborting...', curTaskDispName);
-        nignored = nignored + 1;
-        processed(itask) = false;
-        except   = true;
-        continue
-    end
-    % remove all the users with empty results
-    anares(emptyUserIdx) = [];
-    curTaskData(emptyUserIdx, :) = [];
-    % extract contents from the cell output
-    restbl = cat(1, anares{:});
-    allresvars = restbl.Properties.VariableNames;
-    % get the ultimate index (now only support one index)
-    ultIndexVar = curTaskSetting.UltimateIndex{:};
-    ultIndex    = nan(height(restbl), 1);
-    if ~isempty(ultIndexVar)
-        switch ultIndexVar
-            case 'ConflictUnion'
-                conflictCondVars = strsplit(curTaskSetting.VarsCond{:});
-                conflictVars = strcat(strsplit(curTaskSetting.VarsCat{:}), '_', conflictCondVars{end});
-                restbl{rowfun(@(x) any(isnan(x), 2), restbl, ...
-                    'InputVariables', conflictVars, ...
-                    'SeperateInputs', false, ...
-                    'OutputFormat', 'uniform'), :} = nan;
-                conflictZ = varfun(@(x) (x - nanmean(x)) / nanstd(x), restbl, 'InputVariables', conflictVars);
-                ultIndex = rowfun(@(varargin) sum([varargin{:}]), conflictZ, 'OutputFormat', 'uniform');
-            case 'dprimeUnion'
-                indexMateVar = ~cellfun(@isempty, regexp(allresvars, 'dprime', 'once'));
-                ultIndex = rowfun(@(varargin) sum([varargin{:}]), restbl, 'InputVariables', indexMateVar, 'OutputFormat', 'uniform');
-            otherwise
-                ultIndex = restbl.(ultIndexVar);
-        end
-    end
-
-    % store analysis results
-    curTaskData.index = ultIndex;
-    curTaskData = [curTaskData, restbl]; %#ok<AGROW>
-    data.Data{curtaskidx} = curTaskData;
+    % store the results
+    data.Results{itask} = results;
     % store the time used
-    data.Time2Proc{curtaskidx} = seconds2human(toc - elapsedTime, 'full');
+    data.Time2Proc{itask} = seconds2human(toc - elapsedTime, 'full');
 
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});

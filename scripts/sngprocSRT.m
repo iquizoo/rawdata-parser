@@ -1,4 +1,4 @@
-function res = sngprocSRT(RECORD)
+function [stats, labels] = sngprocSRT(RT, ACC)
 %SNGPROCSRT Does some basic data transformation to simple reaction time tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -12,14 +12,15 @@ function res = sngprocSRT(RECORD)
 %
 %   05/13/2016 ACC records missing information now.
 
-res = table;
-%Accuracy.
-res.ACC = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
-%Mean RT.
-res.MRT = mean(RECORD.RT(RECORD.ACC == 1));
-%Standard deviation of RT. Square root of variance.
-res.VRT = std(RECORD.RT(RECORD.ACC == 1));
-% %Efficiency score, contrary to the inverse efficiency score (IES).
-% res.Effc = res.ACC / res.MRT;
-%Efficiency.
-res.efficiency = asin(sqrt(res.ACC / res.MRT));
+% record total and responded trials numbers
+NTrial = length(RT);
+NResp = sum(ACC ~= -1);
+% set ACC of outlier and -1 trials as NaN (not included)
+ACC(outlier(RT) | ACC == -1) = NaN;
+% record included trials number
+NInclude = sum(~isnan(ACC));
+PE = 1 - nanmean(ACC);
+MRT = mean(RT(ACC == 1));
+SRT = std(RT(ACC == 1));
+stats = [NTrial, NResp, NInclude, PE, MRT, SRT];
+labels = {'NTrial', 'NResp', 'NInclude', 'PE', 'MRT', 'SRT'};
