@@ -57,7 +57,6 @@ process <- function(file){
   indices <- rec %>%
     group_by(userId, createTime) %>%
     do(analysis(.))
-
 }
 
 # prepare data for analysis
@@ -80,4 +79,8 @@ task <- readline("Please specify task id (leave empty if all): ")
 file_names <- file_name_get(tag, task)
 if (is.null(file_names))
   stop("User canceled!")
-results <- lapply(file_names, process)
+
+for (file_name in file_names){
+  indices <- process(file_name)
+  write_feather(indices, paste0(tag, parse_number(file_name, "\\d+"), '.feather'))
+}

@@ -55,7 +55,7 @@ control <- function(rec){
   rec <- mutate(rec, ACC = ifelse(ACC == -1 | ACC == -99, NA, ACC))
 
   # calculating indices regardless of conditions
-  total_index <- do(rec, SAT(.$RT, .$ACC))
+  total_index <- SAT(rec$RT, rec$ACC)
   lisas_weight <- total_index$lisas_weight
 
   # calculate for each condition

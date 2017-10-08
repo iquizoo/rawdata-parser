@@ -36,6 +36,7 @@ _*/
 *.rar
 *.zip
 *.lnk
+*.feather
 
 #Special files.
 .Rproj.user
