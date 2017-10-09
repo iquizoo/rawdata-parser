@@ -206,15 +206,8 @@ for itask = 1:ntasks4process
                     } % SCat modification required tasks.
                 % get taskSTIMMap (STIM->SCat) for these tasks.
                 curTaskEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
-                curTaskSTIMMap = containers.Map(curTaskEncode.STIM, curTaskEncode.SCat);
                 % left -> 1, right -> 2.
-                assert(~isempty(curTaskSTIMMap), ...
-                    'UDF:CCDPRO:SNGPROC:STIMULUSMAP', 'Stimulus map must be specified.');
-                curTaskData = mapSCat(curTaskData, curTaskSTIMMap);
-                % Get the total used time (unit: ms).
-                if ~exist('TotalTime', 'var')
-                    TotalTime = sum(curTaskData.RT);
-                end
+                curTaskData = mapSCat(curTaskData, curTaskEncode);
             case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
                     'DigitCmp', 'Subitizing', ...% Another two math tasks.
                     }
@@ -226,8 +219,6 @@ for itask = 1:ntasks4process
                     TotalTime = sum(curTaskData.RT);
                 end
             case {'SRT', 'CRT'}
-                % All the trials require response.
-                curTaskData.SCat = ones(height(curTaskData), 1);
                 % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
                 curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
                 % note that 0 means no response detected
@@ -291,14 +282,6 @@ for itask = 1:ntasks4process
                     end
                 end
         end % switch
-        % Set the ACC of abnormal trials (RT) as -1.
-        curTaskData.ACC((curTaskData.RT < curTaskSetting.RTmin & curTaskData.RT ~= 0) | ... % Too short RTs
-            (curTaskData.RT > curTaskSetting.RTmax & curTaskData.RT ~= curTaskSetting.NRRT)) = -1; % Too long RTs
-        % Set the ACC of no response trials which require response as -1 for
-        % those tasks which need a response for each trial.
-        if curTaskSetting.RespRequired
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT & curTaskData.SCat ~= 0) = -1;
-        end
     end
 
     % get the number of conditions and subjects for future use
@@ -335,21 +318,14 @@ if strcmp(prompt, 'waitbar'), delete(hwb); end
 rmpath(HELPERFUNPATH);
 end
 
-function RECORD = mapSCat(RECORD, taskSTIMMap)
+function rec = mapSCat(rec, encode)
 % Modify variable SCat of RECORD and return it.
 
-STIM = RECORD.STIM;
-if ~iscell(STIM)
-    STIM = num2cell(STIM);
-end
-chkSTIM = isKey(taskSTIMMap, STIM);
-if all(chkSTIM)
-    % Reshape is used to maintain the structure of data type in case the
-    % RECORD is empty, then cell2mat will change the structure of data type.
-    RECORD.SCat = reshape(cell2mat(values(taskSTIMMap, STIM)), size(STIM));
-else % In this case, some of stimuli are not right, and delete all the instances.
-    RECORD(:, :) = [];
-end
+catOrder = cell(size(unique(encode.SCat)));
+catOrder(encode.Order) = encode.SCat;
+[~, loc] = ismember(rec.STIM, encode.STIM);
+rec.SCat = categorical(encode.SCat(loc), catOrder, 'Ordinal', true);
+
 end
 
 function NGSTIM = findNG(RECORD, criterion)

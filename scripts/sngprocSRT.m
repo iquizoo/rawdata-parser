@@ -18,10 +18,7 @@ NResp = sum(ACC ~= -1);
 % set the RT for no response trials as missing
 RT(ACC == -1) = NaN;
 % two-step protocol to remove RT outliers
-% 1. lower cut-off: 100
-RT(RT < 100) = NaN;
-% 2. iqr-based cut-off
-RT(outlier(RT)) = NaN;
+RT = rmoutlier(RT);
 % set ACC of outlier and -1 trials as NaN (not included)
 ACC(isnan(RT) | ACC == -1) = NaN;
 % record included trials number

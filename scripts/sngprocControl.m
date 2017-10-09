@@ -1,4 +1,4 @@
-function res = sngprocControl(RECORD)
+function [stats, labels] = sngprocControl(SCat, RT, ACC)
 %SNGPROCCONTROL does some basic data transformation to conflict-based tasks.
 %
 % Reference:
@@ -9,38 +9,26 @@ function res = sngprocControl(RECORD)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-Acode = 1; Bcode = 2;
-Asuffix = 'CondA'; Bsuffix = 'CondB'; TotalSuffix = 'Overall';
-delimiter = '_';
-% total conditions.
-res_total = sngprocSAT(RECORD);
-lisas_weight = res_total.SRT / res_total.SPE;
-res_total.Properties.VariableNames = ...
-    strcat(res_total.Properties.VariableNames, delimiter, TotalSuffix);
-% condition of congruent.
-Atrials    = RECORD(RECORD.SCat == Acode, :);
-res_condA = sngprocSAT(Atrials);
-res_condA.lisas = res_condA.MRT + res_condA.PE * lisas_weight;
-res_condA.Properties.VariableNames = ...
-    strcat(res_condA.Properties.VariableNames, delimiter, Asuffix);
-% condition of incongruent/switch.
-Btrials    = RECORD(RECORD.SCat == Bcode, :);
-res_condB = sngprocSAT(Btrials);
-res_condB.lisas = res_condB.MRT + res_condB.PE * lisas_weight;
-res_condB.Properties.VariableNames = ...
-    strcat(res_condB.Properties.VariableNames, delimiter, Bsuffix);
-% congruent effect.
-res = [res_total, res_condA, res_condB];
-diffVars = {'MRT', 'ACC', 'v', 'lisas'};
-for diffVar = diffVars
-    res.(strcat(diffVar{:}, delimiter, 'BAdiff')) = ...
-        res.(strcat(diffVar{:}, delimiter, Bsuffix)) - ...
-        res.(strcat(diffVar{:}, delimiter, Asuffix));
-end
-%The score based NIH instructions.
-ACC = res.(strcat('ACC', delimiter, TotalSuffix));
-RT  = res.(strcat('MedRT', delimiter, Bsuffix));
-if RT < 500, RT = 500; end
-res.NIHScore = ...
-    asin(sqrt(ACC)) / (pi / 2) + ...
+RT(ACC == -1) = NaN;
+RT = rmoutlier(RT);
+% set ACC of outlier and -1 trials as NaN (not included)
+ACC(isnan(RT) | ACC == -1) = NaN;
+
+[total_stats, total_labels] = SAT(RT, ACC);
+lisas_weight = total_stats(ismember(total_labels, 'lisas_weight'));
+
+[grps, gid] = findgroups(SCat);
+[cond_stats, cond_labels] = splitapply(@(x, y) SAT(x, y, lisas_weight), ...
+    RT, ACC, grps);
+diff_stats = cond_stats(2, :) - cond_stats(1, :);
+diff_labels = strcat('diff_', cond_labels(1, :));
+cond_labels = strcat(repmat(cellstr(gid), 1, size(cond_labels, 2)), '_', cond_labels);
+
+PC = 1 - total_stats(ismember(total_labels, 'PE'));
+RT = cond_stats(ismember(cond_labels, 'Incon_MRT'));
+RT = max(min(RT, 2500), 500);
+NIHScore = asin(sqrt(PC)) / (pi / 2) + ...
     (log(2500) - log(RT)) / (log(2500) - log(500));
+
+stats = [total_stats, reshape(cond_stats, 1, numel(cond_stats)), diff_stats, NIHScore];
+labels = [total_labels, reshape(cond_labels, 1, numel(cond_labels)), diff_labels, {'NIHScore'}];
