@@ -1,4 +1,4 @@
-function res = sngprocNSN(RECORD)
+function [stats, labels] = sngprocNSN(SCat, RT, ACC)
 %SNGPROCNSN Does some basic data transformation to all noise/signal-noise tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -7,29 +7,17 @@ function res = sngprocNSN(RECORD)
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%ACCuracy and MRT. Note that ACC of -1 denotes MISSING. (Rate is used in
-%consideration of consistency.)
-Rate_Overall = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
-RT_Overall = mean(RECORD.RT(RECORD.ACC == 1));
-%1 -> target, 0/2 -> nontarget.
-%Count of hit and false alarm.
-Count_hit = sum(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC ~= -1));
-Count_FA = sum(~RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= -1));
-%Ratio of hit and false alarm.
-Rate_hit = length(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC == 1)) / length(RECORD.ACC(RECORD.SCat == 1));
-% Rate_hit = mean(RECORD.ACC(RECORD.SCat == 1 & RECORD.ACC ~= -1));
-Rate_FA = length(RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= 1)) / length(RECORD.ACC(RECORD.SCat ~= 1));
-% Rate_FA = mean(~RECORD.ACC(RECORD.SCat ~= 1 & RECORD.ACC ~= -1));
-%Mean RT computation.
-RT_hit = mean(RECORD.RT(RECORD.SCat == 1 & RECORD.ACC == 1));
-RT_FA = mean(RECORD.RT(RECORD.SCat ~= 1 & RECORD.ACC == 0));
-%d' and c.
-[dprime, c] = sdt(Rate_hit, Rate_FA);
-% efficiency, see Kurtz et.al., 2001 (DOI: 10.1016/s0920-9964(00)00060-8)
-efficiency = asin(sqrt(Count_hit / RT_hit));
-res = table(Rate_Overall, RT_Overall, ...
-    Count_hit, Count_FA, ...
-    Rate_hit, Rate_FA, ...
-    RT_hit, RT_FA, ...
-    dprime, c, ...
-    efficiency);
+RT(ACC == -1) = NaN;
+RT = rmoutlier(RT);
+
+[total_stats, total_labels] = behavstats(RT, ACC);
+
+[grps, gid] = findgroups(SCat);
+[cond_stats, cond_labels] = splitapply(@behavstats, ...
+    RT, ACC, grps);
+cond_labels = strcat(cond_labels, '_', repmat(cellstr(gid), 1, size(cond_labels, 2)));
+cond_res = array2table(cond_stats(:)', 'VariableNames', cond_labels(:)');
+
+[dprime, c] = sdt(1 - cond_res.PE_Signal, cond_res.PE_Noise);
+stats = [total_stats, cond_stats(:)', dprime, c];
+labels = [total_labels, cond_labels(:)', {'dprime', 'c'}];

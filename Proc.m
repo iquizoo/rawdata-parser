@@ -96,7 +96,7 @@ prepartionTime = toc;
 % process extracted data task-wise
 for itask = 1:ntasks4process
     initialVarsTask = who;
-
+    
     % get current task names and index in dataExtract
     if isnumeric(taskInputNames)
         curTaskInputName = num2str(taskInputNames(itask));
@@ -105,7 +105,7 @@ for itask = 1:ntasks4process
     end
     curTaskIDName = data.TaskIDName{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-
+    
     % get current task index in raw data and extract current task data
     curTaskData = data.Data{itask};
     if ~isempty(dbentry)
@@ -113,7 +113,7 @@ for itask = 1:ntasks4process
         curTaskData = curTaskData(dbentry, :);
         dbstop in sngproc
     end
-
+    
     % continue to next task if no data found
     if isempty(curTaskData)
         warning('UDF:PROC:DATAMISSING', ...
@@ -124,10 +124,10 @@ for itask = 1:ntasks4process
         except = true;
         continue
     end
-
+    
     % name setting and analysis preparation
     curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
-
+    
     % prompt setting
     %  1. get the proportion of completion and estimated time of arrival
     completePercent = nprocessed / ntasks4process;
@@ -162,128 +162,123 @@ for itask = 1:ntasks4process
     fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % processed tasks count
     nprocessed = nprocessed + 1;
-
-    nonRTRecTasks = {...
-        'Reading', ...
-        'SusAtten', ...
-        'ForSpan', 'BackSpan', 'SpatialSpan', 'MemoryTail', ...
-        'Jigsaw1', 'Jigsaw2', ...
-        'BART', 'TMT'};
-    if ismember(curTaskIDName, nonRTRecTasks)
-        switch curTaskIDName
-            case {'SusAtten', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
-                % Some of the recording does not include SLen (Stimuli
-                % Length) as one of their variable, get it here.
-                if ~ismember('SLen', curTaskData.Properties.VariableNames)
-                    if ~isempty(curTaskData)
-                        curTaskData.SLen = cellfun(@length, curTaskData.SSeries);
+    
+    % Unifying modification to some of the variables in RECORD.
+    %    1. For ACC: incorrect -> 0, missing -> -1, correct -> 1.
+    %    2. For SCat: (unify in order that 0 represents no response is
+    %    required)
+    %      2.1 nontarget -> 0, target -> 1.
+    %      2.2 congruent -> 1, incongruent -> 2 (originally 0).
+    %      2.3 left(target-like) -> 1, right(nontarget-like) -> 2.
+    %      2.4 old -> 1, similar -> 2, new -> 3 (originally 0).
+    %      2.5 complex -> 1 (means all trials need a response).
+    %    3. For Score: incorrect -> -1, missing -> 0, correct -> 1.
+    switch curTaskIDName
+        case {'SusAtten', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
+            % Some of the recording does not include SLen (Stimuli
+            % Length) as one of their variable, get it here.
+            if ~ismember('SLen', curTaskData.Properties.VariableNames)
+                if ~isempty(curTaskData)
+                    curTaskData.SLen = cellfun(@length, curTaskData.SSeries);
+                else
+                    curTaskData.SLen = zeros(0);
+                end
+            end
+        case 'Reading'
+            if ~exist('TotalTime', 'var')
+                TotalTime = 5 * 60 * 1000; % 5 min
+            end
+        case 'TMT'
+            curTaskData.SCat = cellfun(@length, curTaskData.STIM);
+        case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
+                'GNGLure', 'GNGFruit', ...% GNG tasks
+                'Flanker', ...% Part of EF tasks
+                } % SCat modification required tasks.
+            % get taskSTIMMap (STIM->SCat) for these tasks.
+            curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
+            % left -> 1, right -> 2.
+            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+        case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
+                'DigitCmp', 'Subitizing', ...% Another two math tasks.
+                }
+            % All the trials require response.
+            stimvars = {'S1', 'S2'};
+            curTaskData.SCat = rowfun(@(x, y) abs(x - y), curTaskData, 'InputVariables', stimvars, 'OutputFormat', 'uniform');
+            % Get the total used time (unit: min).
+            if ~exist('TotalTime', 'var')
+                TotalTime = sum(curTaskData.RT);
+            end
+        case {'SRT', 'CRT'}
+            % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
+            curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
+            % note that 0 means no response detected
+            curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
+            curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
+            curTaskData.ACC(curTaskData.Resp == 0) = -1;
+        case {'SRTWatch', 'SRTBread', ... % Two alternative SRT task.
+                'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
+                }
+            % All the trials require response.
+            curTaskData.SCat = ones(height(curTaskData), 1);
+        case {'DRT', ...% DRT
+                'DivAtten1', 'DivAtten2', ...% DA
+                }
+            % Find out the no-go stimulus.
+            NGSTIM = findNG(curTaskData, curTaskSetting.NRRT);
+            % For SCat: Go -> 1, NoGo -> 0.
+            curTaskData.SCat = ~ismember(curTaskData.STIM, NGSTIM);
+        case 'CPT2'
+            % Note: only 'C' following 'B' is Go(target) trial.
+            % Get all the candidate go trials.
+            GoTrials = find(strcmp(curTaskData.STIM, 'C'));
+            % 'C' appears at the first trial will not be a target.
+            GoTrials(GoTrials == 1) = [];
+            % 'C's that are not following 'B' should be excluded.
+            isFollowB = strcmp(curTaskData.STIM(GoTrials - 1) , 'B');
+            GoTrials(~isFollowB) = [];
+            % Add a field 'SCat', 1 -> go, 0 -> nogo.
+            curTaskData.SCat = zeros(height(curTaskData), 1);
+            curTaskData.SCat(GoTrials) = 1;
+        case {'NumStroop', 'Stroop1', 'Stroop2'}
+            % Replace SCat 0 with 2.
+            curTaskData.SCat(curTaskData.SCat == 0) = 2;
+        case {'PicMemory', 'WordMemory', 'SymbolMemory'}
+            % Replace SCat 0 with 3.
+            curTaskData.SCat(curTaskData.SCat == 0) = 3;
+        case {'Nback1', 'Nback2'} % Nback
+            % Remove trials that no response is needed.
+            curTaskData(curTaskData.CResp == -1, :) = [];
+            % CResp map 2 SCat
+            %   0->'Signal'(target: change), 1->'Noise' (non-target: stay)
+            curTaskSTIMEncode = table([0; 1], {'Signal'; 'Noise'}, ...
+                'VariableNames', {'STIM', 'SCat'});
+            curTaskData.STIM = curTaskData.CResp;
+            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+            % All the trials require response.
+            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+        case 'TaskSwitching'
+            curTaskData.SCat(1) = 0;
+        case 'DCCS'
+            curTaskData.SCat(1:12:48) = 0;
+        case {'Filtering', 'Filtering2'}
+            % set the ACC of no response trials as -1.
+            curTaskData.ACC(curTaskData.Resp == -1) = -1;
+            if ~all(ismember(curTaskData.SCat, 1:3))
+                for row = 1:height(curTaskData)
+                    ntar = curTaskData.NTar(row);
+                    ndis = curTaskData.NDis(row);
+                    if ntar == 2 && ndis == 2
+                        SCat = 1;
+                    elseif ntar == 4 && ndis == 0
+                        SCat = 2;
                     else
-                        curTaskData.SLen = zeros(0);
+                        SCat = 3;
                     end
+                    curTaskData.SCat(row) = SCat;
                 end
-            case 'Reading'
-                if ~exist('TotalTime', 'var')
-                    TotalTime = 5 * 60 * 1000; % 5 min
-                end
-            case 'TMT'
-                curTaskData.SCat = cellfun(@length, curTaskData.STIM);
-        end
-    else
-        % Unifying modification to some of the variables in RECORD.
-        %    1. For ACC: incorrect -> 0, missing -> -1, correct -> 1.
-        %    2. For SCat: (unify in order that 0 represents no response is
-        %    required)
-        %      2.1 nontarget -> 0, target -> 1.
-        %      2.2 congruent -> 1, incongruent -> 2 (originally 0).
-        %      2.3 left(target-like) -> 1, right(nontarget-like) -> 2.
-        %      2.4 old -> 1, similar -> 2, new -> 3 (originally 0).
-        %      2.5 complex -> 1 (means all trials need a response).
-        %    3. For Score: incorrect -> -1, missing -> 0, correct -> 1.
-        switch curTaskIDName
-            case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
-                    'GNGLure', 'GNGFruit', ...% GNG tasks
-                    'Flanker', ...% Part of EF tasks
-                    } % SCat modification required tasks.
-                % get taskSTIMMap (STIM->SCat) for these tasks.
-                curTaskEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
-                % left -> 1, right -> 2.
-                curTaskData = mapSCat(curTaskData, curTaskEncode);
-            case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
-                    'DigitCmp', 'Subitizing', ...% Another two math tasks.
-                    }
-                % All the trials require response.
-                stimvars = {'S1', 'S2'};
-                curTaskData.SCat = rowfun(@(x, y) abs(x - y), curTaskData, 'InputVariables', stimvars, 'OutputFormat', 'uniform');
-                % Get the total used time (unit: min).
-                if ~exist('TotalTime', 'var')
-                    TotalTime = sum(curTaskData.RT);
-                end
-            case {'SRT', 'CRT'}
-                % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
-                curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
-                % note that 0 means no response detected
-                curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
-                curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
-                curTaskData.ACC(curTaskData.Resp == 0) = -1;
-            case {'SRTWatch', 'SRTBread', ... % Two alternative SRT task.
-                    'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
-                    }
-                % All the trials require response.
-                curTaskData.SCat = ones(height(curTaskData), 1);
-            case {'DRT', ...% DRT
-                    'DivAtten1', 'DivAtten2', ...% DA
-                    }
-                % Find out the no-go stimulus.
-                NGSTIM = findNG(curTaskData, curTaskSetting.NRRT);
-                % For SCat: Go -> 1, NoGo -> 0.
-                curTaskData.SCat = ~ismember(curTaskData.STIM, NGSTIM);
-            case 'CPT2'
-                % Note: only 'C' following 'B' is Go(target) trial.
-                % Get all the candidate go trials.
-                GoTrials = find(strcmp(curTaskData.STIM, 'C'));
-                % 'C' appears at the first trial will not be a target.
-                GoTrials(GoTrials == 1) = [];
-                % 'C's that are not following 'B' should be excluded.
-                isFollowB = strcmp(curTaskData.STIM(GoTrials - 1) , 'B');
-                GoTrials(~isFollowB) = [];
-                % Add a field 'SCat', 1 -> go, 0 -> nogo.
-                curTaskData.SCat = zeros(height(curTaskData), 1);
-                curTaskData.SCat(GoTrials) = 1;
-            case {'NumStroop', 'Stroop1', 'Stroop2'}
-                % Replace SCat 0 with 2.
-                curTaskData.SCat(curTaskData.SCat == 0) = 2;
-            case {'PicMemory', 'WordMemory', 'SymbolMemory'}
-                % Replace SCat 0 with 3.
-                curTaskData.SCat(curTaskData.SCat == 0) = 3;
-            case {'Nback1', 'Nback2'} % Nback
-                % Remove trials that no response is needed.
-                curTaskData(curTaskData.CResp == -1, :) = [];
-                % All the trials require response.
-                curTaskData.SCat = ones(height(curTaskData), 1);
-            case 'TaskSwitching'
-                curTaskData.SCat(1) = 0;
-            case 'DCCS'
-                curTaskData.SCat(1:12:48) = 0;
-            case {'Filtering', 'Filtering2'}
-                % set the ACC of no response trials as -1.
-                curTaskData.ACC(curTaskData.Resp == -1) = -1;
-                if ~all(ismember(curTaskData.SCat, 1:3))
-                    for row = 1:height(curTaskData)
-                        ntar = curTaskData.NTar(row);
-                        ndis = curTaskData.NDis(row);
-                        if ntar == 2 && ndis == 2
-                            SCat = 1;
-                        elseif ntar == 4 && ndis == 0
-                            SCat = 2;
-                        else
-                            SCat = 3;
-                        end
-                        curTaskData.SCat(row) = SCat;
-                    end
-                end
-        end % switch
-    end
-
+            end
+    end % switch
+    
     % get the number of conditions and subjects for future use
     curTaskAnaFun = str2func(['sngproc', curTaskSetting.AnalysisFun{:}]);
     curTaskAnaVars = split(curTaskSetting.AnalysisVars);
@@ -294,12 +289,12 @@ for itask = 1:ntasks4process
     curTaskIndexLoc = ismember(labels, curTaskSetting.Index{:});
     keys.index = stats(:, curTaskIndexLoc);
     results = [keys, array2table(stats, 'VariableNames', labels)];
-
+    
     % store the results
     data.Results{itask} = results;
     % store the time used
     data.Time2Proc{itask} = seconds2human(toc - elapsedTime, 'full');
-
+    
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
 end
@@ -321,10 +316,13 @@ end
 function rec = mapSCat(rec, encode)
 % Modify variable SCat of RECORD and return it.
 
-catOrder = cell(size(unique(encode.SCat)));
-catOrder(encode.Order) = encode.SCat;
+isOrdinal = ismember('Order', encode.Properties.VariableNames);
+catVals = unique(encode.SCat);
+if isOrdinal
+    catVals(encode.Order) = encode.SCat;
+end
 [~, loc] = ismember(rec.STIM, encode.STIM);
-rec.SCat = categorical(encode.SCat(loc), catOrder, 'Ordinal', true);
+rec.SCat = categorical(encode.SCat(loc), catVals, 'Ordinal', isOrdinal);
 
 end
 
