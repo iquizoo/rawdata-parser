@@ -21,7 +21,7 @@ RT(ACC == -1) = NaN;
 % 1. lower cut-off: 100
 RT(RT < 100) = NaN;
 % 2. iqr-based cut-off
-RT(out4iqr(RT)) = NaN;
+RT(outlier(RT)) = NaN;
 % set ACC of outlier and -1 trials as NaN (not included)
 ACC(isnan(RT) | ACC == -1) = NaN;
 % record included trials number
