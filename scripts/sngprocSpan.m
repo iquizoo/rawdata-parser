@@ -1,4 +1,4 @@
-function res = sngprocSpan(RECORD)
+function [stats, labels] = sngprocSpan(SLen, ACC)
 %SNGPROCSPAN Does some basic data transformation to working memory span tasks.
 %
 %   Basically, the supported tasks are as follows:
@@ -15,50 +15,24 @@ function res = sngprocSpan(RECORD)
 
 % By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
-%ML (maximal length) could be a judgement if there are any trials that are
-%correct.
-ML = max(RECORD.SLen(RECORD.ACC == 1));
-if isempty(ML) % No correct trials found.
+% trials number
+NTrial = length(SLen);
+% maximal lenth
+ML = max(SLen(ACC == 1));
+if isempty(ML)
+    % no correct trials exist
     ML = nan;
     MS = nan;
-    meanHit = 0;
 else
-    %Mean span metric.
-    baseLen = RECORD.SLen(1);
-    msBase = baseLen - 0.5; %Mean span baseline, set at 0.5 less than initial length.
-    allSLen = unique(RECORD.SLen);
-    %If the SLen is larger than baseLen, Mean Span is increased.
-    increSLen = allSLen(allSLen >= baseLen);
-    msIncre = 0;
-    % to check invalid data.
-    hitIncre = 0;
-    nIncre = 0;
-    for iLen = 1:length(increSLen)
-        SLen = increSLen(iLen);
-        %Incremented by hit rate of each SLen.
-        hit = mean(RECORD.ACC(RECORD.SLen == SLen));
-        if SLen >= 10
-            hitIncre = hitIncre + hit;
-            nIncre = nIncre + 1;
-        end
-        msIncre = msIncre + hit;
-    end
-    %If the SLen is larger than baseLen, Mean Span is decreased.
-    decreSLen = allSLen(allSLen < baseLen);
-    msDecre = 0;
-    for iLen = 1:length(decreSLen)
-        %Decreased by miss rate of each SLen.
-        msDecre = msDecre + 1 - mean(RECORD.ACC(RECORD.SLen == decreSLen(iLen)));
-    end
-    if nIncre > 0
-        meanHit = hitIncre / nIncre;
-    else
-        meanHit = 0;
-    end
-    MS = msBase + msIncre - msDecre;
+    % initial length
+    baseLen = SLen(1);
+    % mean span baseline, set at 0.5 less than initial length
+    msBase = baseLen - 0.5;
+    [grps, allSLen] = findgroups(SLen);
+    PC = splitapply(@mean, ACC, grps);
+    allSLenWeight = (-1) .^ (allSLen < baseLen);
+    MS = msBase + dot(PC, allSLenWeight);
 end
-%For scoring.
-MLACC = mean(RECORD.ACC(RECORD.SLen == ML));
-MLNextACC = mean(RECORD.ACC(RECORD.SLen == ML - 1));
-%Wrap these output into a table.
-res = table(ML, MS, MLACC, MLNextACC, meanHit);
+
+stats = [NTrial, ML, MS];
+labels = {'NTrial', 'ML', 'MS'};
