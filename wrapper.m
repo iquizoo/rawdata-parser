@@ -42,20 +42,23 @@ if isempty(rawsuff)
     end
 end
 % set environmental settings.
-suffix = matlab.lang.makeValidName(rawsuff);
+if ~all(ismissing(tasks))
+    suffix = matlab.lang.makeValidName([rawsuff, '_', char(datetime)]);
+else
+    suffix = matlab.lang.makeValidName(rawsuff);
+end
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
 svRawCsvDataPath = fullfile(dfltSet.DATARES_DIR, suffix, 'data');
 svRawCsvMetaPath = fullfile(dfltSet.DATARES_DIR, suffix, 'meta');
-if ~exist(svRawCsvDataPath, 'dir'), mkdir(svRawCsvDataPath); end
-if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
+svResCsvPath = fullfile(dfltSet.DATARES_DIR, suffix, 'res');
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
 % mrgFilePrefix = 'mrg_';
-svRawFileName = [rawFilePrefix, suffix];
-svResFileName = [resFilePrefix, suffix];
+svRawFileName = fullfile(rawdir, [rawFilePrefix, suffix]);
+svResFileName = fullfile(rawdir, [resFilePrefix, suffix]);
 % svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
 ldRawDataPath = fullfile(rawdir, rawsuff);
-ldRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
+ldRawFileName = fullfile(resdir, [rawFilePrefix, rawsuff]);
 % ldResFileName = fullfile(resdir, [resFilePrefix, suffix]);
 % start by checking the starting point
 if s >= 4
@@ -79,11 +82,12 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            if ~all(ismissing(tasks))
-                svRawFileName = matlab.lang.makeValidName([svRawFileName, '_', char(datetime)]);
-            end
-            save(fullfile(resdir, svRawFileName), svVars{:}, saveVer)
+            save(svRawFileName, svVars{:}, saveVer)
+            % save as .mat for precision
             ntasks = height(data);
+            % save as .csv for communication
+            if ~exist(svRawCsvDataPath, 'dir'), mkdir(svRawCsvDataPath); end
+            if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
                 taskData = data.Data{itask};
@@ -123,10 +127,17 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            if ~all(ismissing(tasks))
-                svResFileName = matlab.lang.makeValidName([svResFileName, '_', char(datetime)]);
+            % save as .mat for precision
+            save(svResFileName, svVars{:}, saveVer)
+            % save as .csv for communication
+            if ~exist(svResCsvPath, 'dir'), mkdir(svResCsvPath); end
+            ntasks = height(res);
+            for itask = 1:ntasks
+                taskID = res.TaskID(itask);
+                taskMerge = outerjoin(res.Meta{itask}, res.Results{itask}, 'MergeKeys', true);
+                writetable(taskMerge, fullfile(svResCsvPath, [num2str(taskID), '.csv']), ...
+                    'QuoteStrings', true, 'Encoding', 'UTF-8')
             end
-            save(fullfile(resdir, svResFileName), svVars{:}, saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
