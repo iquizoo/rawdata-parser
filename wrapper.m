@@ -51,8 +51,8 @@ if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
 % mrgFilePrefix = 'mrg_';
-svRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
-svResFileName = fullfile(resdir, [resFilePrefix, suffix]);
+svRawFileName = [rawFilePrefix, suffix];
+svResFileName = [resFilePrefix, suffix];
 % svMrgFileName = fullfile(resdir, [mrgFilePrefix, suffix]);
 ldRawDataPath = fullfile(rawdir, rawsuff);
 ldRawFileName = fullfile(resdir, [rawFilePrefix, suffix]);
@@ -79,7 +79,10 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svRawFileName, svVars{:}, saveVer)
+            if ~all(ismissing(tasks))
+                svRawFileName = matlab.lang.makeValidName([svRawFileName, '_', char(datetime)]);
+            end
+            save(fullfile(resdir, svRawFileName), svVars{:}, saveVer)
             ntasks = height(data);
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
@@ -120,7 +123,10 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svResFileName, svVars{:}, saveVer)
+            if ~all(ismissing(tasks))
+                svResFileName = matlab.lang.makeValidName([svResFileName, '_', char(datetime)]);
+            end
+            save(fullfile(resdir, svResFileName), svVars{:}, saveVer)
             fprintf('Saving done.\n')
         end
         if ~cntn
