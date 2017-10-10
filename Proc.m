@@ -65,7 +65,7 @@ end
 % remove not-to-be-processed tasks
 data(~ismember(data.TaskID, taskIDs), :) = [];
 % variables used for logging and rate of progress
-ntasks4process = height(data);
+ntasks4process = length(taskInputNames);
 nprocessed = 0;
 nignored = 0;
 processed = true(ntasks4process, 1);
@@ -103,11 +103,12 @@ for itask = 1:ntasks4process
     else
         curTaskInputName = taskInputNames{itask};
     end
-    curTaskIDName = data.TaskIDName{itask};
+    cuTaskID = taskIDs(itask);
+    curTaskIDName = taskIDNames{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-    
+    curTaskIdx = ismember(data.TaskID, cuTaskID);
     % get current task index in raw data and extract current task data
-    curTaskData = data.Data{itask};
+    curTaskData = data.Data{curTaskIdx};
     if ~isempty(dbentry)
         % DEBUG MODE: read the debug entry only
         curTaskData = curTaskData(dbentry, :);
@@ -291,9 +292,9 @@ for itask = 1:ntasks4process
     results = [keys, array2table(stats, 'VariableNames', labels)];
     
     % store the results
-    data.Results{itask} = results;
+    data.Results{curTaskIdx} = results;
     % store the time used
-    data.Time2Proc{itask} = seconds2human(toc - elapsedTime, 'full');
+    data.Time2Proc{curTaskIdx} = seconds2human(toc - elapsedTime, 'full');
     
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
