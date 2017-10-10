@@ -220,7 +220,7 @@ for itask = 1:ntasks4process
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
                 }
             % All the trials require response.
-            curTaskData.SCat = ones(height(curTaskData), 1);
+            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
         case {'DRT', ...% DRT
                 'DivAtten1', 'DivAtten2', ...% DA
                 }
