@@ -139,7 +139,7 @@ dataWrapper = table(taskIDs, taskIDNames, ...
     {'TaskID', 'TaskIDName', 'Data', 'Meta', 'Time2Preproc'});
 
 % record the time elapsed when preparation is done
-prepartionTime = toc;
+preparationTime = toc;
 
 % preprocess task by task
 for itask = 1:ntasks4process
@@ -157,7 +157,7 @@ for itask = 1:ntasks4process
     
     % update prompt information.
     completePercent = nprocessed / ntasks4process;
-    elapsedTime = toc - prepartionTime;
+    elapsedTime = toc - preparationTime;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else

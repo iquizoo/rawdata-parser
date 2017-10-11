@@ -91,7 +91,7 @@ fprintf('OK! The total jobs are composed of %d task(s), though some may fail...\
     ntasks4process);
 
 % record the time elapsed when preparation is done
-prepartionTime = toc;
+preparationTime = toc;
 
 % process extracted data task-wise
 for itask = 1:ntasks4process
@@ -132,7 +132,7 @@ for itask = 1:ntasks4process
     % prompt setting
     %  1. get the proportion of completion and estimated time of arrival
     completePercent = nprocessed / ntasks4process;
-    elapsedTime = toc - prepartionTime;
+    elapsedTime = toc - preparationTime;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
