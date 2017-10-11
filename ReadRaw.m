@@ -1,4 +1,4 @@
-function ReadRawXls(varargin)
+function ReadRaw(varargin)
 %READRAWXLS transforms the excel files in `src` to `dest`.
 
 % start stopwatch.
