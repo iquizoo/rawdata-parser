@@ -24,14 +24,10 @@ if isempty(ML)
     ML = nan;
     MS = nan;
 else
-    % initial length
-    baseLen = SLen(1);
-    % mean span baseline, set at 0.5 less than initial length
-    msBase = baseLen - 0.5;
+    % note 'findgroups' will sort data in ascending order
     [grps, allSLen] = findgroups(SLen);
     PC = splitapply(@mean, ACC, grps);
-    allSLenWeight = (-1) .^ (allSLen < baseLen);
-    MS = msBase + dot(PC, allSLenWeight);
+    MS = allSLen(1) - 0.5 + sum(PC);
 end
 
 stats = [NTrial, ML, MS];
