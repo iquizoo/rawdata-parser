@@ -32,14 +32,21 @@ if isempty(src)
     choice = questdlg('What type of source?', 'Input checking', 'File', 'Folder', 'Cancel', 'File');
     switch choice
         case 'File'
-            [fnames, pathname] = uigetfile( ...
-                {'*.json', 'JSON-Formatted Text Files (*.json)'; ...
+            [fnames, pathname] = uigetfile({ ...
+                '*.xlsx;*.json', 'Excel/JSON Data (*.xlsx, *.json)'; ...
+                '*.json', 'JSON Data Files (*.json)'; ...
                 '*.xlsx', 'Excel Data Files (*.xlsx)'; ...
-                '*.xlsx;*.json', 'Both of above (*.xlsx, *.json)'}, ...
+                }, ...
                 'Please select the file containing source data.', 'DATA_RawData', 'MultiSelect', 'on');
+            if isnumeric(fnames)
+                error('UDF:READRAW:DATASOURCEMISSING', 'No data files selected.')
+            end
             src = fullfile(pathname, fnames);
         case 'Folder'
             src = uigetdir('DATA_RawData', 'Please select the folder of source data.');
+            if isnumeric(src)
+                error('UDF:READRAW:DATASOURCEMISSING', 'No data path selected.')
+            end
         case 'Cancel'
             fprintf('User canceled. Returning.\n')
             rmpath(HELPERFUNPATH)
@@ -48,6 +55,9 @@ if isempty(src)
 end
 if isempty(dest)
     dest = uigetdir('DATA_RawData', 'Please select the folder of destination data.');
+    if isnumeric(dest)
+        error('UDF:READRAW:DATADESTMISSING', 'No data destination selected.')
+    end
 end
 
 % get all the data file names
@@ -88,7 +98,7 @@ for ifile = 1:nfiles
     initialVars = who;
     curFileFullname = filefullnames{ifile};
     [~, curFilename, curFiletype] = fileparts(curFileFullname);
-
+    
     % update prompt information.
     completePercent = nprocessed / nfiles;
     if nprocessed == 0
@@ -119,7 +129,7 @@ for ifile = 1:nfiles
             except = false;
     end
     nprocessed = nprocessed + 1;
-
+    
     switch curFiletype
         case '.xlsx'
             if nspl <= 0
