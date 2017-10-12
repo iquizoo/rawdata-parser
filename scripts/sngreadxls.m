@@ -23,8 +23,10 @@ else
         end
     end
 end
-
+% concatenate data string into one multiple object json string
+datastr = ['[', strjoin(records.(DATA_KEY), ','), ']'];
 % transform data json string
-[rec, status] = cellfun(@json2rec, records.(DATA_KEY), num2cell(records.(TASK_KEY)));
+[rec, status] = json2rec(datastr, records.(TASK_KEY));
 % horzcat to get form extracted
-extracted = [records(:, setdiff(recvars, DATA_KEY, 'stable')), cat(1, rec{:})];
+extracted = [records(:, setdiff(recvars, DATA_KEY, 'stable')), rec];
+end

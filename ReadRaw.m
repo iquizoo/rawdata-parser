@@ -21,8 +21,8 @@ HELPERFUNPATH = 'scripts';
 addpath(HELPERFUNPATH);
 
 % metavars options
-METAVARSOPTS = {'Taskname', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
-METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
+METAVARSOPTS = {'Taskname|taskName', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
+METAVARNAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARCLSES = {'cell', 'double', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime'};
 TASKKEYVARNAME = 'excerciseId';
 
@@ -130,6 +130,7 @@ for ifile = 1:nfiles
     end
     nprocessed = nprocessed + 1;
     
+    % data reading
     switch curFiletype
         case '.xlsx'
             if nspl <= 0
@@ -152,6 +153,7 @@ for ifile = 1:nfiles
             curFileExtract = curFileExtract(1:(min(nspl, nusers)), :);
     end
     
+    % check reading status
     if any(status == -1)
         except = true;
         warning('UDF:READRAWXLS:DATAMISSING', 'Data of some users (total: %d) lost in file %s.', ...
@@ -201,6 +203,16 @@ for ifile = 1:nfiles
         curFileExtract.(curMetavarNameLegal) = curMetadataTrans;
     end
     % vertical catenation
+    latestVars = extracted.Properties.VariableNames;
+    curFileVars = curFileExtract.Properties.VariableNames;
+    % read from document, a(ia)/b(ib) will be the missing of the other set
+    [~, ilatest, icurFile] = setxor(latestVars, curFileVars);
+    latestMissingVars = curFileVars(icurFile);
+    extracted(:, latestMissingVars) = ...
+        repmat({missing}, height(extracted), length(latestMissingVars));
+    curFileMissingVars = latestVars(ilatest);
+    curFileExtract(:, curFileMissingVars) = ...
+        repmat({missing}, height(curFileExtract), length(curFileMissingVars));
     extracted = [extracted; curFileExtract]; %#ok<AGROW>
     clearvars('-except', initialVars{:})
 end
