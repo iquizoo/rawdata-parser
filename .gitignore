@@ -1,9 +1,9 @@
-#For matlab non-script/function files.
+# For matlab non-script/function files.
 *.mat
 *.fig
 *.asv
 
-#For MS Office files
+# For MS Office files
 *.doc
 *.docx
 *.xls
@@ -11,7 +11,7 @@
 *.ppt
 *.pptx
 
-#For special folders.
+# For special folders.
 DATA*/
 doc*/
 BAK*/
@@ -21,14 +21,14 @@ tmp/
 _*/
 .vs/
 
-#For miscellaneous TEXT files.
+# For miscellaneous TEXT files.
 *~
 *.bak
 *.bak2
 *.log
 *.pmd
 
-#For miscellaneous BINARY files.
+# For miscellaneous BINARY files.
 *.jpg
 *.png
 *.tif
@@ -38,10 +38,13 @@ _*/
 *.lnk
 *.feather
 
-#Special files.
+# R project special
 .Rproj.user
 .Rhistory
 *.Rproj
 .RData
-write*
-xls2config*
+
+# other temporary scripts
+xls2config.m
+xls2config.R
+config2xls.m
