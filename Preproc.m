@@ -64,7 +64,7 @@ DATAFORMAT = '.csv';
 CONFIGPATH = 'config';
 READPARAS = {'Encoding', 'UTF-8'};
 % metavartype settings
-METAVARNAMES = {'Taskname', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
+METAVARNAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
 % valid 'sex' characters
 SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ÄÐ'};
