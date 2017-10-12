@@ -15,11 +15,6 @@ src = par.Results.Source;
 dest = par.Results.Destination;
 prompt = lower(par.Results.DisplayInfo);
 nspl = par.Results.NumSamples;
-% checking number of samples
-MAXROWS = 2 ^ 20;
-if nspl <= 0
-    nspl = nspl + MAXROWS - 1;
-end
 
 % add helper functions folder
 HELPERFUNPATH = 'scripts';
@@ -37,7 +32,11 @@ if isempty(src)
     choice = questdlg('What type of source?', 'Input checking', 'File', 'Folder', 'Cancel', 'File');
     switch choice
         case 'File'
-            [fnames, pathname] = uigetfile('.xlsx', 'Please select the file containing source data.', 'DATA_RawData', 'MultiSelect', 'on');
+            [fnames, pathname] = uigetfile( ...
+                {'*.json', 'JSON-Formatted Text Files (*.json)'; ...
+                '*.xlsx', 'Excel Data Files (*.xlsx)'; ...
+                '*.xlsx;*.json', 'Both of above (*.xlsx, *.json)'}, ...
+                'Please select the file containing source data.', 'DATA_RawData', 'MultiSelect', 'on');
             src = fullfile(pathname, fnames);
         case 'Folder'
             src = uigetdir('DATA_RawData', 'Please select the folder of source data.');
@@ -51,14 +50,15 @@ if isempty(dest)
     dest = uigetdir('DATA_RawData', 'Please select the folder of destination data.');
 end
 
-% get all the xlsx file names
+% get all the data file names
 if ~iscell(src) && isfolder(src)
-    files = dir(fullfile(src, '*.xlsx'));
-    filefullnames = fullfile({files.folder}, {files.name});
+    files = dir(src);
+    filefullnames = regexp(fullfile({files.folder}, {files.name}), ...
+        '.+\.(xlsx|json)$', 'once', 'match');
+    filefullnames(ismissing(filefullnames)) = [];
 else
     filefullnames = cellstr(src);
 end
-
 
 % rate of progress display initialization
 switch prompt
@@ -71,28 +71,30 @@ switch prompt
         except  = false;
         dispinfo = '';
 end
-% variables for progressing statistics
-nfiles = length(filefullnames);
-nprocessed = 0;
 
+% total file numbers
+nfiles = length(filefullnames);
+% variables for progressing statistics
+nprocessed = 0;
+fprintf('The total number of raw data files is %d.\n', nfiles);
+
+% excel files part
 % preallocate
 extracted = table;
-
 % record the time elapsed when preparation is done
-prepartionTime = toc;
-
+preparationTime = toc;
 % process file by file
 for ifile = 1:nfiles
     initialVars = who;
     curFileFullname = filefullnames{ifile};
-    [~, curFilename] = fileparts(curFileFullname);
+    [~, curFilename, curFiletype] = fileparts(curFileFullname);
 
     % update prompt information.
     completePercent = nprocessed / nfiles;
     if nprocessed == 0
         msgSuff = 'Please wait...';
     else
-        elapsedTime = toc - prepartionTime;
+        elapsedTime = toc - preparationTime;
         eta = seconds2human(elapsedTime * (1 - completePercent) / completePercent, 'full');
         msgSuff = strcat('TimeRem:', eta);
     end
@@ -118,11 +120,28 @@ for ifile = 1:nfiles
     end
     nprocessed = nprocessed + 1;
 
-    % set read options
-    readRange = ['1:', num2str(nspl + 1)];
-    opts = detectImportOptions(curFileFullname, 'Range', readRange);
-    % extract data from file
-    [curFileExtract, status] = sngreadxls(curFileFullname, opts);
+    switch curFiletype
+        case '.xlsx'
+            if nspl <= 0
+                % 2 ^ 20 is the maximal number of rows.
+                nspl = nspl + 2 ^ 20 - 1;
+            end
+            % set read options
+            readRange = ['1:', num2str(nspl + 1)];
+            opts = detectImportOptions(curFileFullname, 'Range', readRange);
+            % extract data from file
+            [curFileExtract, status] = sngreadxls(curFileFullname, opts);
+        case '.json'
+            % extract data from file
+            [curFileExtract, status] = sngreadjson(curFileFullname);
+            % extract selected samples
+            nusers = height(curFileExtract);
+            if nspl <= 0
+                nspl = nspl + nusers;
+            end
+            curFileExtract = curFileExtract(1:(min(nspl, nusers)), :);
+    end
+    
     if any(status == -1)
         except = true;
         warning('UDF:READRAWXLS:DATAMISSING', 'Data of some users (total: %d) lost in file %s.', ...
@@ -175,6 +194,7 @@ for ifile = 1:nfiles
     extracted = [extracted; curFileExtract]; %#ok<AGROW>
     clearvars('-except', initialVars{:})
 end
+
 % remove entries with NaN task ID
 extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
 % write data to .csv files
