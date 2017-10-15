@@ -1,5 +1,5 @@
 function clean = rmoutlier(raw, varargin)
-% 
+%
 % Default: a 2-step protocol
 
 par = inputParser;
