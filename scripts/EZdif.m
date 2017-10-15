@@ -1,13 +1,15 @@
-function [v, a, Ter] = EZdif(Pc, MRT, VRT, s)
+function [v, a, Ter] = EZdif(PC, MRT, SRT, s)
 %EZDIF Calculates parameters of EZ-diffusion model.
-%   [V,A,TER] = EZdif(PC,MRT,VRT) receives 3 inputs, respectively: Pc is
-%   the proportion of correct, i.e., rate of accuracy; MRT(unit: sec) is
-%   mean reaction time of correct responses; VRT(unit: sec) is variance of
-%   reactio time of correct responses. And its outputs, V is the drifting
-%   rate, which is said as a fixed property of the condition or the
-%   participant; A is the boundary separation, which is said to be under
-%   the control of the participant (Wagenmakers, 2007); and TER is the
-%   nondecision time.
+%   [V,A,TER] = EZdif(PC,MRT,VRT) receives 3 inputs, respectively:
+%       PC - the proportion of correct, i.e., rate of accuracy;
+%       MRT - mean of correct reaction time (unit: sec);
+%       SRT - standard deviation of correct reaction time (unit: sec).
+%   And its outputs:
+%       V - the drifting rate, a fixed property of the condition or the
+%           participant;
+%       A - the boundary separation, which is said to be under the control
+%           of the participant ;
+%       TER - the nondecision time.(Wagenmakers, 2007)
 %
 %   [V,A,TER] = EZdif(...,s) receives the fourth inputs S as the scaling
 %   parameter, which is just an arbitrary value.
@@ -26,7 +28,7 @@ end
 
 %In case of VRT equals to 0, the data must be singular, and return NaNs to
 %result.
-if VRT == 0
+if SRT == 0
     v = nan;
     a = nan;
     Ter = nan;
@@ -34,18 +36,18 @@ if VRT == 0
 end
 
 %When pc is 0, 0.5, or 1, there needs some modification of Pc.
-Pc(Pc == 0) = 0.01;
-Pc(Pc == 1) = 0.99;
-Pc(Pc == 0.5) = 0.51; % This is a little arbitrary.
+PC(PC == 0) = 0.01;
+PC(PC == 1) = 0.99;
+PC(PC == 0.5) = 0.51; % This is a little arbitrary.
 
 %Calculate logit of Pc.
-y = log(Pc ./ (1 - Pc));
+y = log(PC ./ (1 - PC));
 
 %Calculate v.
-v = sign(Pc - 0.5) .* s .* ((y .* (Pc .^ 2 .* y - Pc .* y + Pc - 0.5)) ./ VRT) .^ (1 / 4);
+v = sign(PC - 0.5) .* s .* ((y .* (PC .^ 2 .* y - PC .* y + PC - 0.5)) ./ SRT) .^ (1 / 4);
 
 %Calculate a.
 a = s^2 .* y ./ v;
 
 %Calculate Ter.
-Ter = MRT - (2 * Pc - 1) .* a ./ (2 * v);
+Ter = MRT - (2 * PC - 1) .* a ./ (2 * v);
