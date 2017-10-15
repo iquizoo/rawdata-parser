@@ -19,7 +19,7 @@ lisas_weight = total_stats(ismember(total_labels, 'lisas_weight'));
 [cond_stats, cond_labels] = splitapply(@(x, y) SAT(x, y, lisas_weight), ...
     RT, ACC, grps);
 diff_stats = cond_stats(2, :) - cond_stats(1, :);
-diff_labels = strcat('diff_', cond_labels(1, :));
+diff_labels = strcat(cond_labels(1, :), '_diff');
 cond_labels = strcat(cond_labels, '_', repmat(cellstr(gid), 1, size(cond_labels, 2)));
 
 PC = 1 - total_stats(ismember(total_labels, 'PE'));
