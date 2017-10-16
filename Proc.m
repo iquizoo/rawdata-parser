@@ -278,6 +278,9 @@ for itask = 1:ntasks4process
                     curTaskData.SCat(row) = SCat;
                 end
             end
+        case 'StopSignal'
+            % set the ACC of non-stop trial without response as -1
+            curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
     end % switch
     
     % get the number of conditions and subjects for future use
