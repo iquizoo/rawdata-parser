@@ -309,12 +309,26 @@ for itask = 1:ntasks4process
             if isempty(curMrgCond)
                 curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
             else
-                curCondKeyMeta.Condition = repmat(curMrgCond, height(curCondKeyMeta), 1);
+                curCondKeyMeta.Condition = repmat({curMrgCond}, height(curCondKeyMeta), 1);
                 curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
             end
-            curTaskData = [curTaskData; curCondRecs]; %#ok<AGROW>
+            % check if var names are diff for diff conditions
+            curTaskVars = curTaskData.Properties.VariableNames;
+            curCondVars = curCondRecs.Properties.VariableNames;
+            % a(ia)/b(ib) will be the missing of the other set
+            [~, icurCond, icurTask] = setxor(curCondVars, curTaskVars, 'stable');
+            curCondMissingVars = curTaskVars(icurTask);
+            curCondRecs(:, curCondMissingVars) = ...
+                repmat({missing}, height(curCondRecs), length(curCondMissingVars));
+            curTaskMissingVars = curCondVars(icurCond);
+            curTaskData(:, curTaskMissingVars) = ...
+                repmat({missing}, height(curTaskData), length(curTaskMissingVars));
+            curTaskData = vertcat(curTaskData, curCondRecs); %#ok<AGROW>
         end
     catch ME
+        except = true;
+        warning('!! Error occured when stacking raw data for %s. Error: %s, %s.', ...
+            curTaskDispName, ME.identifier, ME.message);
         fprintf(logfid, ...
             '[%s] !! Error occured when stacking raw data for %s. Error: %s, %s.\n', ...
             datestr(now), curTaskDispName, ME.identifier, ME.message);
