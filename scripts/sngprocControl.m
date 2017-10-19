@@ -7,7 +7,7 @@ function [stats, labels] = sngprocControl(SCat, RT, ACC)
 %   performance: A rejoinder on the binning procedure
 %   Behavior Research Methods, 2016, 1-21
 
-%By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+% By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
 % find group information
 [grps, gid] = findgroups(SCat);
