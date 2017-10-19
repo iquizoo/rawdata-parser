@@ -12,10 +12,10 @@ NTrial = length(RT);
 NResp = sum(ACC ~= -1);
 % remove RT's with no response
 RT(ACC == -1) = NaN;
-NInclude = sum(~isnan(ACC));
 % remove RT outlier
 RT(~IsStop) = rmoutlier(RT(~IsStop));
 ACC(isnan(RT)) = nan;
+NInclude = sum(~isnan(ACC));
 % mean reaction time and proportion of error for Go and Stop condition
 MRT_Go = mean(RT(ACC == 1 & IsStop == 0));
 MRT_Stop = mean(RT(ACC == 0 & IsStop == 1));
