@@ -258,7 +258,6 @@ for itask = 1:ntasks4process
     curTaskDatastr = curTaskRawData.(DATAVARNAME);
     % separate metadata (contains iqmethod results) and extracted data
     curTaskMeta = curTaskRawData(:, setdiff(rawdataVars, DATAVARNAME, 'stable'));
-    curTaskData = table;
     % separate data to trials
     curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
     [curTaskTrialRec, status] = cellfun(@(datastr) sngpreproc(datastr, curTaskPara), curTaskDatastr);
@@ -299,6 +298,8 @@ for itask = 1:ntasks4process
     curTaskKeyMeta = curTaskRawData(:, KEYMETAVARS);
     % assume the records are same for one task
     try
+        % merge the data from each conditions as one table
+        curTaskData = table;
         for iCond = 1:length(curTaskConditions)
             curCondition = curTaskConditions{iCond};
             curMrgCond = curTaskMrgCond{iCond};
