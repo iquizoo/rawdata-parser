@@ -93,11 +93,13 @@ else
             if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
+                taskIDName = data.TaskIDName{itask};
+                svRawCsvName = sprintf('%s(%d).csv', taskIDName, taskID);
                 taskData = data.Data{itask};
                 taskMeta = data.Meta{itask};
-                writetable(taskData, fullfile(svRawCsvDataPath, [num2str(taskID), '.csv']), ...
+                writetable(taskData, fullfile(svRawCsvDataPath, svRawCsvName), ...
                     'QuoteStrings', true, 'Encoding', 'UTF-8')
-                writetable(taskMeta, fullfile(svRawCsvMetaPath, [num2str(taskID), '.csv']), ...
+                writetable(taskMeta, fullfile(svRawCsvMetaPath, svRawCsvName), ...
                     'QuoteStrings', true, 'Encoding', 'UTF-8')
             end
             fprintf('Saving done.\n')
