@@ -18,7 +18,8 @@ if isnumeric(names)
             'Some task identifiers are invalid, and will not be preprocessed. Please check!')
         fprintf('Invalid task identifier:\n')
         disp(names(~isValid))
-        names(~isValid) = [];
+        % for compatibility considerations, column number remains unchanged
+        names(~isValid, :) = [];
     end
     namesfull = names;
     ids = names;
@@ -44,7 +45,8 @@ else
             'Some task name strings are invalid, and will not be preprocessed. Please check!')
         fprintf('Invalid task name strings:\n')
         disp(names(~isValid))
-        names(~isValid) = [];
+        % for compatibility considerations, column number remains unchanged
+        names(~isValid, :) = [];
     end
     % get the locations for each valid input task name
     namesfull = {};
