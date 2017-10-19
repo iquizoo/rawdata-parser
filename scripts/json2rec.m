@@ -28,7 +28,11 @@ rec = cell2table(repmat({{''}, {''}, {''}, {''}, {''}, 0, -99}, nusers, 1), ...
 status = zeros(nusers, 1);
 for iUser = 1:nusers
     % get the extracted data
-    curUserExtracted = extracted(iUser);
+    if iscell(extracted)
+        curUserExtracted = extracted{iUser};
+    else
+        curUserExtracted = extracted(iUser);
+    end
     % remove fields not containing only one row of data.
     extfields = fieldnames(curUserExtracted);
     curUserExtracted = struct2table(rmfield(curUserExtracted, ...
