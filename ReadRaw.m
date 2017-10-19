@@ -206,7 +206,7 @@ for ifile = 1:nfiles
     latestVars = extracted.Properties.VariableNames;
     curFileVars = curFileExtract.Properties.VariableNames;
     % read from document, a(ia)/b(ib) will be the missing of the other set
-    [~, ilatest, icurFile] = setxor(latestVars, curFileVars);
+    [~, ilatest, icurFile] = setxor(latestVars, curFileVars, 'stable');
     latestMissingVars = curFileVars(icurFile);
     extracted(:, latestMissingVars) = ...
         repmat({missing}, height(extracted), length(latestMissingVars));
