@@ -134,6 +134,7 @@ if ~isempty(para) && ~isempty(para.Delimiters{:}) && ischar(datastr)
             end
             curCondTrialsSplit = cat(1, curCondTrialsSplit{:});
             curCondTrialsSplit(:, trans{icond}) = num2cell(str2double(curCondTrialsSplit(:, trans{icond})));
+            curCondTrialsSplit(:, ~trans{icond}) = num2cell(string(curCondTrialsSplit(:, ~trans{icond})));
             %Here cell type is used, because the RECORD have multiple rows.
             trialrec.(conditionsNames{icond}) = ...
                 {cell2table(curCondTrialsSplit, 'VariableNames', VarNames{icond})};
