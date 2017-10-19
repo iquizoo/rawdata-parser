@@ -217,14 +217,16 @@ for ifile = 1:nfiles
     clearvars('-except', initialVars{:})
 end
 
-% remove entries with NaN task ID
-extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
-% write data to .csv files
-taskIDs = unique(extracted.(TASKKEYVARNAME));
-for itask = 1:length(taskIDs)
-    taskID = taskIDs(itask);
-    taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
-    writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
-        'QuoteStrings', true, 'Encoding', 'UTF-8')
+if ~isempty(extracted)
+    % remove entries with NaN task ID
+    extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
+    % write data to .csv files
+    taskIDs = unique(extracted.(TASKKEYVARNAME));
+    for itask = 1:length(taskIDs)
+        taskID = taskIDs(itask);
+        taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
+        writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
+            'QuoteStrings', true, 'Encoding', 'UTF-8')
+    end
 end
 rmpath(HELPERFUNPATH)
