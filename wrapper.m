@@ -35,6 +35,9 @@ rawdir = dfltSet.DATARAW_DIR;
 if isempty(rawsuff)
     if s < 2
         rawdataPath = uigetdir(rawdir, 'Select rawdata path');
+        if isnumeric(rawdataPath)
+            error('UDF:WRAPPER:DATASOURCEMISSING', 'No data files selected.')
+        end
         rawsuff = rawdataPath(length(rawdir) + 2:end);
     else
         rawsuff = inputdlg('Input suffix for your raw data:', 'Data suffix input');
