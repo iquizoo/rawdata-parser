@@ -21,7 +21,7 @@ ID,Note,TemplateToken,Delimiters,VariablesNames,VariablesChar,ConditionInformati
 20,"数字魔法师","NB",",:","NStim CResp ACC RT","0","",""
 21,"思维转换、反应转换","TS",",:","Condition SCat ACC RT","0","",""
 22,"自由拼图","JS",";:,","XGrid YGrid N Pat TIME","4","","Pat"
-23,"吹气球","BART",",:","NHit Feedback CurUtility TotalUtility","0","",""
+23,"吹气球","BART",",:","NHit Feedback CurUtility CumUtility","0","",""
 24,"红绿灯","SS",",:","Session NTrl SCat IsStop Resp ACC RT SSD","0","",""
 25,"宇宙加氧站","TA",",:","Ntrl SCat TimeOnset TimeResp","0","",""
 26,"消灭敌机","TD",",:","H1 R1 H2 R2 Delay Resp RT CurUtility TotalUtility\X1 X2 Delay H1 R1 H2 R2 Resp RT CurUtility TotalUtility","0","",""
@@ -30,3 +30,4 @@ ID,Note,TemplateToken,Delimiters,VariablesNames,VariablesChar,ConditionInformati
 29,"卡片分类","DCCS",",:","SCat CResp Resp ACC RT Group LC LS RC RS TC TS","0.3","",""
 30,"连线","TMT",";,","STIM NAcc NWrong RT SCat","1","",""
 31,"班务达人、科学达人","FL",";,","Block Trial SCat NTar NDis CResp Resp ACC RT Change","0","",""
+32,"宇航员","NL",",:","Trial STIM Resp ACC RT","0","",""
