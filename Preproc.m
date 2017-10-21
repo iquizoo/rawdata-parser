@@ -67,7 +67,7 @@ READPARAS = {'Encoding', 'UTF-8'};
 METAVARNAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
 % valid 'sex' characters
-SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ÄÐ'};
+SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ï¿½ï¿½'};
 SEXFEMALE = {'female', 'Female', 'FEMALE', 'f', 'F', 'Å®'};
 SEXES = {'male', 'female'};
 % key metavars
@@ -144,7 +144,7 @@ preparationTime = toc;
 % preprocess task by task
 for itask = 1:ntasks4process
     initialVars = who;
-    
+
     % get current task names
     if isnumeric(taskInputNamesFull)
         curTaskInputName = num2str(taskInputNamesFull(itask));
@@ -154,7 +154,7 @@ for itask = 1:ntasks4process
     curTaskID = taskIDs(itask);
     curTaskIDName = taskIDNames{itask};
     curTaskDispName = sprintf('%s(%s)', curTaskInputName, curTaskIDName);
-    
+
     % update prompt information.
     completePercent = nprocessed / ntasks4process;
     elapsedTime = toc - preparationTime;
@@ -188,7 +188,7 @@ for itask = 1:ntasks4process
     fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % update processed tasks number.
     nprocessed = nprocessed + 1;
-    
+
     % find out the setting of current task.
     locset = ismember(settings.TaskIDName, curTaskIDName);
     if ~any(locset)
@@ -198,21 +198,21 @@ for itask = 1:ntasks4process
         continue
     end
     curTaskSetting = settings(locset, :);
-    
+
     % read raw data file.
     curTaskFile = fullfile(datapath, [num2str(curTaskID), '.csv']);
     opts = detectImportOptions(curTaskFile, READPARAS{:});
     opts = setvartype(opts, METAVARNAMES, METAVARTYPES);
     curTaskRawData = readtable(curTaskFile, opts);
     rawdataVars = curTaskRawData.Properties.VariableNames;
-    
+
     % when in debug mode, read the debug entry only
     if ~isempty(dbentry)
         curTaskRawData = curTaskRawData(dbentry, :);
         fprintf(logfid, '[%s] Begin to debug, recording can be misleading.', datestr(now));
         dbstop in sngpreproc
     end
-    
+
     % check all the real metadata
     for iMetavar = 1:length(METAVARNAMES)
         curMetavarName = METAVARNAMES{iMetavar};
@@ -253,7 +253,7 @@ for itask = 1:ntasks4process
         end
         curTaskRawData.(curMetavarName) = curMetadata;
     end
-    
+
     % extract data string
     curTaskDatastr = curTaskRawData.(DATAVARNAME);
     % separate metadata (contains iqmethod results) and extracted data
@@ -289,57 +289,46 @@ for itask = 1:ntasks4process
     % remove from original data
     curTaskRawData(curTaskDataMissedLoc, :) = [];
     curTaskTrialRec(curTaskDataMissedLoc) = [];
-    
+
     % add user KEY meta information into the trials records
     % extract the content from cell
     curTaskTrialRec = cat(1, curTaskTrialRec{:});
     curTaskConditions = curTaskTrialRec.Properties.VariableNames;
     curTaskMrgCond = strsplit(curTaskSetting.MergeCond{:});
     curTaskKeyMeta = curTaskRawData(:, KEYMETAVARS);
-    % assume the records are same for one task
-    try
-        % merge the data from each conditions as one table
-        curTaskData = table;
-        for iCond = 1:length(curTaskConditions)
-            curCondition = curTaskConditions{iCond};
-            curMrgCond = curTaskMrgCond{iCond};
-            curCondRecs = curTaskTrialRec.(curCondition);
-            curCondNTrial = cellfun(@height, curCondRecs);
-            curCondKeyMeta = repelem(curTaskKeyMeta, curCondNTrial, 1);
-            if isempty(curMrgCond)
-                curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
-            else
-                curCondKeyMeta.Condition = repmat({curMrgCond}, height(curCondKeyMeta), 1);
-                curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
-            end
-            % check if var names are diff for diff conditions
-            curTaskVars = curTaskData.Properties.VariableNames;
-            curCondVars = curCondRecs.Properties.VariableNames;
-            % a(ia)/b(ib) will be the missing of the other set
-            [~, icurCond, icurTask] = setxor(curCondVars, curTaskVars, 'stable');
-            curCondMissingVars = curTaskVars(icurTask);
-            curCondRecs(:, curCondMissingVars) = ...
-                repmat({missing}, height(curCondRecs), length(curCondMissingVars));
-            curTaskMissingVars = curCondVars(icurCond);
-            curTaskData(:, curTaskMissingVars) = ...
-                repmat({missing}, height(curTaskData), length(curTaskMissingVars));
-            curTaskData = vertcat(curTaskData, curCondRecs); %#ok<AGROW>
+    % merge the data from each conditions as one table
+    curTaskData = table;
+    for iCond = 1:length(curTaskConditions)
+        curCondition = curTaskConditions{iCond};
+        curMrgCond = curTaskMrgCond{iCond};
+        curCondRecs = curTaskTrialRec.(curCondition);
+        curCondNTrial = cellfun(@height, curCondRecs);
+        curCondKeyMeta = repelem(curTaskKeyMeta, curCondNTrial, 1);
+        if isempty(curMrgCond)
+            curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
+        else
+            curCondKeyMeta.Condition = repmat({curMrgCond}, height(curCondKeyMeta), 1);
+            curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
         end
-    catch ME
-        except = true;
-        warning('!! Error occured when stacking raw data for %s. Error: %s, %s.', ...
-            curTaskDispName, ME.identifier, ME.message);
-        fprintf(logfid, ...
-            '[%s] !! Error occured when stacking raw data for %s. Error: %s, %s.\n', ...
-            datestr(now), curTaskDispName, ME.identifier, ME.message);
-        curTaskData = table;
+        % check if var names are diff for diff conditions
+        curTaskVars = curTaskData.Properties.VariableNames;
+        curCondVars = curCondRecs.Properties.VariableNames;
+        % a(ia)/b(ib) will be the missing of the other set
+        [~, icurCond, icurTask] = setxor(curCondVars, curTaskVars, 'stable');
+        curCondMissingVars = curTaskVars(icurTask);
+        curCondRecs(:, curCondMissingVars) = ...
+            repmat({missing}, height(curCondRecs), length(curCondMissingVars));
+        curTaskMissingVars = curCondVars(icurCond);
+        curTaskData(:, curTaskMissingVars) = ...
+            repmat({missing}, height(curTaskData), length(curTaskMissingVars));
+        curTaskData = vertcat(curTaskData, curCondRecs); %#ok<AGROW>
     end
-    
+
     % preprocess time
     dataWrapper.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
     dataWrapper.Data{itask} = curTaskData;
     dataWrapper.Meta{itask} = curTaskMeta;
-    
+
     % clear redundant variables to save storage
     clearvars('-except', initialVars{:});
 end
