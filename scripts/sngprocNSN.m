@@ -1,9 +1,8 @@
-function [stats, labels] = sngprocNSN(SCat, RT, ACC)
-%SNGPROCNSN Does some basic data transformation to all noise/signal-noise tasks.
-%
-%   Basically, the supported tasks are as follows:
-%     Symbol Orthograph Tone Pinyin Lexic Semantic DRT CPT1 CPT2 GNGLure
-%     GNGFruit DivAtten1 DivAtten2
+function [stats, labels] = sngprocNSN(RT, ACC, SCat)
+%SNGPROCNSN forms a wrapper to do signal detection theory analysis.
+%   [STATS, LABELS] = SNGPROCNSN(RT, ACC, SCAT) receives reaction times
+%   (RT) and accuracy (ACC) with its conditions (SCat) as input parameters,
+%   and output mainly 'dprime' and 'c'.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 

@@ -1,4 +1,4 @@
-function [stats, labels] = sngprocControl(SCat, RT, ACC)
+function [stats, labels] = sngprocControl(RT, ACC, SCat)
 %SNGPROCCONTROL does some basic data transformation to conflict-based tasks.
 %
 % Reference:
