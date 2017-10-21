@@ -1,9 +1,5 @@
 function [stats, labels] = sngprocSRT(RT, ACC)
-%SNGPROCSRT Does some basic data transformation to simple reaction time tasks.
-%
-%   Basically, the supported tasks are as follows:
-%     SRT SRTWatch SRTBread
-%   The output table contains 3 variables, called ACC, MRT, VRT.
+%SNGPROCSRT calculates mean simple reaction time.
 
 %By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 %Change log:
