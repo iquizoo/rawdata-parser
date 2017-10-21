@@ -41,6 +41,9 @@ if isempty(rawsuff)
         rawsuff = rawdataPath(length(rawdir) + 2:end);
     else
         rawsuff = inputdlg('Input suffix for your raw data:', 'Data suffix input');
+        if isempty(rawsuff)
+            error('UDF:WRAPPER:EMPTYRAWSUFF', 'No raw suffix is specified.')
+        end
         rawsuff = rawsuff{:};
     end
 end
@@ -94,13 +97,13 @@ else
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
                 taskIDName = data.TaskIDName{itask};
-                svRawCsvName = sprintf('%s(%d).csv', taskIDName, taskID);
+                svRawCsvName = sprintf('%s(%d).xlsx', taskIDName, taskID);
                 taskData = data.Data{itask};
                 taskMeta = data.Meta{itask};
-                writetable(taskData, fullfile(svRawCsvDataPath, svRawCsvName), ...
-                    'QuoteStrings', true, 'Encoding', 'UTF-8')
-                writetable(taskMeta, fullfile(svRawCsvMetaPath, svRawCsvName), ...
-                    'QuoteStrings', true, 'Encoding', 'UTF-8')
+                writetable(taskData, fullfile(svRawCsvDataPath, svRawCsvName)); %, ...
+                   % 'QuoteStrings', true, 'Encoding', 'UTF-8')
+                writetable(taskMeta, fullfile(svRawCsvMetaPath, svRawCsvName)); %, ...
+                   % 'QuoteStrings', true, 'Encoding', 'UTF-8')
             end
             fprintf('Saving done.\n')
         end
