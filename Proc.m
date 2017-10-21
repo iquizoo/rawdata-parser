@@ -175,7 +175,26 @@ for itask = 1:ntasks4process
     %      2.5 complex -> 1 (means all trials need a response).
     %    3. For Score: incorrect -> -1, missing -> 0, correct -> 1.
     switch curTaskIDName
-        case {'SusAtten', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
+        % BART
+        % MemoryTail
+        case 'SRT'
+            % use acc of -1 to code no response trial
+            curTaskData.ACC(curTaskData.Resp == 0) = -1;
+            curTaskData.ACC(curTaskData.Resp ~= 0) = 1;
+        case 'SRTWatch'
+            % set trials in which RTs equal to Maximal RT as no-response
+            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+        case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
+                'GNGLure', 'GNGFruit', ...% GNG tasks
+                'Flanker', ...% Part of EF tasks
+                } % SCat modification required tasks.
+            % Flanker
+            % get taskSTIMMap (STIM->SCat) for these tasks.
+            curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
+            % left -> 1, right -> 2.
+            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+        case {'MOT', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
+            % SpatialSpan
             % Some of the recording does not include SLen (Stimuli
             % Length) as one of their variable, get it here.
             if ~ismember('SLen', curTaskData.Properties.VariableNames)
@@ -185,20 +204,36 @@ for itask = 1:ntasks4process
                     curTaskData.SLen = zeros(0);
                 end
             end
+        case {'Nback1', 'Nback2'} % Nback
+            % Nback1
+            % Remove trials that no response is needed.
+            curTaskData(curTaskData.CResp == -1, :) = [];
+            % map CResp to SCat
+            %   0->'Signal'(target: change), 1->'Noise' (non-target: stay)
+            curTaskSTIMEncode = table([0; 1], {'Signal'; 'Noise'}, ...
+                'VariableNames', {'STIM', 'SCat'});
+            curTaskData.STIM = curTaskData.CResp;
+            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+            % All the trials require response.
+            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+        case 'CRT'
+            % CRT
+            % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
+            curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
+            % change accuracy encoding (raw data recordings are inaccurate)
+            curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
+            curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
+            % note that Resp of 0 means no response detected
+            curTaskData.ACC(curTaskData.Resp == 0) = -1;
+        case 'StopSignal'
+            % set the ACC of non-stop trial without response as -1
+            curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
         case 'Reading'
             if ~exist('TotalTime', 'var')
                 TotalTime = 5 * 60 * 1000; % 5 min
             end
         case 'TMT'
             curTaskData.SCat = cellfun(@length, curTaskData.STIM);
-        case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
-                'GNGLure', 'GNGFruit', ...% GNG tasks
-                'Flanker', ...% Part of EF tasks
-                } % SCat modification required tasks.
-            % get taskSTIMMap (STIM->SCat) for these tasks.
-            curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
-            % left -> 1, right -> 2.
-            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
         case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
                 'DigitCmp', 'Subitizing', ...% Another two math tasks.
                 }
@@ -209,14 +244,7 @@ for itask = 1:ntasks4process
             if ~exist('TotalTime', 'var')
                 TotalTime = sum(curTaskData.RT);
             end
-        case {'SRT', 'CRT'}
-            % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
-            curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
-            % note that 0 means no response detected
-            curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
-            curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
-            curTaskData.ACC(curTaskData.Resp == 0) = -1;
-        case {'SRTWatch', 'SRTBread', ... % Two alternative SRT task.
+        case {'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
                 }
             % All the trials require response.
@@ -246,17 +274,7 @@ for itask = 1:ntasks4process
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
-        case {'Nback1', 'Nback2'} % Nback
-            % Remove trials that no response is needed.
-            curTaskData(curTaskData.CResp == -1, :) = [];
-            % CResp map 2 SCat
-            %   0->'Signal'(target: change), 1->'Noise' (non-target: stay)
-            curTaskSTIMEncode = table([0; 1], {'Signal'; 'Noise'}, ...
-                'VariableNames', {'STIM', 'SCat'});
-            curTaskData.STIM = curTaskData.CResp;
-            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
-            % All the trials require response.
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+            
         case 'TaskSwitching'
             curTaskData.SCat(1) = 0;
         case 'DCCS'
@@ -278,9 +296,7 @@ for itask = 1:ntasks4process
                     curTaskData.SCat(row) = SCat;
                 end
             end
-        case 'StopSignal'
-            % set the ACC of non-stop trial without response as -1
-            curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
+            
     end % switch
     
     % get the number of conditions and subjects for future use
