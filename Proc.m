@@ -334,7 +334,12 @@ rmpath(HELPERFUNPATH);
 end
 
 function rec = mapSCat(rec, encode)
-% Modify variable SCat of RECORD and return it.
+% Modify/add variable 'SCat'(Stimulus Category).
+%   ENCODE must be a table containing following variables:
+%       STIM  - REQUIRED, original stimuli.
+%       SCat  - REQUIRED, corresponding category of each stimulus.
+%       Order - OPTIONAL, if existed, SCat will be transformed to an
+%               ordinal categorical variable; otherwise to a nominal one
 
 isOrdinal = ismember('Order', encode.Properties.VariableNames);
 catVals = unique(encode.SCat);
