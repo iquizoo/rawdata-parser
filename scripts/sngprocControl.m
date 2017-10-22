@@ -19,10 +19,11 @@ for igrp = 1:length(gid)
     RT(curGroupIdx) = rmoutlier(RT(curGroupIdx));
 end
 % calculate statistics for the whole task
-[total_stats, total_labels] = SAT(RT, ACC);
+[total_stats, total_labels] = SAT(RT, ACC, 'Method', 'none');
 lisas_weight = total_stats(ismember(total_labels, 'lisas_weight'));
 % calculate statistics for each condition
-[cond_stats, cond_labels] = splitapply(@(x, y) SAT(x, y, lisas_weight), ...
+[cond_stats, cond_labels] = splitapply(...
+    @(x, y) SAT(x, y, lisas_weight, 'Method', 'none'), ...
     RT, ACC, grps);
 diff_stats = cond_stats(2, :) - cond_stats(1, :);
 diff_labels = strcat(cond_labels(1, :), '_diff');

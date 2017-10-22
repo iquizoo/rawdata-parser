@@ -1,9 +1,13 @@
-function [stats, labels] = behavstats(RT, ACC)
+function [stats, labels] = behavstats(RT, ACC, varargin)
 % summary statistics for behavior according to RT and ACC
 
 % record trial information
 NTrial = length(RT);
 NResp = sum(ACC ~= -1);
+% set the RT for no response trials as missing
+RT(ACC == -1) = NaN;
+% remove RT outliers
+RT = rmoutlier(RT, varargin{:});
 % set ACC of outlier and -1 trials as NaN (not included)
 ACC(isnan(RT) | ACC == -1) = NaN;
 NInclude = sum(~isnan(ACC));

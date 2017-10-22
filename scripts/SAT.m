@@ -1,8 +1,19 @@
-function [stats, labels] = SAT(RT, ACC, lisas_weight)
+function [stats, labels] = SAT(RT, ACC, varargin)
+% SAT calculates indicators considering speed-accuracy tradeoff
 
-[sum_stats, sum_labels] = behavstats(RT, ACC);
+par = inputParser;
+par.KeepUnmatched = true;
+addOptional(par, 'LisasWeight', [], @isnumeric);
+parse(par, varargin{:})
+lisas_weight = par.Results.LisasWeight;
+% outlier removal protocol is specified as additional arguments
+if ismember('LisasWeight', par.UsingDefaults)
+    [sum_stats, sum_labels] = behavstats(RT, ACC, varargin{:});
+else
+    [sum_stats, sum_labels] = behavstats(RT, ACC, varargin{2:end});
+end
 sum_tbl = array2table(sum_stats, 'VariableNames', sum_labels);
-if nargin < 3
+if isempty(lisas_weight)
     lisas_weight = sum_tbl.SRT / sum_tbl.SPE;
 end
 
