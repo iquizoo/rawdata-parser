@@ -184,6 +184,15 @@ for itask = 1:ntasks4process
         case 'SRTWatch'
             % set trials in which RTs equal to Maximal RT as no-response
             curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+        case 'CRT'
+            % CRT
+            % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
+            curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
+            % change accuracy encoding (raw data recordings are inaccurate)
+            curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
+            curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
+            % note that Resp of 0 means no response detected
+            curTaskData.ACC(curTaskData.Resp == 0) = -1;
         case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
                 'GNGLure', 'GNGFruit', ...% GNG tasks
                 'Flanker', ...% Part of EF tasks
@@ -216,15 +225,6 @@ for itask = 1:ntasks4process
             curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
             % All the trials require response.
             curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
-        case 'CRT'
-            % CRT
-            % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
-            curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
-            % change accuracy encoding (raw data recordings are inaccurate)
-            curTaskData.ACC(curTaskData.STIM == curTaskData.Resp) = 1;
-            curTaskData.ACC(curTaskData.STIM ~= curTaskData.Resp) = 0;
-            % note that Resp of 0 means no response detected
-            curTaskData.ACC(curTaskData.Resp == 0) = -1;
         case 'StopSignal'
             % set the ACC of non-stop trial without response as -1
             curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
