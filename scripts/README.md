@@ -8,7 +8,7 @@ Here contains all the analysis functions, whose names all begin with a string 's
 
 #### For tasks that *Reaction Time* is an indicator of interest
 
-Based on [this post](http://condor.depaul.edu/dallbrit/extra/resources/ReactionTimeData-2017-4-4.html), if *reaction time* is an indicator of interest, which means that users' **speed** is so important that reaction time is a crucial indicator of users' performance on one task, we adopt a two-step protocol to do outlier detection for reaction times, and implement it in the function `rmoutlier`. Specifically, the two steps are
+Based on [this post](http://condor.depaul.edu/dallbrit/extra/resources/ReactionTimeData-2017-4-4.html), if *reaction time* is an indicator of interest, which means that users' **speed** is so important that reaction time is a crucial indicator of users' performance on one task, we adopt a two-step protocol to do outlier detection for reaction times, and implement it in the function [`rmoutlier`](rmoutlier.m). Specifically, the two steps are
 
 1. Treat all the reaction times faster than 100 ms as outliers.
 1. Using a [Tukey boxplot method](https://en.wikipedia.org/wiki/Box_plot) to detect reactions-time outliers that are still too slow or too fast.
