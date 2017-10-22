@@ -21,7 +21,7 @@ cutoffs = par.Results.Boundary;
 sdlimits = par.Results.SDLimit;
 percent = par.Results.Number;
 coef = par.Results.Coefficient;
-if ~ismember(method, {'cutoff', 'sd', 'percent', 'iqr'})
+if ~ismember(method, {'cutoff', 'sd', 'percent', 'iqr', 'none'})
     error('UDF:OUTLIER:UNKOWNMETHOD', 'Not supported method.')
 end
 
@@ -41,5 +41,7 @@ switch method
         % interquantile range.
         IQR = Q(2) - Q(1);
         ci = [Q(1) - coef * IQR, Q(2) + coef * IQR];
+    case 'none'
+        ci = [min(x), max(x)];
 end
 idx = x < ci(1) | x > ci(2);
