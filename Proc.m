@@ -201,7 +201,7 @@ for itask = 1:ntasks4process
             % get taskSTIMMap (STIM->SCat) for these tasks.
             curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
             % left -> 1, right -> 2.
-            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+            curTaskData.SCat = mapSCat(curTaskData.STIM, curTaskSTIMEncode);
         case {'MOT', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
             % SpatialSpan
             % Some of the recording does not include SLen (Stimuli
@@ -218,11 +218,11 @@ for itask = 1:ntasks4process
             % Remove trials that no response is needed.
             curTaskData(curTaskData.CResp == -1, :) = [];
             % map CResp to SCat
-            %   0->'Signal'(target: change), 1->'Noise' (non-target: stay)
-            curTaskSTIMEncode = table([0; 1], {'Signal'; 'Noise'}, ...
-                'VariableNames', {'STIM', 'SCat'});
-            curTaskData.STIM = curTaskData.CResp;
-            curTaskData = mapSCat(curTaskData, curTaskSTIMEncode);
+            %   0->'Change'(non-target: noise), 1->'Stay' (target: signal)
+            %   order: 'noise first, signal second'
+            curTaskSTIMEncode = table([0; 1], {'Change'; 'Stay'}, [1; 2], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            curTaskData.SCat = mapSCat(curTaskData.CResp, curTaskSTIMEncode);
             % All the trials require response.
             curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
         case 'StopSignal'
@@ -333,7 +333,7 @@ if strcmp(prompt, 'waitbar'), delete(hwb); end
 rmpath(HELPERFUNPATH);
 end
 
-function rec = mapSCat(rec, encode)
+function scat = mapSCat(stim, encode)
 % Modify/add variable 'SCat'(Stimulus Category).
 %   ENCODE must be a table containing following variables:
 %       STIM  - REQUIRED, original stimuli.
@@ -346,8 +346,8 @@ catVals = unique(encode.SCat);
 if isOrdinal
     catVals(encode.Order) = encode.SCat;
 end
-[~, loc] = ismember(rec.STIM, encode.STIM);
-rec.SCat = categorical(encode.SCat(loc), catVals, 'Ordinal', isOrdinal);
+[~, loc] = ismember(stim, encode.STIM);
+scat = categorical(encode.SCat(loc), catVals, 'Ordinal', isOrdinal);
 
 end
 
