@@ -229,6 +229,9 @@ for itask = 1:ntasks4process
             % set the ACC of non-stop trial without response as -1
             curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
         case 'CPT1'
+            curTaskSTIMEncode = table([0; 1], {'Non-Target'; 'Target'}, [1; 2], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
         case 'Reading'
             if ~exist('TotalTime', 'var')
                 TotalTime = 5 * 60 * 1000; % 5 min

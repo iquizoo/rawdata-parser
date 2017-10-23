@@ -1,6 +1,6 @@
 ID,TaskName,TaskIDName,TemplateToken,PreSpVar,AnalysisFun,AnalysisVars,RespRequired,RTmin,RTmax,NRRT,ChanceACC,MergeCond,Index
 1,"雷达追踪","MOT","MOT","","Span","SLen ACC",1,NaN,NaN,NaN,NaN,"","MS"
-2,"捉虫","CPT1","CPT1","","NSN","RT ACC SCat",0,100,NaN,1000,NaN,"","dprime"
+2,"捉虫","CPT1","CPT1","","CPT1","RT ACC SCat",0,100,NaN,1000,NaN,"","dprime"
 3,"捉虫(高级版)","CPT2","CPT2","","NSN","RT ACC SCat",0,100,NaN,500,NaN,"","dprime"
 4,"分配注意初级","DivAtten1","DA","","NSN","RT ACC SCat",0,100,NaN,1000,0.5,"Left Right","dprimeUnion"
 5,"分配注意中级","DivAtten2","DA","","NSN","RT ACC SCat",0,100,NaN,1000,0.5,"Left Right","dprimeUnion"
