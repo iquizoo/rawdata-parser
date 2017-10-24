@@ -6,11 +6,14 @@ function C = hetervcat(A, B)
 AVars = A.Properties.VariableNames;
 BVars = B.Properties.VariableNames;
 % a(ia)/b(ib) will be the missing of the other set
-[~, iA, iB] = setxor(AVars, BVars, 'stable');
-BmissVars = AVars(iA);
-B(:, BmissVars) = ...
-    repmat({missing}, height(B), length(BmissVars));
-AmissVars = BVars(iB);
-A(:, AmissVars) = ...
-    repmat({missing}, height(A), length(AmissVars));
+[exVars, iA, iB] = setxor(AVars, BVars, 'stable');
+% when A and B are not empty and heterogenous, do something
+if ~isempty(AVars) && ~isempty(BVars) && ~isempty(exVars)
+    BmissVars = AVars(iA);
+    B(:, BmissVars) = ...
+        repmat({missing}, height(B), length(BmissVars));
+    AmissVars = BVars(iB);
+    A(:, AmissVars) = ...
+        repmat({missing}, height(A), length(AmissVars));
+end
 C = vertcat(A, B);
