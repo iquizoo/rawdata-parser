@@ -98,7 +98,7 @@ for ifile = 1:nfiles
     initialVars = who;
     curFileFullname = filefullnames{ifile};
     [~, curFilename, curFiletype] = fileparts(curFileFullname);
-    
+
     % update prompt information.
     completePercent = nprocessed / nfiles;
     if nprocessed == 0
@@ -129,7 +129,7 @@ for ifile = 1:nfiles
             except = false;
     end
     nprocessed = nprocessed + 1;
-    
+
     % data reading
     switch curFiletype
         case '.xlsx'
@@ -152,7 +152,7 @@ for ifile = 1:nfiles
             end
             curFileExtract = curFileExtract(1:(min(nspl, nusers)), :);
     end
-    
+
     % check reading status
     if any(status == -1)
         except = true;
@@ -203,17 +203,7 @@ for ifile = 1:nfiles
         curFileExtract.(curMetavarNameLegal) = curMetadataTrans;
     end
     % vertical catenation
-    latestVars = extracted.Properties.VariableNames;
-    curFileVars = curFileExtract.Properties.VariableNames;
-    % read from document, a(ia)/b(ib) will be the missing of the other set
-    [~, ilatest, icurFile] = setxor(latestVars, curFileVars, 'stable');
-    latestMissingVars = curFileVars(icurFile);
-    extracted(:, latestMissingVars) = ...
-        repmat({missing}, height(extracted), length(latestMissingVars));
-    curFileMissingVars = latestVars(ilatest);
-    curFileExtract(:, curFileMissingVars) = ...
-        repmat({missing}, height(curFileExtract), length(curFileMissingVars));
-    extracted = [extracted; curFileExtract]; %#ok<AGROW>
+    extracted = hetervcat(extracted, curFileExtract);
     clearvars('-except', initialVars{:})
 end
 
