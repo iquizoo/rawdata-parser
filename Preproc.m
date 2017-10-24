@@ -292,37 +292,9 @@ for itask = 1:ntasks4process
 
     % add user KEY meta information into the trials records
     % extract the content from cell
-    curTaskTrialRec = cat(1, curTaskTrialRec{:});
-    curTaskConditions = curTaskTrialRec.Properties.VariableNames;
-    curTaskMrgCond = strsplit(curTaskSetting.MergeCond{:});
-    curTaskKeyMeta = curTaskRawData(:, KEYMETAVARS);
-    % merge the data from each conditions as one table
-    curTaskData = table;
-    for iCond = 1:length(curTaskConditions)
-        curCondition = curTaskConditions{iCond};
-        curMrgCond = curTaskMrgCond{iCond};
-        curCondRecs = curTaskTrialRec.(curCondition);
-        curCondNTrial = cellfun(@height, curCondRecs);
-        curCondKeyMeta = repelem(curTaskKeyMeta, curCondNTrial, 1);
-        if isempty(curMrgCond)
-            curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
-        else
-            curCondKeyMeta.Condition = repmat({curMrgCond}, height(curCondKeyMeta), 1);
-            curCondRecs = [curCondKeyMeta, cat(1, curCondRecs{:})];
-        end
-        % check if var names are diff for diff conditions
-        curTaskVars = curTaskData.Properties.VariableNames;
-        curCondVars = curCondRecs.Properties.VariableNames;
-        % a(ia)/b(ib) will be the missing of the other set
-        [~, icurCond, icurTask] = setxor(curCondVars, curTaskVars, 'stable');
-        curCondMissingVars = curTaskVars(icurTask);
-        curCondRecs(:, curCondMissingVars) = ...
-            repmat({missing}, height(curCondRecs), length(curCondMissingVars));
-        curTaskMissingVars = curCondVars(icurCond);
-        curTaskData(:, curTaskMissingVars) = ...
-            repmat({missing}, height(curTaskData), length(curTaskMissingVars));
-        curTaskData = vertcat(curTaskData, curCondRecs); %#ok<AGROW>
-    end
+    curTaskNTrial = cellfun(@height, curTaskTrialRec);
+    curTaskKeyMeta = repelem(curTaskRawData(:, KEYMETAVARS), curTaskNTrial, 1);
+    curTaskData = [curTaskKeyMeta, cat(1, curTaskTrialRec{:})];
 
     % preprocess time
     dataWrapper.Time2Preproc{itask} = seconds2human(toc - elapsedTime, 'full');
