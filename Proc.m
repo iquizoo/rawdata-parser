@@ -324,7 +324,7 @@ for itask = 1:ntasks4process
 end
 
 % remove all the not processed tasks
-res = data(ismember(data.TaskIDName, taskIDNames(processed)), :);
+res = data(ismember(data.TaskID, taskIDs(processed)), :);
 
 % display information of completion.
 fprintf('Congratulations! %d (succeeded) /%d (in total) processing task(s) completed this time.\n', nprocessed, ntasks4process);
