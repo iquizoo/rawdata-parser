@@ -10,7 +10,8 @@ function [stats, labels] = sngprocNSN(RT, ACC, SCat)
 [total_stats, total_labels] = behavstats(RT, ACC, 'Method', 'cutoff', 'Boundary', [100, inf]);
 % get the mean reaction time and accuracy for different conditions
 [grps, gid] = findgroups(SCat);
-[cond_stats, cond_labels] = splitapply(@behavstats, ...
+[cond_stats, cond_labels] = splitapply(...
+    @(x, y) behavstats(x, y, 'Method', 'none'), ...
     RT, ACC, grps);
 % add condition names to condition labels.
 cond_labels_fix = strcat(cond_labels, '_', repmat(cellstr(gid), 1, size(cond_labels, 2)));
