@@ -303,15 +303,26 @@ for itask = 1:ntasks4process
             
     end % switch
     
-    % get the number of conditions and subjects for future use
+    % calculate indices for each user
     curTaskAnaFun = str2func(['sngproc', curTaskSetting.AnalysisFun{:}]);
     curTaskAnaVars = split(curTaskSetting.AnalysisVars);
     [grps, keys] = findgroups(curTaskData(:, KEYMETAVARS));
     [stats, labels] = splitapply(curTaskAnaFun, ...
         curTaskData(:, curTaskAnaVars), grps);
     labels = labels(1, :);
-    curTaskIndexLoc = ismember(labels, curTaskSetting.Index{:});
-    keys.index = stats(:, curTaskIndexLoc);
+    % get the ultimate index
+    idxName = curTaskSetting.Index{:};
+    if strcmp(idxName, 'MeanScore')
+        allTime = data.Meta{curTaskIdx}.allTime;
+        keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
+            (allTime / (60 * 1000));
+    else
+        curTaskIndexLoc = ismember(labels, curTaskSetting.Index{:});
+        if any(curTaskIndexLoc)
+            keys.index = stats(:, curTaskIndexLoc);
+        end
+    end
+    % combine user information and processed indices
     results = [keys, array2table(stats, 'VariableNames', labels)];
     
     % store the results

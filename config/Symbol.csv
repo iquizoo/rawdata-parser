@@ -1,7 +1,7 @@
-STIM,SCat
-"⊙",2
-"〒",2
-"♀",2
-"※",2
-"¤",2
-"§",1
+STIM,SCat,Code
+"⊙","NonTarget",2
+"〒","NonTarget",2
+"♀","NonTarget",2
+"※","NonTarget",2
+"¤","NonTarget",2
+"§","Target",1
