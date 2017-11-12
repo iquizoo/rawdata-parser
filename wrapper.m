@@ -54,9 +54,9 @@ else
     suffix = matlab.lang.makeValidName(rawsuff);
 end
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
-svRawCsvDataPath = fullfile(dfltSet.DATARES_DIR, suffix, 'data');
-svRawCsvMetaPath = fullfile(dfltSet.DATARES_DIR, suffix, 'meta');
-svResCsvPath = fullfile(dfltSet.DATARES_DIR, suffix, 'res');
+svRawXlsDataPath = fullfile(dfltSet.DATARES_DIR, suffix, 'data');
+svRawXlsMetaPath = fullfile(dfltSet.DATARES_DIR, suffix, 'meta');
+svResXlsPath = fullfile(dfltSet.DATARES_DIR, suffix, 'res');
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
 % mrgFilePrefix = 'mrg_';
@@ -92,17 +92,17 @@ else
             % save as .mat for precision
             ntasks = height(data);
             % save as .csv for communication
-            if ~exist(svRawCsvDataPath, 'dir'), mkdir(svRawCsvDataPath); end
-            if ~exist(svRawCsvMetaPath, 'dir'), mkdir(svRawCsvMetaPath); end
+            if ~exist(svRawXlsDataPath, 'dir'), mkdir(svRawXlsDataPath); end
+            if ~exist(svRawXlsMetaPath, 'dir'), mkdir(svRawXlsMetaPath); end
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
                 taskIDName = data.TaskIDName{itask};
-                svRawCsvName = sprintf('%s(%d).xlsx', taskIDName, taskID);
+                svRawXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
                 taskData = data.Data{itask};
                 taskMeta = data.Meta{itask};
-                writetable(taskData, fullfile(svRawCsvDataPath, svRawCsvName)); %, ...
+                writetable(taskData, fullfile(svRawXlsDataPath, svRawXlsName)); %, ...
                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
-                writetable(taskMeta, fullfile(svRawCsvMetaPath, svRawCsvName)); %, ...
+                writetable(taskMeta, fullfile(svRawXlsMetaPath, svRawXlsName)); %, ...
                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
             end
             fprintf('Saving done.\n')
@@ -138,13 +138,14 @@ else
             % save as .mat for precision
             save(svResFileName, svVars{:}, saveVer)
             % save as .csv for communication
-            if ~exist(svResCsvPath, 'dir'), mkdir(svResCsvPath); end
+            if ~exist(svResXlsPath, 'dir'), mkdir(svResXlsPath); end
             ntasks = height(res);
             for itask = 1:ntasks
                 taskID = res.TaskID(itask);
+                taskIDName = data.TaskIDName{itask};
+                svResXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
                 taskMerge = outerjoin(res.Meta{itask}, res.Results{itask}, 'MergeKeys', true);
-                writetable(taskMerge, fullfile(svResCsvPath, [num2str(taskID), '.csv']), ...
-                    'QuoteStrings', true, 'Encoding', 'UTF-8')
+                writetable(taskMerge, fullfile(svResXlsPath, svResXlsName))
             end
             fprintf('Saving done.\n')
         end
