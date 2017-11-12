@@ -67,7 +67,6 @@ data(~ismember(data.TaskID, taskIDs), :) = [];
 % variables used for logging and rate of progress
 ntasks4process = length(taskInputNames);
 nprocessed = 0;
-nignored = 0;
 processed = true(ntasks4process, 1);
 
 % add a field to record time used to process each task
@@ -232,10 +231,6 @@ for itask = 1:ntasks4process
             curTaskSTIMEncode = table([0; 1], {'Non-Target'; 'Target'}, [1; 2], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
-        case 'Reading'
-            if ~exist('TotalTime', 'var')
-                TotalTime = 5 * 60 * 1000; % 5 min
-            end
         case 'TMT'
             curTaskData.SCat = cellfun(@length, curTaskData.STIM);
         case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
