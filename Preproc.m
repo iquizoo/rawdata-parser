@@ -53,6 +53,7 @@ addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 parse(par, varargin{:});
 taskInputNames = par.Results.TaskNames;
+taskInputNames = reshape(taskInputNames, numel(taskInputNames), 1);
 prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
 
