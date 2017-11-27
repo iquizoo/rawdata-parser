@@ -1,4 +1,4 @@
-function dataWrapper = Preproc(datapath, varargin)
+function dataWrapper = Preproc(extracted, varargin)
 %PREPROC calls sngproc to do some basic analysis.
 %   dataExtract = Preproc(datapath) preprocesses all the tasks in the
 %   directory specified by datapath.
@@ -37,7 +37,7 @@ tic
 
 % open a log file
 logfid = fopen('preproc(AutoGen).log', 'a');
-fprintf(logfid, '[%s] Start preprocessing path: %s\n', datestr(now), datapath);
+fprintf(logfid, '[%s] Start preprocessing.\n', datestr(now));
 
 % add helper functions folder
 HELPERFUNPATH = 'scripts';
@@ -58,40 +58,24 @@ dbentry = par.Results.DebugEntry;
 
 % the data strings are stored in `DATAVARNAME`
 DATAVARNAME = 'data';
-% the original data are stored in format `DATAFORMAT`
-DATAFORMAT = '.csv';
 % configuration path and reading arguments
 CONFIGPATH = 'config';
-READPARAS = {'Encoding', 'UTF-8'};
 % metavartype settings
-METAVARNAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
-METAVARTYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
-% valid 'sex' characters
-SEXMALE = {'male', 'Male', 'MALE', 'm', 'M', 'ï¿½ï¿½'};
-SEXFEMALE = {'female', 'Female', 'FEMALE', 'f', 'F', 'Å®'};
+METAVAR_NAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
+SEX_MALE = {'male', 'Male', 'MALE', 'm', 'M', 'ÄÐ'};
+SEX_FEMALE = {'female', 'Female', 'FEMALE', 'f', 'F', 'Å®'};
 SEXES = {'male', 'female'};
 % key metavars
-KEYMETAVARS = {'userId', 'createTime'};
+KEY_METAVARS = {'userId', 'createTime'};
+% task id metavar
+KEY_TASKID_VAR = 'excerciseId';
 
-% load settings
-settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), READPARAS{:});
-para = readtable(fullfile(CONFIGPATH, 'para.csv'), READPARAS{:});
-taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), READPARAS{:});
-
-% throw an error when the specified path is not found
-if ~exist(datapath, 'dir')
-    fprintf(logfid, '[%s] Error: specified data path %s does not exist.\n', ...
-        datestr(now),datapath);
-    fclose(logfid);
-    rmpath(HELPERFUNPATH)
-    error('UDF:PREPROC:DATAFILEWRONG', 'Data path %s not found, please check!', datapath)
-end
-% get all the data file informations, which are named after task IDs
-dataFiles = dir(fullfile(datapath, ['*', DATAFORMAT]));
+% load settings, encoding of config files is 'UTF-8'
+settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), 'Encoding', 'UTF-8');
+para = readtable(fullfile(CONFIGPATH, 'para.csv'), 'Encoding', 'UTF-8');
+taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), 'Encoding', 'UTF-8');
 % get all the task ids
-[~, dataTaskIDs] = cellfun(@fileparts, {dataFiles.name}', 'UniformOutput', false);
-dataTaskIDs = str2double(dataTaskIDs);
-
+dataTaskIDs = unique(extracted.(KEY_TASKID_VAR));
 % notice input name could be numeric array or cellstr type
 inputNameIsEmpty = isempty(taskInputNames) || all(ismissing(taskInputNames));
 inputNameNotSingle = (isnumeric(taskInputNames) && length(taskInputNames) > 1) || ...
@@ -199,11 +183,8 @@ for itask = 1:ntasks4process
     end
     curTaskSetting = settings(locset, :);
 
-    % read raw data file.
-    curTaskFile = fullfile(datapath, [num2str(curTaskID), '.csv']);
-    opts = detectImportOptions(curTaskFile, READPARAS{:});
-    opts = setvartype(opts, METAVARNAMES, METAVARTYPES);
-    curTaskRawData = readtable(curTaskFile, opts);
+    % get current task raw data
+    curTaskRawData = extracted(ismember(extracted.(KEY_TASKID_VAR), curTaskID), :);
     rawdataVars = curTaskRawData.Properties.VariableNames;
 
     % when in debug mode, read the debug entry only
@@ -214,8 +195,8 @@ for itask = 1:ntasks4process
     end
 
     % check all the real metadata
-    for iMetavar = 1:length(METAVARNAMES)
-        curMetavarName = METAVARNAMES{iMetavar};
+    for iMetavar = 1:length(METAVAR_NAMES)
+        curMetavarName = METAVAR_NAMES{iMetavar};
         curMetadata = curTaskRawData.(curMetavarName);
         metaTypeTransFailed = false;
         switch curMetavarName
@@ -240,8 +221,8 @@ for itask = 1:ntasks4process
                 curMetadata = categorical(curMetadata);
             case 'sex'
                 % merge certain sex categories
-                curMetadata = mergecats(curMetadata, SEXMALE);
-                curMetadata = mergecats(curMetadata, SEXFEMALE);
+                curMetadata = mergecats(curMetadata, SEX_MALE);
+                curMetadata = mergecats(curMetadata, SEX_FEMALE);
                 % remove all categories not in 'SEXES'
                 curMetadata = setcats(curMetadata, SEXES);
         end
@@ -293,7 +274,7 @@ for itask = 1:ntasks4process
     % add user KEY meta information into the trials records
     % extract the content from cell
     curTaskNTrial = cellfun(@height, curTaskTrialRec);
-    curTaskKeyMeta = repelem(curTaskRawData(:, KEYMETAVARS), curTaskNTrial, 1);
+    curTaskKeyMeta = repelem(curTaskRawData(:, KEY_METAVARS), curTaskNTrial, 1);
     curTaskData = [curTaskKeyMeta, cat(1, curTaskTrialRec{:})];
 
     % preprocess time
