@@ -92,7 +92,7 @@ else
             save(svRawFileName, svVars{:}, saveVer)
             % save as .mat for precision
             ntasks = height(data);
-            % save as .csv for communication
+            % save as .xlsx for communication
             if ~exist(svRawXlsDataPath, 'dir'), mkdir(svRawXlsDataPath); end
             if ~exist(svRawXlsMetaPath, 'dir'), mkdir(svRawXlsMetaPath); end
             for itask = 1:ntasks
@@ -101,10 +101,12 @@ else
                 svRawXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
                 taskData = data.Data{itask};
                 taskMeta = data.Meta{itask};
-                writetable(taskData, fullfile(svRawXlsDataPath, svRawXlsName)); %, ...
-                   % 'QuoteStrings', true, 'Encoding', 'UTF-8')
-                writetable(taskMeta, fullfile(svRawXlsMetaPath, svRawXlsName)); %, ...
-                   % 'QuoteStrings', true, 'Encoding', 'UTF-8')
+                if ~isempty(taskData)
+                    writetable(taskData, fullfile(svRawXlsDataPath, svRawXlsName)); %, ...
+                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
+                    writetable(taskMeta, fullfile(svRawXlsMetaPath, svRawXlsName)); %, ...
+                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
+                end
             end
             fprintf('Saving done.\n')
         end
@@ -138,7 +140,7 @@ else
             end
             % save as .mat for precision
             save(svResFileName, svVars{:}, saveVer)
-            % save as .csv for communication
+            % save as .xlsx for communication
             if ~exist(svResXlsPath, 'dir'), mkdir(svResXlsPath); end
             ntasks = height(res);
             for itask = 1:ntasks
@@ -154,26 +156,6 @@ else
             warning('on', 'backtrace')
             return
         end
-%     elseif s < 4 % s = 3 only
-%         fprintf('Now reading processed data (resdata) from file %s...\n', ldResFileName)
-%         load(ldResFileName, 'resdata')
-%         fprintf('Reading done.\n')
-%     end
-%     if s < 4 % s = 1, 2, 3
-%         [indices, results, status, metavars] = Merges(resdata, 'TaskNames', tasks); %#ok<ASGLU>
-%         fprintf('Now saving results data (mutiple variables) as file %s...\n', svMrgFileName)
-%         mrgVars = {'indices', 'results', 'status', 'metavars'};
-%         if saveVerAuto
-%             svVarInfo = whos(mrgVars{:});
-%             if sum([svVarInfo.bytes]) < 2 ^ 31
-%                 saveVer = '-v7';
-%             else
-%                 saveVer = '-v7.3';
-%             end
-%             fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
-%         end
-%         save(svMrgFileName, mrgVars{:}, saveVer)
-%         fprintf('Saving done.\n')
     end
 end
 warning('on', 'backtrace')
