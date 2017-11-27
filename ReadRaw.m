@@ -207,16 +207,19 @@ for ifile = 1:nfiles
     clearvars('-except', initialVars{:})
 end
 
+% save merged extracted results and write to csv files
 if ~isempty(extracted)
     % remove entries with NaN task ID
     extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
+    % save as a .mat file
+    save(fullfile(dest, 'raw'), 'extracted')
     % write data to .csv files
     taskIDs = unique(extracted.(TASKKEYVARNAME));
+    % write data for each task as .csv files and use default encoding
     for itask = 1:length(taskIDs)
         taskID = taskIDs(itask);
         taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
-        writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), ...
-            'QuoteStrings', true, 'Encoding', 'UTF-8')
+        writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), 'QuoteStrings', true)
     end
 end
 rmpath(HELPERFUNPATH)
