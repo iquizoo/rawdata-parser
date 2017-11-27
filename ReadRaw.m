@@ -21,10 +21,10 @@ HELPERFUNPATH = 'scripts';
 addpath(HELPERFUNPATH);
 
 % metavars options
-METAVARSOPTS = {'Taskname|taskName', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
-METAVARNAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
-METAVARCLSES = {'cell', 'double', 'double', 'cell', 'cell', 'cell', 'cell', 'cell', 'datetime', 'datetime'};
-TASKKEYVARNAME = 'excerciseId';
+METAVAR_OPTS = {'Taskname|taskName', 'excerciseId', 'userId', 'name', 'gender|sex', 'school', 'grade', 'cls', 'birthDay', 'createDate|createTime'};
+METAVAR_NAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
+METAVAR_TYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
+KEY_TASKID_VAR = 'excerciseId';
 
 % check source and destination input
 if isempty(src)
@@ -161,12 +161,12 @@ for ifile = 1:nfiles
     end
     % checking metadata type
     curFileVarNamesRaw = curFileExtract.Properties.VariableNames;
-    for imetavar = 1:length(METAVARSOPTS)
-        curMetavarOpts = split(METAVARSOPTS{imetavar}, '|');
+    for imetavar = 1:length(METAVAR_OPTS)
+        curMetavarOpts = split(METAVAR_OPTS{imetavar}, '|');
         curMetavarNameReal = intersect(curMetavarOpts, curFileVarNamesRaw);
         % get the legal name and check its type
-        curMetavarNameLegal = METAVARNAMES{imetavar};
-        curMetavarClass = METAVARCLSES{imetavar};
+        curMetavarNameLegal = METAVAR_NAMES{imetavar};
+        curMetavarClass = METAVAR_TYPES{imetavar};
         % do things condition on the metadata existence
         if ~isempty(curMetavarNameReal)
             % change meta varname to the legal one
@@ -175,10 +175,15 @@ for ifile = 1:nfiles
             curMetadataTrans = curMetadataOrig;
             if ~isa(curMetadataOrig, curMetavarClass)
                 switch curMetavarClass
-                    case 'cell'
-                        curMetadataTrans = num2cell(curMetadataOrig);
                     case 'double'
                         curMetadataTrans = str2double(curMetadataOrig);
+                    case 'string'
+                        if iscell(curMetadataOrig)
+                            curMetadataOrig(cellfun(@isempty, curMetadataOrig)) = {''};
+                        end
+                        curMetadataTrans = string(curMetadataOrig);
+                    case 'categorical'
+                        curMetadataTrans = categorical(curMetadataOrig);
                     case 'datetime'
                         if isnumeric(curMetadataOrig)
                             % not very good implementation
@@ -188,13 +193,15 @@ for ifile = 1:nfiles
                 end
             end
         else
-            % if meta data does not exist, create an empty one
+            % if meta data does not exist, store a default missing value
             nEntries = height(curFileExtract);
             switch curMetavarClass
-                case 'cell'
-                    curMetadataTrans = repmat({''}, nEntries, 1);
                 case 'double'
                     curMetadataTrans = NaN(nEntries, 1);
+                case 'string'
+                    curMetadataTrans =strings(nEntries, 1);
+                case 'categorical'
+                    curMetadataTrans = categorical(repmat({''}, nEntries, 1));
                 case 'datetime'
                     curMetadataTrans = NaT(nEntries, 1);
             end
@@ -210,15 +217,15 @@ end
 % save merged extracted results and write to csv files
 if ~isempty(extracted)
     % remove entries with NaN task ID
-    extracted(isnan(extracted.(TASKKEYVARNAME)), :) = [];
+    extracted(isnan(extracted.(KEY_TASKID_VAR)), :) = [];
     % save as a .mat file
     save(fullfile(dest, 'raw'), 'extracted')
     % write data to .csv files
-    taskIDs = unique(extracted.(TASKKEYVARNAME));
+    taskIDs = unique(extracted.(KEY_TASKID_VAR));
     % write data for each task as .csv files and use default encoding
     for itask = 1:length(taskIDs)
         taskID = taskIDs(itask);
-        taskExtracted = extracted(ismember(extracted.(TASKKEYVARNAME), taskID), :);
+        taskExtracted = extracted(ismember(extracted.(KEY_TASKID_VAR), taskID), :);
         writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), 'QuoteStrings', true)
     end
 end
