@@ -128,6 +128,8 @@ for icond = 1:ncond
         status = -2;
         curCondTrials = cell(0, nVars{icond});
     end
+    % remove missing trials
+    curCondTrials(all(cellfun(@ismissing, curCondTrials), 2), :) = [];
     % if condition name is not empty add them to the data
     if ~isempty(curCondName)
         curCondTrials = [repmat({string(curCondName)}, size(curCondTrials, 1), 1), curCondTrials]; %#ok<AGROW>
