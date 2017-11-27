@@ -53,46 +53,50 @@ trialRecUncat = strsplits(recs, delims);
 for icond = 1:ncond
     curVarOpts  = varNames{icond};
     curCharOpts = varChars{icond};
-    nCurVarOpts = cellfun(@length, curVarOpts);
-    %Get the appropriate variable names of the different template.
-    curCondRec = trialRecUncat{icond};
-    token = para.TemplateToken{:};
-    switch token
-        case 'F' %Flanker.
-            curCondRec = str2double(cat(1, curCondRec{:}));
-            chkcol = curCondRec(:, 1);
-            chkcol(isnan(chkcol)) = [];
-            if all(ismember(chkcol, 1:4)) %The first column is Stimuli category.
-                altChoice = 1;
-            else
-                altChoice = 2;
-            end
-        case 'RTB' %Bread toasting (SRT)
-            altChoice = 1;
-            curCondRec = str2double(cat(1, curCondRec{:}));
-            if ~isnan(curCondRec)
-                chkcol  = curCondRec(:, 2);
+    if length(curVarOpts) == 1
+        altChoice = 1;
+    else
+        nCurVarOpts = cellfun(@length, curVarOpts);
+        curCondRec = trialRecUncat{icond};
+        token = para.TemplateToken{:};
+        switch token
+            case 'F' %Flanker.
+                curCondRec = str2double(cat(1, curCondRec{:}));
+                chkcol = curCondRec(:, 1);
                 chkcol(isnan(chkcol)) = [];
-                if all(ismember(chkcol, 0:1)) %The second column is ACC.
+                % if the 1st column is SCat(1:4), choose the 1st template
+                if all(ismember(chkcol, 1:4))
+                    altChoice = 1;
+                else
                     altChoice = 2;
                 end
-            end
-        otherwise
-            lenTrial = cellfun(@length, curCondRec);
-            if isempty(lenTrial) ... % empty entry
-                    || length(nCurVarOpts) == 1 ... % only one possiblility
-                    || isempty(curCondRec{1}{1}) % empty string
-                altChoice     = 1; %Use the first by default.
-            else
-                % Trial length of 1 denotes artificial data, esp. one ',' at the end.
-                lenTrial(lenTrial == 1) = [];
-                lenTrial = unique(lenTrial);
-                [~, altChoice] = ismember(lenTrial, nCurVarOpts);
-                if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
-                    altChoice     = length(nCurVarOpts);
-                    recs(icond) = recon(curCondRec, token, nCurVarOpts(altChoice), delims);
+            case 'RTB' %Bread toasting (SRT)
+                altChoice = 1;
+                curCondRec = str2double(cat(1, curCondRec{:}));
+                if ~isnan(curCondRec)
+                    chkcol  = curCondRec(:, 2);
+                    chkcol(isnan(chkcol)) = [];
+                    % if the 2nd column is ACC(0,1), choose the 2nd template
+                    if all(ismember(chkcol, 0:1))
+                        altChoice = 2;
+                    end
                 end
-            end
+            otherwise
+                lenTrial = cellfun(@length, curCondRec);
+                if length(lenTrial) == 1 && lenTrial == 1
+                    % only one unsplitted string
+                    altChoice = 1;
+                else
+                    % Trial length of 1 denotes artificial data, esp. one ',' at the end.
+                    lenTrial(lenTrial == 1) = [];
+                    lenTrial = unique(lenTrial);
+                    [~, altChoice] = ismember(lenTrial, nCurVarOpts);
+                    if length(lenTrial) > 1 || (~isempty(altChoice) && altChoice == 0)
+                        altChoice     = length(nCurVarOpts);
+                        recs(icond) = recon(curCondRec, token, nCurVarOpts(altChoice), delims);
+                    end
+                end
+        end
     end
     varNames(icond) = curVarOpts(altChoice);
     varChars(icond) = curCharOpts(altChoice);
@@ -152,7 +156,7 @@ VariablesChar = strsplit(curTaskPara.VariablesChar{:}, cond_delim);
 if length(VariablesChar) < ncond
     VariablesChar = repmat(VariablesChar, 1, ncond);
 end
-% parse out all possible variable names 
+% parse out all possible variable names
 varNames = strsplits(VariablesNames, [opt_delim, varname_delim]);
 % parse out all possible chartype variable locations
 varChars = cellfun( ...
