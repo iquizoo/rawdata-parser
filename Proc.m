@@ -196,7 +196,7 @@ for itask = 1:ntasks4process
                 'GNGLure', 'GNGFruit', ...% GNG tasks
                 'Flanker', ...% Part of EF tasks
                 } % SCat modification required tasks.
-            % Flanker
+            % Flanker and langTasks
             % get taskSTIMMap (STIM->SCat) for these tasks.
             curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
             % left -> 1, right -> 2.
@@ -231,6 +231,7 @@ for itask = 1:ntasks4process
             curTaskSTIMEncode = table([0; 1], {'Non-Target'; 'Target'}, [1; 2], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+
         case 'TMT'
             curTaskData.SCat = cellfun(@length, curTaskData.STIM);
         case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
@@ -273,7 +274,6 @@ for itask = 1:ntasks4process
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
-            
         case 'TaskSwitching'
             curTaskData.SCat(1) = 0;
         case 'DCCS'
