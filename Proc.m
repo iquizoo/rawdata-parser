@@ -308,11 +308,14 @@ for itask = 1:ntasks4process
     % get the ultimate index
     idxName = curTaskSetting.Index{:};
     if strcmp(idxName, 'MeanScore')
-        allTime = data.Meta{curTaskIdx}.allTime;
+        % get the corresponding 'allTime' information
+        [~, idx] = ismember(keys, data.Meta{curTaskIdx}(:, KEYMETAVARS), 'rows');
+        allTime = data.Meta{curTaskIdx}.allTime(idx);
+        % order is so ensured that we could use numerical index
         keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
             (allTime / (60 * 1000));
     else
-        curTaskIndexLoc = ismember(labels, curTaskSetting.Index{:});
+        curTaskIndexLoc = ismember(labels, idxName);
         if any(curTaskIndexLoc)
             keys.index = stats(:, curTaskIndexLoc);
         end
