@@ -36,7 +36,7 @@ function dataWrapper = Preproc(extracted, varargin)
 tic
 
 % open a log file
-logfid = fopen('preproc(AutoGen).log', 'a');
+logfid = fopen(fullfile('logs', 'preproc(AutoGen).log'), 'a');
 fprintf(logfid, '[%s] Start preprocessing.\n', datestr(now));
 
 % add helper functions folder

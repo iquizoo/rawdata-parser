@@ -11,7 +11,7 @@ function res = Proc(data, varargin)
 tic
 
 % open a log file
-logfid = fopen('proc(AutoGen).log', 'a');
+logfid = fopen(fullfile('logs', 'proc(AutoGen).log'), 'a');
 fprintf(logfid, '[%s] Start processing.\n', datestr(now));
 
 % add helper functions path
