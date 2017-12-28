@@ -47,7 +47,7 @@ ID,TaskName,TaskIDName,TemplateToken,AnalysisFun,AnalysisVars,RTmin,RTmax,NRRT,C
 46,"吹气球","BART","BART","BART","NHit Feedback",NaN,NaN,NaN,NaN,"MNHit"
 47,"班务达人","Filtering","FL","FLT","",300,2500,NaN,NaN,"filtcap"
 48,"科学达人","Filtering2","FL","FLT","",300,2500,NaN,NaN,"filtcap"
-49,"宇航员","NumLine","NL","","",NaN,NaN,NaN,NaN,""
+49,"宇航员","NumLine","NL","LE","STIM Resp",NaN,NaN,NaN,NaN,""
 50,"宇宙加氧站","Anticipation","TA","","",NaN,NaN,NaN,NaN,""
 51,"消灭敌机","TempDiscounting","TD","","",NaN,NaN,NaN,NaN,""
 52,"视觉搜索","VisualSearch","VS","","",NaN,NaN,NaN,NaN,""

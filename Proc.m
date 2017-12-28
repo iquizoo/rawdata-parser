@@ -176,6 +176,7 @@ for itask = 1:ntasks4process
     switch curTaskIDName
         % BART
         % MemoryTail
+        % NumLine
         case 'SRT'
             % use acc of -1 to code no response trial
             curTaskData.ACC(curTaskData.Resp == 0) = -1;
