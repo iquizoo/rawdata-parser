@@ -95,7 +95,7 @@ preparationTime = toc;
 % process extracted data task-wise
 for itask = 1:ntasks4process
     initialVarsTask = who;
-    
+
     % get current task names and index in dataExtract
     if isnumeric(taskInputNames)
         curTaskInputName = num2str(taskInputNames(itask));
@@ -113,7 +113,7 @@ for itask = 1:ntasks4process
         curTaskData = curTaskData(dbentry, :);
         dbstop in sngproc
     end
-    
+
     % continue to next task if no data found
     if isempty(curTaskData)
         warning('UDF:PROC:DATAMISSING', ...
@@ -124,10 +124,10 @@ for itask = 1:ntasks4process
         except = true;
         continue
     end
-    
+
     % name setting and analysis preparation
     curTaskSetting = settings(ismember(settings.TaskIDName, curTaskIDName), :);
-    
+
     % prompt setting
     %  1. get the proportion of completion and estimated time of arrival
     completePercent = nprocessed / ntasks4process;
@@ -162,7 +162,7 @@ for itask = 1:ntasks4process
     fprintf(logfid, '[%s] %s', datestr(now), dispinfo);
     % processed tasks count
     nprocessed = nprocessed + 1;
-    
+
     % Unifying modification to some of the variables in RECORD.
     %    1. For ACC: incorrect -> 0, missing -> -1, correct -> 1.
     %    2. For SCat: (unify in order that 0 represents no response is
@@ -201,7 +201,7 @@ for itask = 1:ntasks4process
             % Flanker and langTasks
             % get taskSTIMMap (STIM->SCat) for these tasks.
             curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
-            % left -> 1, right -> 2.
+            % change STIM to corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.STIM, curTaskSTIMEncode);
         case {'MOT', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
             % SpatialSpan
@@ -230,8 +230,16 @@ for itask = 1:ntasks4process
             % set the ACC of non-stop trial without response as -1
             curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
         case 'CPT1'
+            % 0 -> non-target; 1 -> target
             curTaskSTIMEncode = table([0; 1], {'Non-Target'; 'Target'}, [1; 2], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
+            % convert corresponding SCat
+            curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+        case {'NumStroop', 'Stroop1', 'Stroop2'}
+            % 0 -> incongruent type; 1 -> congruent type
+            curTaskSTIMEncode = table([0; 1], {'Incongruent'; 'Congruent'}, [2; 1], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
 
         case 'TMT'
@@ -260,9 +268,6 @@ for itask = 1:ntasks4process
             % Add a field 'SCat', 1 -> go, 0 -> nogo.
             curTaskData.SCat = zeros(height(curTaskData), 1);
             curTaskData.SCat(GoTrials) = 1;
-        case {'NumStroop', 'Stroop1', 'Stroop2'}
-            % Replace SCat 0 with 2.
-            curTaskData.SCat(curTaskData.SCat == 0) = 2;
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
@@ -287,9 +292,8 @@ for itask = 1:ntasks4process
                     curTaskData.SCat(row) = SCat;
                 end
             end
-            
     end % switch
-    
+
     % calculate indices for each user
     curTaskAnaFun = str2func(['sngproc', curTaskSetting.AnalysisFun{:}]);
     curTaskAnaVars = split(curTaskSetting.AnalysisVars);
@@ -314,12 +318,12 @@ for itask = 1:ntasks4process
     end
     % combine user information and processed indices
     results = [keys, array2table(stats, 'VariableNames', labels)];
-    
+
     % store the results
     data.Results{curTaskIdx} = results;
     % store the time used
     data.Time2Proc{curTaskIdx} = seconds2human(toc - elapsedTime, 'full');
-    
+
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
 end
