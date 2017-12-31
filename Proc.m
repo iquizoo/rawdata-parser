@@ -177,6 +177,7 @@ for itask = 1:ntasks4process
         % BART
         % MemoryTail
         % NumLine
+        % Subitizing
         case 'SRT'
             % use acc of -1 to code no response trial
             curTaskData.ACC(curTaskData.Resp == 0) = -1;
@@ -235,16 +236,6 @@ for itask = 1:ntasks4process
 
         case 'TMT'
             curTaskData.SCat = cellfun(@length, curTaskData.STIM);
-        case {'SpeedAdd', 'SpeedSubtract', ...% Math tasks
-                'DigitCmp', 'Subitizing', ...% Another two math tasks.
-                }
-            % All the trials require response.
-            stimvars = {'S1', 'S2'};
-            curTaskData.SCat = rowfun(@(x, y) abs(x - y), curTaskData, 'InputVariables', stimvars, 'OutputFormat', 'uniform');
-            % Get the total used time (unit: min).
-            if ~exist('TotalTime', 'var')
-                TotalTime = sum(curTaskData.RT);
-            end
         case {'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
                 }
