@@ -241,6 +241,15 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+        case 'TaskSwitching'
+            % 1 -> repeat type; 2 -> switch type
+            curTaskSTIMEncode = table([1; 2], {'Repeat'; 'Switch'}, [1; 2], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            % convert corresponding SCat
+            curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+            % remove first of trial of each subject
+            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
+            curTaskData(firstTrial, :) = [];
         case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
@@ -274,8 +283,6 @@ for itask = 1:ntasks4process
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
-        case 'TaskSwitching'
-            curTaskData.SCat(1) = 0;
         case 'DCCS'
             curTaskData.SCat(1:12:48) = 0;
         case {'Filtering', 'Filtering2'}
