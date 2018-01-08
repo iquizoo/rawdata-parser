@@ -22,3 +22,7 @@ Detected outliers are so deemed as invalid measurements, or invalid responses of
 When we care about the users' *accuracy* is an indicator of interest, which means that users' **speed** is less important, we adopt only a cutoff to reaction times. That is, we only treat those reaction times that are faster than 100 ms as outliers.
 
 Just as in the previous section, all the detected outliers are simply dropped from data, for we do not know the real answer would be if the reaction time for that trial were right.
+
+### Number line estimation
+
+Based on [Bos's paper](https://doi.org/10.1016/j.jecp.2015.02.002), the linearity relation between estimated number and presented number would increase as children grow up. So here the `R-squared` of the linear fit is used as the index. And, to account for potential impact of outliers, a `bisquare` robust estimation is used. For more information, just have look at [the code](sngprocLE.m).
