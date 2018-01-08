@@ -241,7 +241,7 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
-        case 'Subitizing'
+        case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
 

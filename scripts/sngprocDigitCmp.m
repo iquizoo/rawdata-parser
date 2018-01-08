@@ -1,29 +1,26 @@
-function res = sngprocMentcompare(RECORD)
-%SNGPROCMENTCOMPARE Does some basic data transformation to mental comparison task.
-%
-%   Basically, the supported tasks are as follows:
-%     DigitCmp Subitizing
-%   The output table contains 14 variables.
+function [stats, labels] = sngprocDigitCmp(S1, S2, ACC, RT)
+%SNGPROCDIGITCMP analyzes digit comparison task to get distance effect
 
-%By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+% Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+% change log:
+%   01/08/2018, now use the linearly fitted slope as the distance effect
 
-%Cutoff RTs: eliminate RTs that are too fast (<100ms).
-
-res = table;
-res.ACC_Overall = length(RECORD.ACC(RECORD.ACC == 1)) / length(RECORD.ACC);
-res.RT_Overall = mean(RECORD.RT(RECORD.ACC == 1));
-distances = unique(RECORD.SCat);
-ndist     = length(distances);
-varSuff   = strcat('D', cellfun(@num2str, num2cell(distances), 'UniformOutput', false));
-for idist = 1:ndist
-    res.(strcat('RT', '_', varSuff{idist})) = mean(RECORD.RT(RECORD.ACC == 1 & RECORD.SCat == distances(idist)));
-    res.(strcat('ACC', '_', varSuff{idist})) = ...
-        length(RECORD.ACC(RECORD.ACC == 1 & RECORD.SCat == distances(idist))) / length(RECORD.ACC(RECORD.SCat == distances(idist)));
-end
-if ndist == 6
-    res.DistEffect = rowfun(@(a, b, c, d) ((c + d) - (a + b)) / (c + d), res, ...
-        'InputVariables', strcat('RT_', varSuff([1:2, 5:6])), ...
-        'OutputFormat', 'uniform');
-else
-    res.DistEffect = nan;
-end
+% count trial numbers
+NTrial = length(RT);
+NResp = sum(ACC ~= -1);
+% set the RT for no response trials as missing
+RT(ACC == -1) = NaN;
+% two-step protocol to remove RT outliers
+RT = rmoutlier(RT);
+% set ACC of nan RT trials as 0
+ACC(isnan(RT)) = 0;
+% proportion of error
+PE = 1 - mean(ACC);
+% get the distance
+dist = abs(S1 - S2);
+% get the slope as distance effect
+mdl = fitlm(dist, RT, 'Exclude', logical(ACC));
+DistEffect = mdl.Coefficients.Estimate(2);
+% compose results
+stats = [NTrial, NResp, PE, DistEffect];
+labels = {'NTrial', 'NResp', 'PE', 'DistEffect'};
