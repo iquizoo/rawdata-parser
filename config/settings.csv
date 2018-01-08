@@ -16,7 +16,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,RTmin,RTmax,NRRT,ChanceACC,Index
 15,"速算师-初级","SpeedAdd","","",100,2500,3000,0.5,""
 16,"速算师-中级","SpeedSubtract","","",100,2500,3000,0.5,""
 17,"数字大小比较","DigitCmp","Mentcompare","",100,NaN,2000,0.5,"DistEffect"
-18,"数感","Subitizing","ANS","S1 S2 Resp ACC RT",100,2500,3000,0.5,"w"
+18,"数感","Subitizing","ANS","S1 S2 ACC RT",100,2500,3000,0.5,"w"
 19,"顺背数","ForSpan","Span","SLen ACC",NaN,NaN,NaN,NaN,"MS"
 20,"倒背数","BackSpan","Span","SLen ACC",NaN,NaN,NaN,NaN,"MS"
 21,"位置记忆","SpatialSpan","Span","SLen ACC",NaN,NaN,NaN,NaN,"MS"
