@@ -18,9 +18,16 @@ ACC(isnan(RT)) = 0;
 PE = 1 - mean(ACC);
 % get the distance
 dist = abs(S1 - S2);
-% get the slope as distance effect
-mdl = fitlm(dist, RT, 'Exclude', logical(ACC));
-DistEffect = mdl.Coefficients.Estimate(2);
+% get the exclude indices to exclude incorrect trials
+exclude = ~logical(ACC);
+% make sure there is at least one trial for each distance (1-6)
+if ~all(ismember(1:6, unique(dist(~exclude))))
+    DistEffect = nan;
+else
+    % get the slope as distance effect
+    mdl = fitlm(dist, RT, 'Exclude', exclude);
+    DistEffect = mdl.Coefficients.Estimate(2);
+end
 % compose results
 stats = [NTrial, NResp, PE, DistEffect];
 labels = {'NTrial', 'NResp', 'PE', 'DistEffect'};
