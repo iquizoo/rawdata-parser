@@ -30,3 +30,7 @@ Based on [Bos's paper](https://doi.org/10.1016/j.jecp.2015.02.002), the linearit
 ### Number sense task
 
 Based on the introduction on [panamath](http://www.panamath.org/wiki/index.php?title=What_is_a_Weber_Fraction%3F) and [Halberda's paper](https://doi.org/10.1038/nature07246), a nonlinear model fitting is used to estimate weber fraction. Note that accuracy is the measure of interest, and trials with too short RT or no response are treated as incorrect.
+
+### Digit comparison task
+
+Based on [Smedt's paper](https://doi.org/10.1016/j.jecp.2009.01.010), a linear model is applied to predict reaction times by digit distances, and the final measure is the slope of this linear model.
