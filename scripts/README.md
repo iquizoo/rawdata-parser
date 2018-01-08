@@ -26,3 +26,7 @@ Just as in the previous section, all the detected outliers are simply dropped fr
 ### Number line estimation
 
 Based on [Bos's paper](https://doi.org/10.1016/j.jecp.2015.02.002), the linearity relation between estimated number and presented number would increase as children grow up. So here the `R-squared` of the linear fit is used as the index. And, to account for potential impact of outliers, a `bisquare` robust estimation is used. For more information, just have look at [the code](sngprocLE.m).
+
+### Number sense task
+
+Based on the introduction on [panamath](http://www.panamath.org/wiki/index.php?title=What_is_a_Weber_Fraction%3F) and [Halberda's paper](https://doi.org/10.1038/nature07246), a nonlinear model fitting is used to estimate weber fraction. Note that accuracy is the measure of interest, and trials with too short RT or no response are treated as incorrect.
