@@ -263,6 +263,9 @@ for itask = 1:ntasks4process
         case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
+        case {'SpeedAdd', 'SpeedSubtract'}
+            % set acc of no response (denoted as 0) trials as -1
+            curTaskData.ACC(curTaskData.Resp == 0, :) = -1;
 
         case {'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
@@ -320,12 +323,20 @@ for itask = 1:ntasks4process
     % get the ultimate index
     idxName = curTaskSetting.Index{:};
     if strcmp(idxName, 'MeanScore')
-        % get the corresponding 'allTime' information
-        [~, idx] = ismember(keys, data.Meta{curTaskIdx}(:, KEYMETAVARS), 'rows');
-        allTime = data.Meta{curTaskIdx}.allTime(idx);
-        % order is so ensured that we could use numerical index
-        keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
-        (allTime / (60 * 1000));
+        % mean score = (#correct - #incorrect) / allTime
+        switch curTaskIDName
+            case {'SpeedAdd', 'SpeedSubtract'}
+                % labels = {'NTrial', 'NResp', 'NE', 'Time'};
+                keys.index = (stats(:, 1) - 2 * stats(:, 3)) ./ ...
+                    (stats(:, 4) / (60 * 1000));
+            otherwise
+                % get the corresponding 'allTime' information
+                [~, idx] = ismember(keys, data.Meta{curTaskIdx}(:, KEYMETAVARS), 'rows');
+                allTime = data.Meta{curTaskIdx}.allTime(idx);
+                % order is so ensured that we could use numerical index
+                keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
+                    (allTime / (60 * 1000));
+        end
     else
         curTaskIndexLoc = ismember(labels, idxName);
         if any(curTaskIndexLoc)
