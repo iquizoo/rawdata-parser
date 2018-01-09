@@ -242,14 +242,24 @@ for itask = 1:ntasks4process
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
         case 'TaskSwitching'
+            % remove first of trial of each subject
+            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
+            curTaskData(firstTrial, :) = [];
             % 1 -> repeat type; 2 -> switch type
             curTaskSTIMEncode = table([1; 2], {'Repeat'; 'Switch'}, [1; 2], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
-            % remove first of trial of each subject
-            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
-            curTaskData(firstTrial, :) = [];
+        case 'DCCS'
+            % remove every 12th trial
+            curTaskData(1:12:end, :) = [];
+            % 1 -> repeat type; 2 -> switch type
+            curTaskSTIMEncode = table([1; 2], {'Repeat'; 'Switch'}, [1; 2], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            % convert corresponding SCat
+            curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+            % set trials in which RTs equal to Maximal RT as no-response
+            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
         case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
@@ -281,8 +291,6 @@ for itask = 1:ntasks4process
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
-        case 'DCCS'
-            curTaskData.SCat(1:12:48) = 0;
         case {'Filtering', 'Filtering2'}
             % set the ACC of no response trials as -1.
             curTaskData.ACC(curTaskData.Resp == -1) = -1;
@@ -317,7 +325,7 @@ for itask = 1:ntasks4process
         allTime = data.Meta{curTaskIdx}.allTime(idx);
         % order is so ensured that we could use numerical index
         keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
-            (allTime / (60 * 1000));
+        (allTime / (60 * 1000));
     else
         curTaskIndexLoc = ismember(labels, idxName);
         if any(curTaskIndexLoc)
