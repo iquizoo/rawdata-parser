@@ -266,6 +266,16 @@ for itask = 1:ntasks4process
         case {'SpeedAdd', 'SpeedSubtract'}
             % set acc of no response (denoted as 0) trials as -1
             curTaskData.ACC(curTaskData.Resp == 0, :) = -1;
+        case {'Filtering', 'Filtering2'}
+            % set the ACC of no response trials as -1.
+            curTaskData.ACC(curTaskData.Resp == -1) = -1;
+            % compose condition variable
+            curTaskData.Cond = categorical(cellstr([num2str(curTaskData.NTar), num2str(curTaskData.NDis)]));
+            % 0 -> stay type; 1 -> change type
+            curTaskSTIMEncode = table([0; 1], {'Stay'; 'Change'}, ...
+                'VariableNames', {'STIM', 'SCat'});
+            % convert corresponding SCat
+            curTaskData.SCat = mapSCat(curTaskData.Change, curTaskSTIMEncode);
 
         case {'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
@@ -294,23 +304,6 @@ for itask = 1:ntasks4process
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
-        case {'Filtering', 'Filtering2'}
-            % set the ACC of no response trials as -1.
-            curTaskData.ACC(curTaskData.Resp == -1) = -1;
-            if ~all(ismember(curTaskData.SCat, 1:3))
-                for row = 1:height(curTaskData)
-                    ntar = curTaskData.NTar(row);
-                    ndis = curTaskData.NDis(row);
-                    if ntar == 2 && ndis == 2
-                        SCat = 1;
-                    elseif ntar == 4 && ndis == 0
-                        SCat = 2;
-                    else
-                        SCat = 3;
-                    end
-                    curTaskData.SCat(row) = SCat;
-                end
-            end
     end % switch
 
     % calculate indices for each user
