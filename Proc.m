@@ -184,7 +184,7 @@ for itask = 1:ntasks4process
             curTaskData.ACC(curTaskData.Resp ~= 0) = 1;
         case 'SRTWatch'
             % set trials in which RTs equal to Maximal RT as no-response
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 1000, :) = -1;
         case 'CRT'
             % CRT
             % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
@@ -225,7 +225,7 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             curTaskData.SCat = mapSCat(curTaskData.CResp, curTaskSTIMEncode);
             % All the trials require response.
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 2000, :) = -1;
         case 'StopSignal'
             % set the ACC of non-stop trial without response as -1
             curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
@@ -259,7 +259,7 @@ for itask = 1:ntasks4process
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
             % set trials in which RTs equal to Maximal RT as no-response
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 2000, :) = -1;
         case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
