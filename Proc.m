@@ -196,7 +196,7 @@ for itask = 1:ntasks4process
             curTaskData.ACC(curTaskData.Resp == 0) = -1;
         case {'Symbol', 'Orthograph', 'Tone', 'Pinyin', 'Lexic', 'Semantic', ...% langTasks
                 'GNGLure', 'GNGFruit', ...% GNG tasks
-                'Flanker', ...% Part of EF tasks
+                'Flanker', 'TMT',...% Part of EF tasks
                 } % SCat modification required tasks.
             % Flanker and langTasks
             % get taskSTIMMap (STIM->SCat) for these tasks.
@@ -254,8 +254,6 @@ for itask = 1:ntasks4process
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
 
-        case 'TMT'
-            curTaskData.SCat = cellfun(@length, curTaskData.STIM);
         case {'SRTBread', ... % Two alternative SRT task.
                 'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
                 }

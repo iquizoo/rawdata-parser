@@ -40,7 +40,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,RTmin,RTmax,NRRT,ChanceACC,Index
 39,"思维转换","TaskSwitching","Control","RT ACC SCat",100,2500,3000,0.5,"NIHScore"
 40,"反应转换","TaskSwitching2","Control","RT ACC SCat",100,2500,3000,0.5,"NIHScore"
 41,"卡片分类","DCCS","Control","RT ACC SCat",100,2500,3000,NaN,"NIHScore"
-42,"连线","TMT","TMT","",NaN,NaN,NaN,NaN,"MedRT_BAdiff"
+42,"连线","TMT","TMT","RT NWrong SCat",NaN,NaN,NaN,NaN,"Time_ratio"
 43,"自由拼图（黑白版）","Jigsaw1","","",NaN,NaN,NaN,NaN,""
 44,"自由拼图（彩色版）","Jigsaw2","","",NaN,NaN,NaN,NaN,""
 45,"吹气球","BART","BART","NHit Feedback",NaN,NaN,NaN,NaN,"MNHit"
