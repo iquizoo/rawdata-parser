@@ -25,7 +25,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index
 24,"图片记忆","PicMemory","Memsep","","dprime"
 25,"言语记忆","WordMemory","Memsep","","dprime"
 26,"符号记忆","SymbolMemory","Memsep","","dprime"
-27,"语义记忆","SemanticMemory","NSN","","dprime"
+27,"语义记忆","SemanticMemory","Memrep","RT ACC REP","PC"
 28,"符号判断","Symbol","SNSN","RT ACC SCat","MeanScore"
 29,"字形判断","Orthograph","SNSN","RT ACC SCat","MeanScore"
 30,"声调判断","Tone","SNSN","RT ACC SCat","MeanScore"

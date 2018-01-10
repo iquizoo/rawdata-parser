@@ -301,6 +301,11 @@ for itask = 1:ntasks4process
         case 'AssocMemory'
             % set the ACC of no response trials as -1
             curTaskData.ACC(curTaskData.Resp == -1) = -1;
+        case 'SemanticMemory'
+            % set the ACC of no response trials as -1
+            curTaskData.ACC(curTaskData.Resp == -1) = -1;
+            % remove study condition trials
+            curTaskData(curTaskData.Condition == 's', :) = [];
 
         case {'DRT', ...% DRT
                 'DivAtten1', 'DivAtten2', ...% DA
