@@ -315,8 +315,22 @@ for itask = 1:ntasks4process
     end % switch
 
     % calculate indices for each user
-    curTaskAnaFun = str2func(['sngproc', curTaskSetting.AnalysisFun{:}]);
+    % prepare analysis configurations
+    anafunSuffix = curTaskSetting.AnalysisFun{:};
+    if isempty(anafunSuffix)
+        % skip task if no function configuration found
+        warning('UDF:PROC:NOANAFUN', ...
+            'No analysis function specified for task %s, skipping...', ...
+            curTaskDispName);
+        fprintf(logfid, ...
+            '[%s] No analysis function specified for task %s, and skip it now.\n', ...
+            datestr(now), curTaskDispName);
+        except = true;
+        continue
+    end
+    curTaskAnaFun = str2func(['sngproc', anafunSuffix]);
     curTaskAnaVars = split(curTaskSetting.AnalysisVars);
+    % analysis for each subject
     [grps, keys] = findgroups(curTaskData(:, KEYMETAVARS));
     [stats, labels] = splitapply(curTaskAnaFun, ...
         curTaskData(:, curTaskAnaVars), grps);
