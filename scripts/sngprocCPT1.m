@@ -1,6 +1,9 @@
 function [stats, labels] = sngprocCPT1(RT, ACC, SCat)
+%SNGPROCCPT1 analyzes data from easier version of CPT
 
-% no need to remove reaction time outliers
+% set those too-quick reponse as error
+ACC(RT < 100) = 0;
+% count trial number for each type
 NTrial = length(SCat);
 NTarget = sum(SCat == 'Target');
 % number of hits

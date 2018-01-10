@@ -1,7 +1,7 @@
 ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index
 1,"雷达追踪","MOT","Span","SLen ACC","MS"
 2,"捉虫","CPT1","CPT1","RT ACC SCat","dprime"
-3,"捉虫(高级版)","CPT2","NSN","RT ACC SCat","dprime"
+3,"捉虫(高级版)","CPT2","CPT2","RT ACC SCat","dprime"
 4,"分配注意初级","DivAtten1","NSN","RT ACC SCat","dprimeUnion"
 5,"分配注意中级","DivAtten2","NSN","RT ACC SCat","dprimeUnion"
 6,"抵制诱惑","GNGLure","NSN","RT ACC SCat","dprime"

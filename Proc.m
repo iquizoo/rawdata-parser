@@ -233,6 +233,30 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+        case 'CPT2'
+            % preallocate SCat variable
+            curTaskData.SCat = repmat({'Random'}, height(curTaskData), 1);
+            % get all the locations of the first trial of each subject
+            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
+            % Note: only 'C' following 'B' is Go(target) trial.
+            % get all the warning ('B') trials (A of A-X)
+            ATrials = find(strcmp(curTaskData.STIM, 'B'));
+            % get all the lure ('C') trials (X of A-X)
+            XTrials = find(strcmp(curTaskData.STIM, 'C'));
+            % find 'Target' trials
+            TargetLoc = setdiff(intersect(ATrials + 1, XTrials), firstTrial);
+            % find 'Xonly' trials
+            XonlyLoc = setdiff(XTrials, TargetLoc);
+            % find 'Aonly' trials
+            AonlyLoc = ATrials;
+            % find 'AnotX' trials
+            AnotXLoc = ATrials(~ismember(ATrials + 1, XTrials)) + 1;
+            % format SCat variable
+            curTaskData.SCat(TargetLoc) = {'Target'};
+            curTaskData.SCat(XonlyLoc) = {'Xonly'};
+            curTaskData.SCat(AonlyLoc) = {'Aonly'};
+            curTaskData.SCat(AnotXLoc) = {'AnotX'};
+            curTaskData.SCat = categorical(curTaskData.SCat);
         case {'NumStroop', 'Stroop1', 'Stroop2'}
             % 0 -> incongruent type; 1 -> congruent type
             curTaskSTIMEncode = table([0; 1], {'Incongruent'; 'Congruent'}, [2; 1], ...
@@ -285,18 +309,6 @@ for itask = 1:ntasks4process
             NGSTIM = findNG(curTaskData, curTaskSetting.NRRT);
             % For SCat: Go -> 1, NoGo -> 0.
             curTaskData.SCat = ~ismember(curTaskData.STIM, NGSTIM);
-        case 'CPT2'
-            % Note: only 'C' following 'B' is Go(target) trial.
-            % Get all the candidate go trials.
-            GoTrials = find(strcmp(curTaskData.STIM, 'C'));
-            % 'C' appears at the first trial will not be a target.
-            GoTrials(GoTrials == 1) = [];
-            % 'C's that are not following 'B' should be excluded.
-            isFollowB = strcmp(curTaskData.STIM(GoTrials - 1) , 'B');
-            GoTrials(~isFollowB) = [];
-            % Add a field 'SCat', 1 -> go, 0 -> nogo.
-            curTaskData.SCat = zeros(height(curTaskData), 1);
-            curTaskData.SCat(GoTrials) = 1;
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
             % Replace SCat 0 with 3.
             curTaskData.SCat(curTaskData.SCat == 0) = 3;
