@@ -21,7 +21,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index
 20,"倒背数","BackSpan","Span","SLen ACC","MS"
 21,"位置记忆","SpatialSpan","Span","SLen ACC","MS"
 22,"记忆尾巴","MemoryTail","MT","CSeries RSeries","ACC"
-23,"联系记忆","AssocMemory","Memrep","","angACC"
+23,"联系记忆","AssocMemory","Memrep","RT ACC REP","PC"
 24,"图片记忆","PicMemory","Memsep","","dprime"
 25,"言语记忆","WordMemory","Memsep","","dprime"
 26,"符号记忆","SymbolMemory","Memsep","","dprime"

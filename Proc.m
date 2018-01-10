@@ -182,7 +182,7 @@ for itask = 1:ntasks4process
             % use acc of -1 to code no response trial
             curTaskData.ACC(curTaskData.Resp == 0) = -1;
             curTaskData.ACC(curTaskData.Resp ~= 0) = 1;
-        case 'SRTWatch'
+        case {'SRTWatch', 'SRTBread'}
             % set trials in which RTs equal to Maximal RT as no-response
             curTaskData.ACC(curTaskData.RT == 1000, :) = -1;
         case 'CRT'
@@ -276,12 +276,10 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.Change, curTaskSTIMEncode);
-
-        case {'SRTBread', ... % Two alternative SRT task.
-                'AssocMemory', ... %  Exclude 'SemanticMemory', ...% Memory task.
-                }
+        case 'AssocMemory'
             % All the trials require response.
-            curTaskData.ACC(curTaskData.RT == curTaskSetting.NRRT, :) = -1;
+            curTaskData.ACC(curTaskData.Resp == -1) = -1;
+
         case {'DRT', ...% DRT
                 'DivAtten1', 'DivAtten2', ...% DA
                 }
