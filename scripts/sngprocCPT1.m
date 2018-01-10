@@ -13,6 +13,6 @@ MRT = mean(RT(SCat == 'Target' & ACC == 1));
 SRT = std(RT(SCat == 'Target' & ACC == 1));
 % d' and bias
 [dprime, c] = sdt(Hits / NTarget, Commissions / (NTrial - NTarget));
-% store results
+% compose return values
 stats = [NTrial, NTarget, Hits, Commissions, Omissions, MRT, SRT, dprime, c];
 labels = {'NTrial', 'NTarget', 'Hits', 'Commissions', 'Omissions', 'MRT', 'SRT', 'dprime', 'c'};

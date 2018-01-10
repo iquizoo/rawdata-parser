@@ -19,5 +19,6 @@ cond_labels_fix = strcat(cond_labels, '_', repmat(cellstr(gid), 1, size(cond_lab
 cond_PE = cond_stats(ismember(cond_labels, 'PE'));
 % note the order: 'noise first, signal second'
 [dprime, c] = sdt(1 - cond_PE(2), cond_PE(1));
+% compose return values
 stats = [total_stats, cond_stats(:)', dprime, c];
 labels = [total_labels, cond_labels_fix(:)', {'dprime', 'c'}];

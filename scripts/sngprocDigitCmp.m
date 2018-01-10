@@ -28,6 +28,6 @@ else
     mdl = fitlm(dist, RT, 'Exclude', exclude);
     DistEffect = mdl.Coefficients.Estimate(2);
 end
-% compose results
+% compose return values
 stats = [NTrial, NResp, PE, DistEffect];
 labels = {'NTrial', 'NResp', 'PE', 'DistEffect'};

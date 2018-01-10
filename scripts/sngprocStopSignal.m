@@ -1,9 +1,5 @@
 function [stats, labels] = sngprocStopSignal(RT, ACC, IsStop, SSD)
-%SNGPROCBART Does some basic data transformation to BART task.
-%
-%   Basically, the supported tasks are as follows:
-%     StopSignal
-%   The output table contains 1 variables, called SSRT.
+%SNGPROCSTOPSIGNAL analyzes stop signal task data to get SSRT.
 
 % By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
 
@@ -26,6 +22,6 @@ PE_Stop = 1 - mean(ACC(IsStop == 1));
 MSSD = mean([findpeaks(SSD(IsStop == 1)); ...
     -findpeaks(-SSD(IsStop == 1))]);
 SSRT = MRT_Go - MSSD;
-
+% compose return values
 stats = [NTrial, NResp, NInclude, MRT_Go, MRT_Stop, PE_Go, PE_Stop, MSSD, SSRT];
 labels = {'NTrial', 'NResp', 'NInclude', 'MRT_Go', 'MRT_Stop', 'PE_Go', 'PE_Stop', 'MSSD', 'SSRT'};

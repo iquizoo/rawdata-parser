@@ -29,5 +29,6 @@ cap22 = 2 * PCTbl.Capacity(PCTbl.Cond == '22');
 cap40 = 4 * PCTbl.Capacity(PCTbl.Cond == '40');
 cap20 = 2 * PCTbl.Capacity(PCTbl.Cond == '20');
 filtcap = cap20 - cap22;
+% compose return values
 stats = [NTrial, NResp, cap22, cap40, cap20, filtcap];
 labels = {'NTrial', 'NResp', 'cap22', 'cap40', 'cap20', 'filtcap'};

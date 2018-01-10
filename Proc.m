@@ -184,9 +184,8 @@ for itask = 1:ntasks4process
             curTaskData.ACC(curTaskData.Resp ~= 0) = 1;
         case {'SRTWatch', 'SRTBread'}
             % set trials in which RTs equal to Maximal RT as no-response
-            curTaskData.ACC(curTaskData.RT == 1000, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 1000) = -1;
         case 'CRT'
-            % CRT
             % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
             curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
             % change accuracy encoding (raw data recordings are inaccurate)
@@ -204,7 +203,6 @@ for itask = 1:ntasks4process
             % change STIM to corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.STIM, curTaskSTIMEncode);
         case {'MOT', 'ForSpan', 'BackSpan', 'SpatialSpan'} % Span
-            % SpatialSpan
             % Some of the recording does not include SLen (Stimuli
             % Length) as one of their variable, get it here.
             if ~ismember('SLen', curTaskData.Properties.VariableNames)
@@ -225,7 +223,7 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             curTaskData.SCat = mapSCat(curTaskData.CResp, curTaskSTIMEncode);
             % All the trials require response.
-            curTaskData.ACC(curTaskData.RT == 2000, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 2000) = -1;
         case 'StopSignal'
             % set the ACC of non-stop trial without response as -1
             curTaskData.ACC(curTaskData.IsStop == 0 & curTaskData.Resp == 0) = -1;
@@ -259,13 +257,13 @@ for itask = 1:ntasks4process
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
             % set trials in which RTs equal to Maximal RT as no-response
-            curTaskData.ACC(curTaskData.RT == 2000, :) = -1;
+            curTaskData.ACC(curTaskData.RT == 2000) = -1;
         case {'Subitizing', 'DigitCmp'}
             % note Resp of 2 denotes no response
             curTaskData.ACC(curTaskData.Resp == 2) = -1;
         case {'SpeedAdd', 'SpeedSubtract'}
             % set acc of no response (denoted as 0) trials as -1
-            curTaskData.ACC(curTaskData.Resp == 0, :) = -1;
+            curTaskData.ACC(curTaskData.Resp == 0) = -1;
         case {'Filtering', 'Filtering2'}
             % set the ACC of no response trials as -1.
             curTaskData.ACC(curTaskData.Resp == -1) = -1;
@@ -277,7 +275,7 @@ for itask = 1:ntasks4process
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.Change, curTaskSTIMEncode);
         case 'AssocMemory'
-            % All the trials require response.
+            % set the ACC of no response trials as -1
             curTaskData.ACC(curTaskData.Resp == -1) = -1;
 
         case {'DRT', ...% DRT

@@ -23,5 +23,6 @@ mdlfun = @(b, x) 1 - 1 / 2 .* ...
     erfc((x(:, 1) - x(:, 2)) ./ (b .* sqrt(2 .* (x(:, 1) .^ 2 + x(:, 2) .^ 2))));
 mdl = fitnlm([gidl, gids], Pc, mdlfun, 1);
 w = mdl.Coefficients.Estimate;
+% compose return values
 stats = [NTrial, NResp, w];
 labels = {'NTrial', 'NResp', 'w'};
