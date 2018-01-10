@@ -241,7 +241,7 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
-        case 'TaskSwitching'
+        case {'TaskSwitching', 'TaskSwitching2'}
             % remove first of trial of each subject
             [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
             curTaskData(firstTrial, :) = [];
