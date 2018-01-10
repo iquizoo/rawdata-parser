@@ -7,4 +7,4 @@ CSeries = strjoin(CSeries, '');
 RSeries = strjoin(RSeries, '');
 ACC = mean(CSeries == RSeries);
 stats = ACC;
-labels = 'ACC';
+labels = {'ACC'};
