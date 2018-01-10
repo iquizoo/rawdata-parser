@@ -9,4 +9,4 @@ function [stats, labels] = sngprocBART(NHit, Feedback)
 
 MNHit = mean(NHit(Feedback == 0));
 stats = MNHit;
-labels = 'MNHit';
+labels = {'MNHit'};
