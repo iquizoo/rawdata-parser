@@ -11,15 +11,10 @@
 *.ppt
 *.pptx
 
-# For special folders.
-DATA*/
-doc*/
-BAK*/
-R*/
-etc/
-tmp/
-_*/
-.vs/
+# ignore all folders except specific ones
+/*/
+!scripts
+!config
 
 # For miscellaneous TEXT files.
 *~
