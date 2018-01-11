@@ -46,7 +46,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index
 45,"吹气球","BART","BART","NHit Feedback","MNHit"
 46,"班务达人","Filtering","FLT","RT ACC SCat Cond","filtcap"
 47,"科学达人","Filtering2","FLT","RT ACC SCat Cond","filtcap"
-48,"宇航员","NumLine","LE","STIM Resp",""
+48,"宇航员","NumLine","LE","STIM Resp","MPAE"
 49,"宇宙加氧站","Anticipation","","",""
 50,"消灭敌机","TempDiscounting","","",""
 51,"视觉搜索","VisualSearch","","",""
