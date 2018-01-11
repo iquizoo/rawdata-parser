@@ -185,6 +185,15 @@ for itask = 1:ntasks4process
         case {'SRTWatch', 'SRTBread'}
             % set trials in which RTs equal to Maximal RT as no-response
             curTaskData.ACC(curTaskData.RT == 1000) = -1;
+        case 'DRT'
+            % Find out the no-go stimulus.
+            NGSTIM = findNG(curTaskData, 3000);
+            % For SCat: Go/Target <-> 1, NoGo/Non-Target <-> 0.
+            curTaskData.SCat = ~ismember(curTaskData.STIM, NGSTIM);
+            curTaskSTIMEncode = table([0; 1], {'Non-Target'; 'Target'}, [1; 2], ...
+                'VariableNames', {'STIM', 'SCat', 'Order'});
+            % convert corresponding SCat
+            curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
         case 'CRT'
             % Transform: 'l'/'1' -> 1 , 'r'/'2' -> 2, then fix ACC record.
             curTaskData.STIM = (ismember(curTaskData.STIM,  'r') | ismember(curTaskData.STIM,  '2')) + 1;
@@ -307,16 +316,10 @@ for itask = 1:ntasks4process
             % remove study condition trials
             curTaskData(curTaskData.Condition == 's', :) = [];
 
-        case {'DRT', ...% DRT
-                'DivAtten1', 'DivAtten2', ...% DA
-                }
-            % Find out the no-go stimulus.
-            NGSTIM = findNG(curTaskData, curTaskSetting.NRRT);
-            % For SCat: Go -> 1, NoGo -> 0.
-            curTaskData.SCat = ~ismember(curTaskData.STIM, NGSTIM);
+        case {'DivAtten1', 'DivAtten2'}
+            % fix this
         case {'PicMemory', 'WordMemory', 'SymbolMemory'}
-            % Replace SCat 0 with 3.
-            curTaskData.SCat(curTaskData.SCat == 0) = 3;
+            % fix this
     end % switch
 
     % calculate indices for each user
@@ -415,11 +418,11 @@ allSTIM = unique(RECORD.STIM);
 % For the newer version of DRT data, when response is required and the
 % subject responded with an incorrect key, remove that trial because these
 % trials might confuse the determination of nogo stimuli.
-if isnum(allSTIM) && ismember('Resp', RECORD.Properties.VariableNames)
+if all(isnum(allSTIM)) && ismember('Resp', RECORD.Properties.VariableNames)
     % DRT of newer version detected.
     % Amend the ACC records.
-    if ischar(RECORD.STIM)
-        RECORD.Resp = num2str(RECORD.Resp);
+    if isstring(RECORD.STIM)
+        RECORD.Resp = string(RECORD.Resp);
         RECORD(RECORD.Resp ~= '0' & RECORD.STIM ~= RECORD.Resp, :) = [];
     else
         RECORD(RECORD.Resp ~= 0 & RECORD.STIM ~= RECORD.Resp, :) = [];
