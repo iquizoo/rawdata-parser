@@ -163,16 +163,7 @@ for itask = 1:ntasks4process
     % processed tasks count
     nprocessed = nprocessed + 1;
 
-    % Unifying modification to some of the variables in RECORD.
-    %    1. For ACC: incorrect -> 0, missing -> -1, correct -> 1.
-    %    2. For SCat: (unify in order that 0 represents no response is
-    %    required)
-    %      2.1 nontarget -> 0, target -> 1.
-    %      2.2 congruent -> 1, incongruent -> 2 (originally 0).
-    %      2.3 left(target-like) -> 1, right(nontarget-like) -> 2.
-    %      2.4 old -> 1, similar -> 2, new -> 3 (originally 0).
-    %      2.5 complex -> 1 (means all trials need a response).
-    %    3. For Score: incorrect -> -1, missing -> 0, correct -> 1.
+    % data preparations
     switch curTaskIDName
         % BART
         % MemoryTail
@@ -206,7 +197,6 @@ for itask = 1:ntasks4process
                 'GNGLure', 'GNGFruit', ...% GNG tasks
                 'Flanker', 'TMT',...% Part of EF tasks
                 } % SCat modification required tasks.
-            % Flanker and langTasks
             % get taskSTIMMap (STIM->SCat) for these tasks.
             curTaskSTIMEncode  = readtable(fullfile(CONFIGPATH, [curTaskIDName, '.csv']), READPARAS{:});
             % change STIM to corresponding SCat
@@ -222,7 +212,6 @@ for itask = 1:ntasks4process
                 end
             end
         case {'Nback1', 'Nback2'} % Nback
-            % Nback1
             % Remove trials that no response is needed.
             curTaskData(curTaskData.CResp == -1, :) = [];
             % map CResp to SCat
