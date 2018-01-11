@@ -34,6 +34,6 @@ MRT2 = cond_stats(2, ismember(cond_labels(1, :), 'MRT'));
 MRT2 = max(min(MRT2, 2500), 500);
 NIHScore = asin(sqrt(PC_Total)) / (pi / 2) + ...
     (log(2500) - log(MRT2)) / (log(2500) - log(500));
-% merge results
+% compose return values
 stats = [total_stats, cond_stats(:)', diff_stats, NIHScore];
 labels = [total_labels, cond_labels_fix(:)', diff_labels, {'NIHScore'}];

@@ -1,5 +1,5 @@
 function [stats, labels] = sngprocSNSN(RT, ACC, SCat)
-%SNGPROCSNS calculates number of hit and false alarm (simple NSN).
+%SNGPROCSNSN calculates number of hit and false alarm (simple NSN).
 %   NOTE: d' will not be calculated.
 
 % record trial information
@@ -27,6 +27,7 @@ end
 % get the number of hit and false alarm
 [grps, gid] = findgroups(SCat);
 [cond_include, cond_correct] = grpstats(ACC, grps, {'numel', @(x) sum(x == 1)});
+% compose return values
 stats = [NTrial, NResp, NInclude, cond_include', cond_correct'];
 labels = [{'NTrial', 'NResp', 'NInclude'}, ...
     strcat('Count_', cellstr(gid')), strcat('Correct_', cellstr(gid'))];

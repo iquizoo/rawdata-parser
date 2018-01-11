@@ -1,39 +1,23 @@
-function res = sngprocMemrep(RECORD)
-%SNGPROCSMEMREP Does some basic data transformation to semantic memory task.
-%
-%   Basically, the supported tasks are as follows:
-%     AssocMemory SemanticMemory
-%   The output table contains 9 variables.
+function [stats, labels] = sngprocMemrep(RT, ACC, REP)
+%SNGPROCSMEMREP analyzes data of repetition memory task
 
-%By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+% By Zhang, Liang. 04/13/2016. E-mail:psychelzh@gmail.com
+% Change log
+%   01/10/2018 support new protocol of analysis
 
-% set RT of incorrect trials as nan
-RECORD.RT(RECORD.ACC ~= 1) = nan;
-% set ACC of non-response trials as nan
-RECORD.ACC(~ismember(RECORD.ACC, [0, 1])) = nan;
-% define response variable names
-respVars = {'ACC', 'RT'};
-% overall ACC and mean RT
-ACC = nanmean(RECORD.ACC);
-RT = nanmean(RECORD.RT);
-angACC = asin(sqrt(ACC));
-% check repetition times
-repCodes = 1:2;
-repNames = {'R1', 'R2'};
-repMap = containers.Map(repCodes, repNames);
-RECORD.REP = values(repMap, num2cell(RECORD.REP));
-
-% summary ACC and RT for each repetition
-repSummaries = unstack(RECORD(:, [respVars, {'REP'}]), respVars, 'REP', ...
-    'AggregationFunction', @nanmean);
-% check if the results for each repetition exist or not
-sumVarNames = repSummaries.Properties.VariableNames;
-chkSumVars = strcat(repelem(respVars, length(repNames)), '_', repmat(repNames, 1, length(respVars)));
-for chkvar = chkSumVars
-    if ~ismember(chkvar, sumVarNames)
-        repSummaries.(chkvar{:}) = nan;
-    end
-end
-
-% store all the results
-res = [table(ACC, RT, angACC), repSummaries];
+% count the trials of response (no response means -1 of ACC)
+NTrial = length(RT);
+NResp = sum(ACC ~= -1);
+% accuracy is of interest, so trials with no response or too quick response
+% will be treated as incorrect ones
+ACC(ACC == -1 | RT < 100) = 0;
+% get the proportion of correct for total and each repetition
+PC = mean(ACC);
+PC_rep = grpstats(ACC, REP, 'mean');
+% check results
+PC_rep_full = nan(2, 1);
+[~, loc] = ismember(unique(REP), 1:2);
+PC_rep_full(loc) = PC_rep;
+% compose return values
+stats = [NTrial, NResp, PC, PC_rep_full'];
+labels = {'NTrial', 'NResp', 'PC', 'PC_R1', 'PC_R2'};

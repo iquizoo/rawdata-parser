@@ -22,3 +22,15 @@ Detected outliers are so deemed as invalid measurements, or invalid responses of
 When we care about the users' *accuracy* is an indicator of interest, which means that users' **speed** is less important, we adopt only a cutoff to reaction times. That is, we only treat those reaction times that are faster than 100 ms as outliers.
 
 Just as in the previous section, all the detected outliers are simply dropped from data, for we do not know the real answer would be if the reaction time for that trial were right.
+
+### Number line estimation
+
+Based on [Bos's paper](https://doi.org/10.1016/j.jecp.2015.02.002), the linearity relation between estimated number and presented number would increase as children grow up. So here the `R-squared` of the linear fit is used as the index. And, to account for potential impact of outliers, a `bisquare` robust estimation is used. For more information, just have look at [the code](sngprocLE.m).
+
+### Number sense task
+
+Based on the introduction on [panamath](http://www.panamath.org/wiki/index.php?title=What_is_a_Weber_Fraction%3F) and [Halberda's paper](https://doi.org/10.1038/nature07246), a nonlinear model fitting is used to estimate weber fraction. Note that accuracy is the measure of interest, and trials with too short RT or no response are treated as incorrect.
+
+### Digit comparison task
+
+Based on [Smedt's paper](https://doi.org/10.1016/j.jecp.2009.01.010), a linear model is applied to predict reaction times by digit distances, and the final measure is the slope of this linear model.

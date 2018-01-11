@@ -1,13 +1,7 @@
 function [stats, labels] = sngprocSpan(SLen, ACC)
-%SNGPROCSPAN Does some basic data transformation to working memory span tasks.
+%SNGPROCSPAN analyzes data of span-related tasks.
 %
-%   Basically, the supported tasks are as follows:
-%     MOT ForSpan, BackSpan, SpatialSpan.
-%   The output table contains 2 variables: TE_ML(!D)(Two Error-Maximal
-%   Length), TE_TT(!D)(Two Error-Total Trial), ML(Maximal Length), MS(Mean
-%   Span).
-%
-%   Reference:
+% Reference:
 %   Woods, D. L., Kishiyama, M. M., Yund, E. W., Herron, T. J., Edwards,
 %   B., Poliva, O., Reed, B. (2011). Improving digit span assessment of
 %   short-term verbal memory. Journal of Clinical & Experimental
@@ -29,6 +23,6 @@ else
     PC = splitapply(@mean, ACC, grps);
     MS = allSLen(1) - 0.5 + sum(PC);
 end
-
+% compose return values
 stats = [NTrial, ML, MS];
 labels = {'NTrial', 'ML', 'MS'};
