@@ -352,7 +352,8 @@ for itask = 1:ntasks4process
     else
         curTaskIndexLoc = ismember(labels, idxName);
         if any(curTaskIndexLoc)
-            keys.index = stats(:, curTaskIndexLoc);
+            % adjust index to have higher score for higher ability
+            keys.index = stats(:, curTaskIndexLoc) * curTaskSetting.IndexProp;
         end
     end
     % combine user information and processed indices
