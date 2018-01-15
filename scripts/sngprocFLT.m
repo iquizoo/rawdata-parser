@@ -35,4 +35,4 @@ cap20 = 2 * PCTbl_grp.Capacity(PCTbl_grp.Cond == '20');
 FE = (cap40 - cap22) / (cap40 - cap20);
 % compose return values
 stats = [NTrial, NResp, PC, cap22, cap40, cap20, FE];
-labels = {'NTrial', 'NResp', 'PC', 'cap22', 'cap40', 'cap20', 'filtcap'};
+labels = {'NTrial', 'NResp', 'PC', 'cap22', 'cap40', 'cap20', 'FE'};
