@@ -5,6 +5,6 @@ function [stats, labels] = sngprocMT(CSeries, RSeries)
 
 CSeries = strjoin(CSeries, '');
 RSeries = strjoin(RSeries, '');
-ACC = mean(CSeries == RSeries);
+ACC = mean(char(CSeries) == char(RSeries));
 stats = ACC;
 labels = {'ACC'};
