@@ -16,7 +16,7 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index,IndexProp
 15,"速算师-初级","SpeedAdd","Count","RT ACC","MeanScore",1
 16,"速算师-中级","SpeedSubtract","Count","RT ACC","MeanScore",1
 17,"数字大小比较","DigitCmp","DigitCmp","S1 S2 ACC RT","DistEffect",1
-18,"数感","Subitizing","ANS","S1 S2 ACC RT","w",-1
+18,"数感","Subitizing","ANS","S1 S2 ACC RT","PC",1
 19,"顺背数","ForSpan","Span","SLen ACC","MS",1
 20,"倒背数","BackSpan","Span","SLen ACC","MS",1
 21,"位置记忆","SpatialSpan","Span","SLen ACC","MS",1
@@ -44,8 +44,8 @@ ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index,IndexProp
 43,"自由拼图（黑白版）","Jigsaw1","","","",NaN
 44,"自由拼图（彩色版）","Jigsaw2","","","",NaN
 45,"吹气球","BART","BART","NHit Feedback","MNHit",-1
-46,"班务达人","Filtering","FLT","RT ACC SCat Cond","FE",-1
-47,"科学达人","Filtering2","FLT","RT ACC SCat Cond","FE",-1
+46,"班务达人","Filtering","FLT","RT ACC SCat Cond","FE",1
+47,"科学达人","Filtering2","FLT","RT ACC SCat Cond","FE",1
 48,"宇航员","NumLine","LE","STIM Resp","MPAE",-1
 49,"宇宙加氧站","Anticipation","","","",NaN
 50,"消灭敌机","TempDiscounting","","","",NaN
