@@ -1,52 +1,52 @@
-ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index,IndexProp
-1,"雷达追踪","MOT","Span","SLen ACC","MS",1
-2,"捉虫","CPT1","CPT1","RT ACC SCat","dprime",1
-3,"捉虫(高级版)","CPT2","CPT2","RT ACC SCat","dprime",1
-4,"分配注意初级","DivAtten1","","","",NaN
-5,"分配注意中级","DivAtten2","","","",NaN
-6,"抵制诱惑","GNGLure","CPT1","RT ACC SCat","MRT",-1
-7,"水果忍者","GNGFruit","CPT1","RT ACC SCat","MRT",-1
-8,"方向达人","Flanker","Control","RT ACC SCat","NIHScore",1
-9,"颜色达人初级","Stroop1","Control","RT ACC SCat","NIHScore",1
-10,"颜色达人中级","Stroop2","Control","RT ACC SCat","NIHScore",1
-11,"数字大小混淆","NumStroop","Control","RT ACC SCat","NIHScore",1
-12,"数字魔法师初级","Nback1","NSN","RT ACC SCat","dprime",1
-13,"数字魔法师中级","Nback2","NSN","RT ACC SCat","dprime",1
-14,"红绿灯","StopSignal","StopSignal","RT ACC IsStop SSD","SSRT",-1
-15,"速算师-初级","SpeedAdd","Count","RT ACC","MeanScore",1
-16,"速算师-中级","SpeedSubtract","Count","RT ACC","MeanScore",1
-17,"数字大小比较","DigitCmp","DigitCmp","S1 S2 ACC RT","DistEffect",1
-18,"数感","Subitizing","ANS","S1 S2 ACC RT","PC",1
-19,"顺背数","ForSpan","Span","SLen ACC","MS",1
-20,"倒背数","BackSpan","Span","SLen ACC","MS",1
-21,"位置记忆","SpatialSpan","Span","SLen ACC","MS",1
-22,"记忆尾巴","MemoryTail","MT","CSeries RSeries","ACC",1
-23,"联系记忆","AssocMemory","Memrep","RT ACC REP","PC",1
-24,"图片记忆","PicMemory","","","",NaN
-25,"言语记忆","WordMemory","","","",NaN
-26,"符号记忆","SymbolMemory","","","",NaN
-27,"语义记忆","SemanticMemory","Memrep","RT ACC REP","PC",1
-28,"符号判断","Symbol","SNSN","RT ACC SCat","MeanScore",1
-29,"字形判断","Orthograph","SNSN","RT ACC SCat","MeanScore",1
-30,"声调判断","Tone","SNSN","RT ACC SCat","MeanScore",1
-31,"拼音判断","Pinyin","SNSN","RT ACC SCat","MeanScore",1
-32,"词语判断","Lexic","SNSN","RT ACC SCat","MeanScore",1
-33,"语义判断(高级)","Semantic","SNSN","RT ACC SCat","MeanScore",1
-34,"反应速度","SRT","SRT","RT ACC","MRT",-1
-35,"分辨速度","DRT","CPT1","RT ACC SCat","MRT",-1
-36,"选择速度","CRT","SAT","RT ACC","MRT",-1
-37,"超级秒表","SRTWatch","SRT","RT ACC","MRT",-1
-38,"面包大师","SRTBread","SRT","RT ACC","MRT",-1
-39,"思维转换","TaskSwitching","Control","RT ACC SCat","NIHScore",1
-40,"反应转换","TaskSwitching2","Control","RT ACC SCat","NIHScore",1
-41,"卡片分类","DCCS","Control","RT ACC SCat","NIHScore",1
-42,"连线","TMT","TMT","RT NWrong SCat","Time_ratio",-1
-43,"自由拼图（黑白版）","Jigsaw1","","","",NaN
-44,"自由拼图（彩色版）","Jigsaw2","","","",NaN
-45,"吹气球","BART","BART","NHit Feedback","MNHit",-1
-46,"班务达人","Filtering","FLT","RT ACC SCat Cond","FE",1
-47,"科学达人","Filtering2","FLT","RT ACC SCat Cond","FE",1
-48,"宇航员","NumLine","LE","STIM Resp","MPAE",-1
-49,"宇宙加氧站","Anticipation","","","",NaN
-50,"消灭敌机","TempDiscounting","","","",NaN
-51,"视觉搜索","VisualSearch","","","",NaN
+ID,TaskName,TaskIDName,AnalysisFun,AnalysisVars,Index,IndexProp,IndexDescription
+1,"雷达追踪","MOT","Span","SLen ACC","MS",1,"Mean span"
+2,"捉虫","CPT1","CPT1","RT ACC SCat","dprime",1,"Sensitivity index of signal detection theory"
+3,"捉虫(高级版)","CPT2","CPT2","RT ACC SCat","dprime",1,"Sensitivity index of signal detection theory"
+4,"分配注意初级","DivAtten1","","","",NaN,""
+5,"分配注意中级","DivAtten2","","","",NaN,""
+6,"抵制诱惑","GNGLure","CPT1","RT ACC SCat","MRT",-1,"Mean reaction time"
+7,"水果忍者","GNGFruit","CPT1","RT ACC SCat","MRT",-1,"Mean reaction time"
+8,"方向达人","Flanker","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of incongruent trials and total accuracy"
+9,"颜色达人初级","Stroop1","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of incongruent trials and total accuracy"
+10,"颜色达人中级","Stroop2","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of incongruent trials and total accuracy"
+11,"数字大小混淆","NumStroop","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of incongruent trials and total accuracy"
+12,"数字魔法师初级","Nback1","NSN","RT ACC SCat","dprime",1,"Sensitivity index of signal detection theory"
+13,"数字魔法师中级","Nback2","NSN","RT ACC SCat","dprime",1,"Sensitivity index of signal detection theory"
+14,"红绿灯","StopSignal","StopSignal","RT ACC IsStop SSD","SSRT",-1,"Stop signal reaction time"
+15,"速算师-初级","SpeedAdd","Count","RT ACC","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 1 when wrong"
+16,"速算师-中级","SpeedSubtract","Count","RT ACC","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 1 when wrong"
+17,"数字大小比较","DigitCmp","DigitCmp","S1 S2 ACC RT","DistEffect",1,"Distance effect"
+18,"数感","Subitizing","ANS","S1 S2 ACC RT","PC",1,"Percent of correct (temporary)"
+19,"顺背数","ForSpan","Span","SLen ACC","MS",1,"Mean span"
+20,"倒背数","BackSpan","Span","SLen ACC","MS",1,"Mean span"
+21,"位置记忆","SpatialSpan","Span","SLen ACC","MS",1,"Mean span"
+22,"记忆尾巴","MemoryTail","MT","CSeries RSeries","ACC",1,"Percent of correct"
+23,"联系记忆","AssocMemory","Memrep","RT ACC REP","PC",1,"Percent of correct"
+24,"图片记忆","PicMemory","","","",NaN,""
+25,"言语记忆","WordMemory","","","",NaN,""
+26,"符号记忆","SymbolMemory","","","",NaN,""
+27,"语义记忆","SemanticMemory","Memrep","RT ACC REP","PC",1,"Percent of correct"
+28,"符号判断","Symbol","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 1 when wrong"
+29,"字形判断","Orthograph","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 2 when wrong"
+30,"声调判断","Tone","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 3 when wrong"
+31,"拼音判断","Pinyin","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 4 when wrong"
+32,"词语判断","Lexic","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 5 when wrong"
+33,"语义判断(高级)","Semantic","SNSN","RT ACC SCat","MeanScore",1,"Score attained per minute: score increase 1 when correct, decrease 6 when wrong"
+34,"反应速度","SRT","SRT","RT ACC","MRT",-1,"Mean reaction time"
+35,"分辨速度","DRT","CPT1","RT ACC SCat","MRT",-1,"Mean reaction time"
+36,"选择速度","CRT","SAT","RT ACC","MRT",-1,"Mean reaction time"
+37,"超级秒表","SRTWatch","SRT","RT ACC","MRT",-1,"Mean reaction time"
+38,"面包大师","SRTBread","SRT","RT ACC","MRT",-1,"Mean reaction time"
+39,"思维转换","TaskSwitching","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of switch trials and total accuracy"
+40,"反应转换","TaskSwitching2","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of switch trials and total accuracy"
+41,"卡片分类","DCCS","Control","RT ACC SCat","NIHScore",1,"Composite score: combine reaction time of switch trials and total accuracy"
+42,"连线","TMT","TMT","RT NWrong SCat","Time_ratio",-1,"Ratio of time used in switch and repeat trials"
+43,"自由拼图（黑白版）","Jigsaw1","","","",NaN,""
+44,"自由拼图（彩色版）","Jigsaw2","","","",NaN,""
+45,"吹气球","BART","BART","NHit Feedback","MNHit",-1,"Mean hit times for non-explosive trials"
+46,"班务达人","Filtering","FLT","RT ACC SCat Cond","FE",1,"Filtering efficiency (temporary)"
+47,"科学达人","Filtering2","FLT","RT ACC SCat Cond","FE",1,"Filtering efficiency (temporary)"
+48,"宇航员","NumLine","LE","STIM Resp","MPAE",-1,"Mean percent of absolute error"
+49,"宇宙加氧站","Anticipation","","","",NaN,""
+50,"消灭敌机","TempDiscounting","","","",NaN,""
+51,"视觉搜索","VisualSearch","","","",NaN,""
