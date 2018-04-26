@@ -256,6 +256,12 @@ for itask = 1:ntasks4process
             curTaskData.SCat(AnotXLoc) = {'AnotX'};
             curTaskData.SCat = categorical(curTaskData.SCat);
         case {'NumStroop', 'Stroop1', 'Stroop2'}
+            % fix scat for newer version of data storage
+            if all(isnan(curTaskData.SCat))
+                curTaskData.SCat = ...
+                    (curTaskData.NL - curTaskData.NR) .* ...
+                    (curTaskData.SL - curTaskData.SR) > 0;
+            end
             % 0 -> incongruent type; 1 -> congruent type
             curTaskSTIMEncode = table([0; 1], {'Incongruent'; 'Congruent'}, [2; 1], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
