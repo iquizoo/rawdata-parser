@@ -267,6 +267,8 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
+            % set the ACC of no response trials as -1.
+            curTaskData.ACC(curTaskData.Resp == -1) = -1;
         case {'TaskSwitching', 'TaskSwitching2'}
             % remove first of trial of each subject
             [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
