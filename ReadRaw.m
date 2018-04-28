@@ -174,13 +174,17 @@ for ifile = 1:nfiles
             curMetadataOrig = curFileExtract.(curMetavarNameLegal);
             curMetadataTrans = curMetadataOrig;
             if ~isa(curMetadataOrig, curMetavarClass)
+                % convert non-character to character for cell type
+                if iscell(curMetadataOrig)
+                    noncharLoc = ~cellfun(@ischar, curMetadataOrig);
+                    curMetadataOrig(noncharLoc) = ...
+                        cellfun(@num2str, curMetadataOrig(noncharLoc), ...
+                        'UniformOutput', false);
+                end
                 switch curMetavarClass
                     case 'double'
                         curMetadataTrans = str2double(curMetadataOrig);
                     case 'string'
-                        if iscell(curMetadataOrig)
-                            curMetadataOrig(cellfun(@isempty, curMetadataOrig)) = {''};
-                        end
                         curMetadataTrans = string(curMetadataOrig);
                     case 'categorical'
                         curMetadataTrans = categorical(curMetadataOrig);

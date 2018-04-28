@@ -145,10 +145,12 @@ else
             ntasks = height(res);
             for itask = 1:ntasks
                 taskID = res.TaskID(itask);
-                taskIDName = data.TaskIDName{itask};
+                taskIDName = res.TaskIDName{itask};
                 svResXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
-                taskMerge = outerjoin(res.Meta{itask}, res.Results{itask}, 'MergeKeys', true);
-                writetable(taskMerge, fullfile(svResXlsPath, svResXlsName))
+                if ~isempty(res.Results{itask})
+                    taskMerge = outerjoin(res.Meta{itask}, res.Results{itask}, 'MergeKeys', true);
+                    writetable(taskMerge, fullfile(svResXlsPath, svResXlsName))
+                end
             end
             fprintf('Saving done.\n')
         end

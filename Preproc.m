@@ -36,7 +36,7 @@ function dataWrapper = Preproc(extracted, varargin)
 tic
 
 % open a log file
-logfid = fopen('preproc(AutoGen).log', 'a');
+logfid = fopen(fullfile('logs', 'preproc(AutoGen).log'), 'a');
 fprintf(logfid, '[%s] Start preprocessing.\n', datestr(now));
 
 % add helper functions folder
@@ -53,7 +53,9 @@ addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 parse(par, varargin{:});
 taskInputNames = par.Results.TaskNames;
-taskInputNames = reshape(taskInputNames, numel(taskInputNames), 1);
+if iscellstr(taskInputNames) || isnumeric(taskInputNames)
+    taskInputNames = reshape(taskInputNames, numel(taskInputNames), 1);
+end
 prompt = lower(par.Results.DisplayInfo);
 dbentry = par.Results.DebugEntry;
 
@@ -72,7 +74,6 @@ KEY_METAVARS = {'userId', 'createTime'};
 KEY_TASKID_VAR = 'excerciseId';
 
 % load settings, encoding of config files is 'UTF-8'
-settings = readtable(fullfile(CONFIGPATH, 'settings.csv'), 'Encoding', 'UTF-8');
 para = readtable(fullfile(CONFIGPATH, 'para.csv'), 'Encoding', 'UTF-8');
 taskNameStore = readtable(fullfile(CONFIGPATH, 'taskname.csv'), 'Encoding', 'UTF-8');
 % get all the task ids
@@ -175,14 +176,14 @@ for itask = 1:ntasks4process
     nprocessed = nprocessed + 1;
 
     % find out the setting of current task.
-    locset = ismember(settings.TaskIDName, curTaskIDName);
+    locset = ismember(taskNameStore.TaskID, curTaskID);
     if ~any(locset)
         fprintf(logfid, ...
-            '[%s] No settings specified for task %s. Continue to the next task.\n', ...
+            '[%s] No parameters found for such task: %s. Continue to the next task.\n', ...
             datestr(now), curTaskDispName);
         continue
     end
-    curTaskSetting = settings(locset, :);
+    curTaskToken = taskNameStore.TemplateToken(locset);
 
     % get current task raw data
     curTaskRawData = extracted(ismember(extracted.(KEY_TASKID_VAR), curTaskID), :);
@@ -241,7 +242,7 @@ for itask = 1:ntasks4process
     % separate metadata (contains iqmethod results) and extracted data
     curTaskMeta = curTaskRawData(:, setdiff(rawdataVars, DATAVARNAME, 'stable'));
     % separate data to trials
-    curTaskPara = para(ismember(para.TemplateToken, curTaskSetting.TemplateToken), :);
+    curTaskPara = para(ismember(para.TemplateToken, curTaskToken), :);
     [curTaskTrialRec, status] = cellfun(@(datastr) sngpreproc(datastr, curTaskPara), curTaskDatastr);
     % generate some warning and logs according to the status.
     if any(status ~= 0)
