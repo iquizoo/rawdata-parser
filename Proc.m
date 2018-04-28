@@ -256,6 +256,8 @@ for itask = 1:ntasks4process
             curTaskData.SCat(AnotXLoc) = {'AnotX'};
             curTaskData.SCat = categorical(curTaskData.SCat);
         case {'NumStroop', 'Stroop1', 'Stroop2'}
+            % set the ACC of no response trials as -1.
+            curTaskData.ACC(curTaskData.Resp == -1 | curTaskData.Resp == 2) = -1;
             % fix scat for newer version of data storage
             if all(isnan(curTaskData.SCat))
                 curTaskData.SCat = ...
@@ -267,8 +269,6 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat', 'Order'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
-            % set the ACC of no response trials as -1.
-            curTaskData.ACC(curTaskData.Resp == -1) = -1;
         case {'TaskSwitching', 'TaskSwitching2'}
             % remove first of trial of each subject
             [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
@@ -288,9 +288,9 @@ for itask = 1:ntasks4process
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
             % set trials in which RTs equal to Maximal RT as no-response
             curTaskData.ACC(curTaskData.RT == 2000) = -1;
-        case {'Subitizing', 'DigitCmp'}
-            % note Resp of 2 denotes no response
-            curTaskData.ACC(curTaskData.Resp == 2) = -1;
+        case {'Subitizing', 'DigitCmp', 'AssocMemory'}
+            % note Resp of 2/-1 denotes no response
+            curTaskData.ACC(curTaskData.Resp == -1 | curTaskData.Resp == 2) = -1;
         case {'SpeedAdd', 'SpeedSubtract'}
             % set acc of no response (denoted as 0) trials as -1
             curTaskData.ACC(curTaskData.Resp == 0) = -1;
@@ -304,9 +304,6 @@ for itask = 1:ntasks4process
                 'VariableNames', {'STIM', 'SCat'});
             % convert corresponding SCat
             curTaskData.SCat = mapSCat(curTaskData.Change, curTaskSTIMEncode);
-        case 'AssocMemory'
-            % set the ACC of no response trials as -1
-            curTaskData.ACC(curTaskData.Resp == -1) = -1;
         case 'SemanticMemory'
             % set the ACC of no response trials as -1
             curTaskData.ACC(curTaskData.Resp == -1) = -1;
