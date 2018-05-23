@@ -30,7 +30,7 @@ dflts
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
 if ~exist(resdir, 'dir'), mkdir(resdir); end
 
-rawdir = dfltSet.DATARAW_DIR;
+rawdir = fullfile(dfltSet.DATARAW_DIR, dfltSet.PARSED_DIR);
 % check input values
 if isempty(rawsuff)
     if s < 2
