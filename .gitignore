@@ -22,6 +22,7 @@
 *.bak2
 *.log
 *.pmd
+*.txt
 
 # For miscellaneous BINARY files.
 *.jpg
