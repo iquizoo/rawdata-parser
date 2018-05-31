@@ -32,3 +32,4 @@ ID,Note,TemplateToken,Delimiters,VariablesNames,VariablesChar,Conditions,AddInfo
 31,"连线","TMT",";,","STIM NAcc NWrong RT SCat","1","",""
 32,"班务达人、科学达人","FL",";,","Block Trial SCat NTar NDis CResp Resp ACC RT Change","0","",""
 33,"宇航员","NL",",:","Trial STIM Resp ACC RT","0","",""
+34,"推理单选题","CHO",";,","IID CResp Resp ACC RT","0","",""
