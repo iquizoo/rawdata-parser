@@ -27,9 +27,12 @@ saveVer  = par.Results.SaveVersion;
 saveVerAuto = strcmp(saveVer, 'auto');
 % load default settings
 dflts
+% path to store data as matlab binary files
 resdir = fullfile(dfltSet.DATARES_DIR, 'ds');
 if ~exist(resdir, 'dir'), mkdir(resdir); end
-
+% path to store data as human readable excel spreadsheat files
+humandir = fullfile(dfltSet.DATARES_DIR, 'readable');
+if ~exist(humandir, 'dir'), mkdir(humandir); end
 rawdir = fullfile(dfltSet.DATARAW_DIR, dfltSet.PARSED_DIR);
 % check input values
 if isempty(rawsuff)
@@ -54,9 +57,9 @@ else
     suffix = matlab.lang.makeValidName(rawsuff);
 end
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
-svRawXlsDataPath = fullfile(dfltSet.DATARES_DIR, suffix, 'data');
-svRawXlsMetaPath = fullfile(dfltSet.DATARES_DIR, suffix, 'meta');
-svResXlsPath = fullfile(dfltSet.DATARES_DIR, suffix, 'res');
+svRawXlsDataPath = fullfile(humandir, suffix, 'data');
+svRawXlsMetaPath = fullfile(humandir, suffix, 'meta');
+svResXlsPath = fullfile(humandir, suffix, 'res');
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
 % mrgFilePrefix = 'mrg_';
@@ -78,7 +81,7 @@ else
             'DisplayInfo', prompt, ...
             'DebugEntry', dbentry);
         if saveIdx > 2 || ~cntn
-            fprintf('Now saving raw data (dataExtract) as file %s...\n', svRawFileName)
+            fprintf('Now saving raw data (dataExtract) as file %s.mat...\n', svRawFileName)
             svVars = {'data'};
             if saveVerAuto
                 svVarInfo = whos(svVars{:});
@@ -93,6 +96,7 @@ else
             % save as .mat for precision
             ntasks = height(data);
             % save as .xlsx for communication
+            fprintf('Now saving raw data as Excel files to %s...\n', humandir)
             if ~exist(svRawXlsDataPath, 'dir'), mkdir(svRawXlsDataPath); end
             if ~exist(svRawXlsMetaPath, 'dir'), mkdir(svRawXlsMetaPath); end
             for itask = 1:ntasks
@@ -115,7 +119,7 @@ else
             return
         end
     elseif s < 3 % s = 2 only
-        fprintf('Now reading raw data (data) from file %s...\n', ldRawFileName)
+        fprintf('Now reading raw data (data) from file %s.mat...\n', ldRawFileName)
         load(ldRawFileName, 'data')
         fprintf('Reading done.\n')
     end
@@ -127,7 +131,7 @@ else
             'Method', method, ...
             'DebugEntry', dbentry);
         if saveIdx > 1 || ~cntn
-            fprintf('Now saving processed data (resdata) as file %s...\n', svResFileName)
+            fprintf('Now saving processed data (resdata) as file %s.mat...\n', svResFileName)
             svVars = {'res'};
             if saveVerAuto
                 svVarInfo = whos(svVars{:});
@@ -141,6 +145,7 @@ else
             % save as .mat for precision
             save(svResFileName, svVars{:}, saveVer)
             % save as .xlsx for communication
+            fprintf('Now saving processed data as Excel files to %s...\n', humandir)
             if ~exist(svResXlsPath, 'dir'), mkdir(svResXlsPath); end
             ntasks = height(res);
             for itask = 1:ntasks
