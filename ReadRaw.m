@@ -26,6 +26,11 @@ METAVAR_NAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', '
 METAVAR_TYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
 KEY_TASKID_VAR = 'excerciseId';
 
+% load default settings
+dflts
+exportedRawDir = fullfile(dfltSet.DATARAW_DIR, dfltSet.EXPORTED_DIR);
+parsedRawDir = fullfile(dfltSet.DATARAW_DIR, dfltSet.PARSED_DIR);
+
 % check source and destination input
 if isempty(src)
     % ask for input type
@@ -37,13 +42,13 @@ if isempty(src)
                 '*.json', 'JSON Data Files (*.json)'; ...
                 '*.xlsx', 'Excel Data Files (*.xlsx)'; ...
                 }, ...
-                'Please select the file containing source data.', 'DATA_RawData', 'MultiSelect', 'on');
+                'Please select the file containing source data.', exportedRawDir, 'MultiSelect', 'on');
             if isnumeric(fnames)
                 error('UDF:READRAW:DATASOURCEMISSING', 'No data files selected.')
             end
             src = fullfile(pathname, fnames);
         case 'Folder'
-            src = uigetdir('DATA_RawData', 'Please select the folder of source data.');
+            src = uigetdir(exportedRawDir, 'Please select the folder of source data.');
             if isnumeric(src)
                 error('UDF:READRAW:DATASOURCEMISSING', 'No data path selected.')
             end
@@ -54,7 +59,7 @@ if isempty(src)
     end
 end
 if isempty(dest)
-    dest = uigetdir('DATA_RawData', 'Please select the folder of destination data.');
+    dest = uigetdir(parsedRawDir, 'Please select the folder of destination data.');
     if isnumeric(dest)
         error('UDF:READRAW:DATADESTMISSING', 'No data destination selected.')
     end
