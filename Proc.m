@@ -319,6 +319,12 @@ for itask = 1:ntasks4process
     % calculate indices for each user
     % prepare analysis configurations
     anafunSuffix = curTaskSetting.AnalysisFun{:};
+    % suppress certain warnings
+    supressWarns = {};
+    if strcmp(anafunSuffix, 'ANS')
+        supressWarns = {'MATLAB:rankDeficientMatrix', 'stats:nlinfit:ModelConstantWRTParam'};
+    end
+    cellfun(@(warnid) warning('off', warnid), supressWarns);
     if isempty(anafunSuffix)
         % skip task if no function configuration found
         warning('UDF:PROC:NOANAFUN', ...
@@ -371,6 +377,8 @@ for itask = 1:ntasks4process
     % store the time used
     data.Time2Proc{curTaskIdx} = seconds2human(toc - elapsedTime, 'full');
 
+    % restore certain warnings
+    cellfun(@(warnid) warning('on', warnid), supressWarns);
     % clear redundant variables to save storage
     clearvars('-except', initialVarsTask{:});
 end
