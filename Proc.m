@@ -339,7 +339,6 @@ for itask = 1:ntasks4process
     labels = labels(1, :);
     % get the ultimate index
     idxName = curTaskSetting.Index{:};
-    keys.indexName = repmat({idxName}, height(keys), 1);
     if strcmp(idxName, 'MeanScore')
         % mean score = (#correct - #incorrect) / allTime
         switch curTaskIDName
@@ -362,6 +361,8 @@ for itask = 1:ntasks4process
             keys.index = stats(:, curTaskIndexLoc) * curTaskSetting.IndexProp;
         end
     end
+    % also store the index name
+    keys.indexName = repmat({idxName}, height(keys), 1);
     % combine user information and processed indices
     results = [keys, array2table(stats, 'VariableNames', labels)];
 
