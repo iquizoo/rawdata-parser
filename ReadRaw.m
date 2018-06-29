@@ -198,7 +198,16 @@ for ifile = 1:nfiles
                             % not very good implementation
                             curMetadataOrig = repmat({''}, size(curMetadataOrig));
                         end
-                        curMetadataTrans = datetime(curMetadataOrig);
+                        switch curMetavarNameReal{:}
+                            case 'birthDay'
+                                % only a date, no time
+                                curMetadataTrans = datetime(curMetadataOrig, ...
+                            'InputFormat', 'yyyy-MM-dd');
+                            case 'createDate'
+                                % time is also included in string
+                                curMetadataTrans = datetime(curMetadataOrig, ...
+                            'InputFormat', 'yyyy-MM-dd HH:mm:ss.S');
+                        end
                 end
             end
         else
