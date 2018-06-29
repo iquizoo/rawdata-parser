@@ -57,9 +57,8 @@ else
     suffix = matlab.lang.makeValidName(rawsuff);
 end
 fprintf('Will use suffix ''%s'' to store data.\n', suffix)
-svRawXlsDataPath = fullfile(humandir, suffix, 'data');
-svRawXlsMetaPath = fullfile(humandir, suffix, 'meta');
-svResXlsPath = fullfile(humandir, suffix, 'res');
+svXlsPath = fullfile(humandir, suffix);
+if ~exist(svXlsPath, 'dir'), mkdir(svXlsPath); end
 rawFilePrefix = 'raw_';
 resFilePrefix = 'res_';
 % mrgFilePrefix = 'mrg_';
@@ -92,24 +91,24 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            save(svRawFileName, svVars{:}, saveVer)
             % save as .mat for precision
-            ntasks = height(data);
+            save(svRawFileName, svVars{:}, saveVer)
             % save as .xlsx for communication
             fprintf('Now saving raw data as Excel files to %s...\n', humandir)
-            if ~exist(svRawXlsDataPath, 'dir'), mkdir(svRawXlsDataPath); end
-            if ~exist(svRawXlsMetaPath, 'dir'), mkdir(svRawXlsMetaPath); end
+            ntasks = height(data);
             for itask = 1:ntasks
                 taskID = data.TaskID(itask);
                 taskIDName = data.TaskIDName{itask};
-                svRawXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
+                svRawShtName = sprintf('%s_%d', taskIDName, taskID);
                 taskData = data.Data{itask};
                 taskMeta = data.Meta{itask};
                 if ~isempty(taskData)
-                    writetable(taskData, fullfile(svRawXlsDataPath, svRawXlsName)); %, ...
-                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
-                    writetable(taskMeta, fullfile(svRawXlsMetaPath, svRawXlsName)); %, ...
-                    % 'QuoteStrings', true, 'Encoding', 'UTF-8')
+                    writetable(taskData, ...
+                        fullfile(svXlsPath, 'raw_data.xlsx'), ...
+                        'Sheet', svRawShtName);
+                    writetable(taskMeta, ...
+                        fullfile(svXlsPath, 'meta_data.xlsx'), ...
+                        'Sheet', svRawShtName);
                 end
             end
             fprintf('Saving done.\n')
@@ -146,15 +145,16 @@ else
             save(svResFileName, svVars{:}, saveVer)
             % save as .xlsx for communication
             fprintf('Now saving processed data as Excel files to %s...\n', humandir)
-            if ~exist(svResXlsPath, 'dir'), mkdir(svResXlsPath); end
             ntasks = height(res);
             for itask = 1:ntasks
                 taskID = res.TaskID(itask);
                 taskIDName = res.TaskIDName{itask};
-                svResXlsName = sprintf('%s(%d).xlsx', taskIDName, taskID);
+                svResShtName = sprintf('%s_%d', taskIDName, taskID);
                 if ~isempty(res.Results{itask})
                     taskMerge = outerjoin(res.Meta{itask}, res.Results{itask}, 'MergeKeys', true);
-                    writetable(taskMerge, fullfile(svResXlsPath, svResXlsName))
+                    writetable(taskMerge, ...
+                        fullfile(svXlsPath, 'res_data.xlsx'), ...
+                        'Sheet', svResShtName)
                 end
             end
             fprintf('Saving done.\n')
