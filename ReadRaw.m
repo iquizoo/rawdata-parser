@@ -206,7 +206,7 @@ for ifile = 1:nfiles
                                 % only a date, no time
                                 curMetadataTrans = datetime(curMetadataOrig, ...
                             'InputFormat', 'yyyy-MM-dd');
-                            case 'createDate'
+                            case {'createDate', 'createTime'}
                                 % time is also included in string
                                 curMetadataTrans = datetime(curMetadataOrig, ...
                             'InputFormat', 'yyyy-MM-dd HH:mm:ss.S');
