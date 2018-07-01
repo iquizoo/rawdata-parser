@@ -259,10 +259,11 @@ for itask = 1:ntasks4process
             % set the ACC of no response trials as -1.
             curTaskData.ACC(curTaskData.Resp == -1 | curTaskData.Resp == 2) = -1;
             % fix scat for newer version of data storage
-            if all(isnan(curTaskData.SCat))
-                curTaskData.SCat = ...
-                    (curTaskData.NL - curTaskData.NR) .* ...
+            SCatToFix = isnan(curTaskData.SCat);
+            if any(SCatToFix)
+                SCatFixed = (curTaskData.NL - curTaskData.NR) .* ...
                     (curTaskData.SL - curTaskData.SR) > 0;
+                curTaskData.SCat(SCatToFix) = SCatFixed(SCatToFix);
             end
             % 0 -> incongruent type; 1 -> congruent type
             curTaskSTIMEncode = table([0; 1], {'Incongruent'; 'Congruent'}, [2; 1], ...
