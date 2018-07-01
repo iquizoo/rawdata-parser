@@ -235,20 +235,20 @@ for itask = 1:ntasks4process
             % preallocate SCat variable
             curTaskData.SCat = repmat({'Random'}, height(curTaskData), 1);
             % get all the locations of the first trial of each subject
-            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
+            [~, firstTrials] = unique(curTaskData(:, KEYMETAVARS));
             % Note: only 'C' following 'B' is Go(target) trial.
             % get all the warning ('B') trials (A of A-X)
             ATrials = find(strcmp(curTaskData.STIM, 'B'));
             % get all the lure ('C') trials (X of A-X)
             XTrials = find(strcmp(curTaskData.STIM, 'C'));
             % find 'Target' trials
-            TargetLoc = setdiff(intersect(ATrials + 1, XTrials), firstTrial);
+            TargetLoc = setdiff(intersect(ATrials + 1, XTrials), firstTrials);
             % find 'Xonly' trials
             XonlyLoc = setdiff(XTrials, TargetLoc);
             % find 'Aonly' trials
             AonlyLoc = ATrials;
             % find 'AnotX' trials
-            AnotXLoc = ATrials(~ismember(ATrials + 1, XTrials)) + 1;
+            AnotXLoc = setdiff(ATrials(~ismember(ATrials + 1, XTrials)), height(curTaskData)) + 1;
             % format SCat variable
             curTaskData.SCat(TargetLoc) = {'Target'};
             curTaskData.SCat(XonlyLoc) = {'Xonly'};
@@ -272,8 +272,8 @@ for itask = 1:ntasks4process
             curTaskData.SCat = mapSCat(curTaskData.SCat, curTaskSTIMEncode);
         case {'TaskSwitching', 'TaskSwitching2'}
             % remove first of trial of each subject
-            [~, firstTrial] = unique(curTaskData(:, KEYMETAVARS));
-            curTaskData(firstTrial, :) = [];
+            [~, firstTrials] = unique(curTaskData(:, KEYMETAVARS));
+            curTaskData(firstTrials, :) = [];
             % 1 -> repeat type; 2 -> switch type
             curTaskSTIMEncode = table([1; 2], {'Repeat'; 'Switch'}, [1; 2], ...
                 'VariableNames', {'STIM', 'SCat', 'Order'});
