@@ -339,8 +339,15 @@ for itask = 1:ntasks4process
     end
     curTaskAnaFun = str2func(['sngproc', anafunSuffix]);
     curTaskAnaVars = split(curTaskSetting.AnalysisVars);
-    % analysis for each subject
+    % fix NaT to a valid time for the foolish behavior of findgroups
+    createTimeToFix = isnat(curTaskData.createTime);
+    fixDate = datetime(0, 0, 0); % this is a basically impossible time
+    if any(createTimeToFix)
+        curTaskData.createTime(createTimeToFix) = fixDate;
+    end
+    % grouping data for each subject's each participant
     [grps, keys] = findgroups(curTaskData(:, KEYMETAVARS));
+    % calculate performance indices
     [stats, labels] = splitapply(curTaskAnaFun, ...
         curTaskData(:, curTaskAnaVars), grps);
     labels = labels(1, :);
@@ -354,8 +361,15 @@ for itask = 1:ntasks4process
                 keys.index = (stats(:, 1) - 2 * stats(:, 3)) ./ ...
                     (stats(:, 4) / (60 * 1000));
             otherwise
+                % fix NaT to a valid time for the foolish behavior of
+                % ismember
+                curTaskMeta = data.Meta{curTaskIdx};
+                createTimeToFix = isnat(curTaskMeta.createTime);
+                if any(createTimeToFix)
+                    curTaskMeta.createTime(createTimeToFix) = fixDate;
+                end
                 % get the corresponding 'allTime' information
-                [~, idx] = ismember(keys, data.Meta{curTaskIdx}(:, KEYMETAVARS), 'rows');
+                [~, idx] = ismember(keys, curTaskMeta(:, KEYMETAVARS), 'rows');
                 allTime = data.Meta{curTaskIdx}.allTime(idx);
                 % order is so ensured that we could use numerical index
                 keys.index = (stats(:, 7) - (stats(:, 4) - stats(:, 6))) ./ ...
@@ -370,6 +384,9 @@ for itask = 1:ntasks4process
     end
     % also store the index name
     keys.indexName = repmat({idxName}, height(keys), 1);
+    % restore fix date to NaT
+    createTimeToRestore = keys.createTime == fixDate;
+    keys.createTime(createTimeToRestore) = NaT;
     % combine user information and processed indices
     results = [keys, array2table(stats, 'VariableNames', labels)];
 
