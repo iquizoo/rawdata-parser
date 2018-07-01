@@ -12,7 +12,9 @@ addParameter(par, 'TaskNames', '', @(x) ischar(x) | iscellstr(x) | isstring(x) |
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'DebugEntry', [], @isnumeric)
 addParameter(par, 'Method', 'full', @ischar)
-addParameter(par, 'SaveAction', 3, @isnumeric)
+% SaveAction should be specified as 'internal' (default), 'external' or
+% 'both'. When 'Continue' is false, 'both' is forcefully used.
+addParameter(par, 'SaveAction', 'internal', @ischar)
 addParameter(par, 'SaveVersion', 'auto', @ischar)
 parse(par, varargin{:});
 s        = par.Results.s;
@@ -25,6 +27,12 @@ method   = par.Results.Method;
 saveIdx  = par.Results.SaveAction;
 saveVer  = par.Results.SaveVersion;
 saveVerAuto = strcmp(saveVer, 'auto');
+if ~ismember(saveIdx, {'internal', 'external', 'both'})
+    warning('UDF:WRAPPER:WrongSaveAction', ...
+        ['Only ''internal'', ''external'' and ''both'' are supported save actions. ' ...
+        'Will continue by using ''internal'' option.'])
+    saveIdx = 'internal';
+end
 % load default settings
 dflts
 % path to store data as matlab binary files
@@ -79,7 +87,8 @@ else
             'TaskNames', tasks, ...
             'DisplayInfo', prompt, ...
             'DebugEntry', dbentry);
-        if saveIdx > 2 || ~cntn
+        % save as .mat for precision
+        if strcmp(saveIdx, 'internal') || strcmp(saveIdx, 'both') || ~cntn
             fprintf('Now saving raw data (dataExtract) as file %s.mat...\n', svRawFileName)
             svVars = {'data'};
             if saveVerAuto
@@ -91,9 +100,11 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            % save as .mat for precision
             save(svRawFileName, svVars{:}, saveVer)
-            % save as .xlsx for communication
+            fprintf('Saving done.\n')
+        end
+        % save as .xlsx for communication
+        if strcmp(saveIdx, 'external') || strcmp(saveIdx, 'both') || ~cntn
             fprintf('Now saving raw data as Excel files to %s...\n', humandir)
             ntasks = height(data);
             for itask = 1:ntasks
@@ -129,7 +140,8 @@ else
             'DisplayInfo', prompt, ...
             'Method', method, ...
             'DebugEntry', dbentry);
-        if saveIdx > 1 || ~cntn
+        % save as .mat for precision
+        if strcmp(saveIdx, 'internal') || strcmp(saveIdx, 'both') || ~cntn
             fprintf('Now saving processed data (resdata) as file %s.mat...\n', svResFileName)
             svVars = {'res'};
             if saveVerAuto
@@ -141,9 +153,11 @@ else
                 end
                 fprintf('Auto save version detected, will use save version: %s.\n', saveVer)
             end
-            % save as .mat for precision
             save(svResFileName, svVars{:}, saveVer)
-            % save as .xlsx for communication
+            fprintf('Saving done.\n')
+        end
+        % save as .xlsx for communication
+        if strcmp(saveIdx, 'external') || strcmp(saveIdx, 'both') || ~cntn
             fprintf('Now saving processed data as Excel files to %s...\n', humandir)
             ntasks = height(res);
             for itask = 1:ntasks
