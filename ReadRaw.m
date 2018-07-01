@@ -194,9 +194,12 @@ for ifile = 1:nfiles
                     case 'categorical'
                         curMetadataTrans = categorical(curMetadataOrig);
                     case 'datetime'
+                        % treat ambiguous numeric data as missing values
                         if isnumeric(curMetadataOrig)
-                            % not very good implementation
                             curMetadataOrig = repmat({''}, size(curMetadataOrig));
+                        elseif iscell(curMetadataOrig)
+                            curMetadataToFix = cellfun(@isnumeric, curMetadataOrig);
+                            curMetadataOrig(curMetadataToFix) = {''};
                         end
                         switch curMetavarNameReal{:}
                             case 'birthDay'
