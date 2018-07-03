@@ -1,18 +1,16 @@
-function ReadRaw(varargin)
-%READRAWXLS transforms the excel files in `src` to `dest`.
+function extracted = ReadRaw(varargin)
+%READRAWXLS transforms raw json/excel files to matlab table object
 
 % start stopwatch.
 tic
 
 % parse input arguments
 par = inputParser;
-addParameter(par, 'Source', '', @ischar)
-addParameter(par, 'Destination', '', @ischar)
+addParameter(par, 'Source', '', @(x) ischar(x) || iscellstr(x))
 addParameter(par, 'DisplayInfo', 'text', @ischar)
 addParameter(par, 'NumSamples', 0, @isnumeric)
 parse(par, varargin{:})
 src = par.Results.Source;
-dest = par.Results.Destination;
 prompt = lower(par.Results.DisplayInfo);
 nspl = par.Results.NumSamples;
 
@@ -25,45 +23,6 @@ METAVAR_OPTS = {'Taskname|taskName', 'excerciseId', 'userId', 'name', 'gender|se
 METAVAR_NAMES = {'taskName', 'excerciseId', 'userId', 'name', 'sex', 'school', 'grade', 'cls', 'birthDay', 'createTime'};
 METAVAR_TYPES = {'string', 'double', 'double', 'string', 'categorical', 'string', 'string', 'string', 'datetime', 'datetime'};
 KEY_TASKID_VAR = 'excerciseId';
-
-% load default settings
-dflts
-exportedRawDir = fullfile(dfltSet.DATARAW_DIR, dfltSet.EXPORTED_DIR);
-parsedRawDir = fullfile(dfltSet.DATARAW_DIR, dfltSet.PARSED_DIR);
-
-% check source and destination input
-if isempty(src)
-    % ask for input type
-    choice = questdlg('What type of source?', 'Input checking', 'File', 'Folder', 'Cancel', 'File');
-    switch choice
-        case 'File'
-            [fnames, pathname] = uigetfile({ ...
-                '*.xlsx;*.json', 'Excel/JSON Data (*.xlsx, *.json)'; ...
-                '*.json', 'JSON Data Files (*.json)'; ...
-                '*.xlsx', 'Excel Data Files (*.xlsx)'; ...
-                }, ...
-                'Please select the file containing source data.', exportedRawDir, 'MultiSelect', 'on');
-            if isnumeric(fnames)
-                error('UDF:READRAW:DATASOURCEMISSING', 'No data files selected.')
-            end
-            src = fullfile(pathname, fnames);
-        case 'Folder'
-            src = uigetdir(exportedRawDir, 'Please select the folder of source data.');
-            if isnumeric(src)
-                error('UDF:READRAW:DATASOURCEMISSING', 'No data path selected.')
-            end
-        case 'Cancel'
-            fprintf('User canceled. Returning.\n')
-            rmpath(HELPERFUNPATH)
-            return
-    end
-end
-if isempty(dest)
-    dest = uigetdir(parsedRawDir, 'Please select the folder of destination data.');
-    if isnumeric(dest)
-        error('UDF:READRAW:DATADESTMISSING', 'No data destination selected.')
-    end
-end
 
 % get all the data file names
 if ~iscell(src) && isfolder(src)
@@ -235,19 +194,6 @@ for ifile = 1:nfiles
     clearvars('-except', initialVars{:})
 end
 
-% save merged extracted results and write to csv files
-if ~isempty(extracted)
-    % remove entries with NaN task ID
-    extracted(isnan(extracted.(KEY_TASKID_VAR)), :) = [];
-    % save as a .mat file
-    save(fullfile(dest, 'raw'), 'extracted')
-    % write data to .csv files
-    taskIDs = unique(extracted.(KEY_TASKID_VAR));
-    % write data for each task as .csv files and use default encoding
-    for itask = 1:length(taskIDs)
-        taskID = taskIDs(itask);
-        taskExtracted = extracted(ismember(extracted.(KEY_TASKID_VAR), taskID), :);
-        writetable(taskExtracted, fullfile(dest, [num2str(taskID), '.csv']), 'QuoteStrings', true)
-    end
-end
+% remove entries with NaN task ID
+extracted(isnan(extracted.(KEY_TASKID_VAR)), :) = [];
 rmpath(HELPERFUNPATH)
