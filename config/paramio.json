@@ -1,0 +1,15 @@
+{
+    "raw": {
+        "base": "DATA_RawData",
+        "exported": "exported",
+        "parsed": "parsed"
+    },
+    "results": {
+        "base": "DATA_RES",
+        "target": "targets",
+        "readable": "readable",
+        "debug": "debug",
+        "savevar": ["extracted", "data", "res"],
+        "savename": ["raw", "parsed", "indices"]
+    }
+}
