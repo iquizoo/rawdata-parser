@@ -1,46 +1,42 @@
-# For matlab non-script/function files.
-*.mat
-*.fig
+# Created by https://www.gitignore.io/api/matlab
+
+### Matlab ###
+# Windows default autosave extension
 *.asv
 
-# For MS Office files
-*.doc
-*.docx
-*.xls
-*.xlsx
-*.ppt
-*.pptx
+# OSX / *nix default autosave extension
+*.m~
 
-# ignore all folders except specific ones
-/*/
-!scripts
-!config
+# Compiled MEX binaries (all platforms)
+*.mex*
 
-# For miscellaneous TEXT files.
-*~
-*.bak
-*.bak2
-*.log
-*.pmd
-*.txt
+# Packaged app and toolbox files
+*.mlappinstall
+*.mltbx
 
-# For miscellaneous BINARY files.
-*.jpg
-*.png
-*.tif
-*.pdf
-*.rar
-*.zip
-*.lnk
-*.feather
+# Generated helpsearch folders
+helpsearch*/
 
-# R project special
-.Rproj.user
-.Rhistory
-*.Rproj
-.RData
+# Simulink code generation folders
+slprj/
+sccprj/
 
-# other temporary scripts
-xls2config.m
-xls2config.R
+# Matlab code generation folders
+codegen/
+
+# Simulink autosave extension
+*.autosave
+
+# Octave session info
+octave-workspace
+
+
+# End of https://www.gitignore.io/api/matlab
+
+# User custom files
+configs.xlsx
 config2xls.m
+xls2config.m
+
+# auto-generated folder to store logs when processing
+logs/
